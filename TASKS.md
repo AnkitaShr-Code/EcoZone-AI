@@ -1,13 +1,11 @@
 # Tasks: NeuralNodes, EcoZone AI
 
-Team of 3. Lanes follow the suggested split in the [planning document](EcoZoning%20AI%20Climate%20Impact%20Preview%20for%20Building%20Proposals.md):
+Team of 3, about 100 to 130 person-hours from Oct 13 to Oct 18. Repair leads; Protect is second. Scope and estimates: [DESIGN.md](DESIGN.md#6-effort-estimate). Gate rules and the cut order: [PLANNING.md](PLANNING.md#build-plan-oct-13-to-18).
 
-- **D** = Data and engine
-- **A** = Agents (Gemini, ADK, output guard)
-- **U** = App (frontend, Cloud Run)
-- **All** = whole team
-
-Assign names next to each lane before starting. Tick items as they finish. Gate rules and fallbacks are in the planning doc's six-day plan.
+- **D** = Data and engine (OSM pipeline, geometry, shadows, engine, greedy, engine tests) · about 45 h
+- **A** = Agents and cloud (Earth Engine, BigQuery, FastAPI, ADK, guard, deploy, agent evals) · about 43 h
+- **U** = Front end (React, deck.gl, panels, brief view, accessibility; helps with deck and video) · about 33 h
+- **All** = whole team · about 12 h
 
 | Lane | Owner |
 | --- | --- |
@@ -15,104 +13,97 @@ Assign names next to each lane before starting. Tick items as they finish. Gate 
 | A | _TBD_ |
 | U | _TBD_ |
 
-## Oct 12 (today)
+## Oct 13 (today): contracts and foundations
 
-- [ ] **All:** assign lane owners (table above) and name the team leader
-- [ ] **All:** confirm the team is registered as 2–4 people (site showed registration closed Oct 11; timeline lists team formation to Oct 14; email support if unsure)
-- [ ] **All:** confirm every member is a working professional, 21 or older, based in JAPAC
-- [ ] **D:** register the Google Cloud project for Earth Engine as noncommercial; read the eligibility terms (if refused: Copernicus Data Space for Sentinel-2, skip Landsat validation)
-- [ ] **A:** check the current Gemini model name against the Google Cloud model list
-- [ ] **A:** ADK skeleton with stub tools returning fixed fake values
-- [ ] **U:** create the Cloud Run project and repo structure (`pipeline/`, `engine/`, `agents/`, `app/`, `evals/`)
+- [ ] **All:** assign lane owners and name the team leader (deck slide 1)
+- [ ] **All:** confirm registration (2–4 members; email support if unsure) and eligibility (working professionals, 21+, JAPAC)
+- [ ] **All:** agree the API contracts: Pydantic schemas for `Change`, `AreaResult`, Protect simulate, and the SSE event types, so all lanes build against stubs from today
+- [ ] **D:** fill `pipeline/config/pune.yaml` (both candidate boxes, EPSG:32643, reference date 15 April, road-class widths)
+- [ ] **D:** OSM extract for both boxes; count buildings with heights, sidewalks and waiting points in each; freeze the better box
+- [ ] **D:** blocks from the road network; footpath segments (~50 m, sidewalks or derived road edges, clipped 10 m back from junctions)
+- [ ] **A:** chase the Earth Engine approval; meanwhile write the `ee_layers.py` scripts against the public datasets
+- [ ] **A:** confirm the current Gemini model name on Vertex AI; create the service account and roles (BigQuery, Firestore, Storage, Vertex AI)
+- [ ] **A:** deploy an empty FastAPI service on Cloud Run that serves a placeholder React build (proves the one-container path)
+- [ ] **U:** Vite + React + TypeScript scaffold; MapLibre with a no-key vector basemap (check its terms); deck.gl overlay with stub layers
+- [ ] **U:** mode switch (Repair default), app layout, Zustand store, API client against stubs
 
-## Oct 13
+## Oct 14: Gate 1, engine on real data
 
-- [ ] **D:** compare Shivajinagar and Kothrud by the share of buildings with a height (OSM floors tag or Open Buildings); freeze the better box
-- [ ] **D:** pull OSM buildings, roads, parks and water for the ~2.5 km × 2.5 km box
-- [ ] **D:** spot-check about 10 Open Buildings heights against OSM floors tags or the image clips
-- [ ] **D:** verify the prevailing wind direction and season against the downloaded Open-Meteo data
-- [ ] **A:** write the six tool contracts as typed schemas; stub `simulate_scenario`
-- [ ] **U:** deploy an empty app to Cloud Run (proves the deploy path); it must open without a login
-- [ ] **U:** map with candidate parcels
-- [ ] **All:** deck slides 1, 3, 4, 5, 9, 13 from the doc (see [PITCH_DECK_PLAN.md](PITCH_DECK_PLAN.md))
+Passes when blocks, footpaths and baseline indices including PSS exist for the frozen area, and the range and determinism tests pass. If it fails: OSM proxy indices and default roof albedo at once.
 
-## Oct 14: Gate 1, engine on real parcels
+- [ ] **D:** sun positions for 13:00, 15:00, 16:00 IST (pvlib); wind direction from Open-Meteo, checked against the data
+- [ ] **D:** heights per building (OSM levels × 3 m, else Open Buildings, else storey default, with source column)
+- [ ] **D:** shadow engine and PSS per segment; shadow geometry test (known height → expected length and direction)
+- [ ] **D:** per-block attributes; VCI, HEI (with roof albedo term), GCS; driver tags
+- [ ] **D:** classification: Protect parcels, Repair candidate sites per site rule, built-form class, waiting-point weights
+- [ ] **D:** priority and ACS; determinism and range tests
+- [ ] **A:** Earth Engine layers (if approved): heights, Sentinel-2 shares, roof albedo (choose and cite the coefficient set), WorldCover, Landsat LST, image clips
+- [ ] **A:** BigQuery schema and loader; GCS layout; baseline shadows exported as GeoJSON
+- [ ] **A:** FastAPI area loading at startup and `GET /areas`, `/layers`, `/hotspots`
+- [ ] **U:** deck.gl layers on real data: priority blocks, extruded buildings, footpaths by PSS, waiting points, shadows with a time slider
+- [ ] **Gate check:** pass, or switch to fallbacks
 
-Passes when indices are computed for real parcels in the frozen area, the range and determinism tests pass, and the heat check has a first number. If it fails: switch to OSM proxy indices at once.
+## Oct 15: Repair end to end
 
-- [ ] **D:** define parcels (road-network blocks with low coverage or tagged vacant/open)
-- [ ] **D:** Earth Engine layers: Sentinel-2 median, WorldCover shares, Landsat surface temperature
-- [ ] **D:** per-parcel attributes (neighbors' height, street width, canyon axis, built run, distances, buffer shares, reference volume)
-- [ ] **D:** engine computes VCI, HEI, GCS, risk label and driver tags
-- [ ] **D:** determinism test (ten runs match exactly) and range test (0–100)
-- [ ] **D:** first heat-check number (Spearman on held-out half, block count)
-- [ ] **D:** load parcel table to BigQuery
-- [ ] **A:** wire `get_parcel_context` and `simulate_scenario` to the engine
-- [ ] **A:** output guard (reject numbers not in the turn's tool results, reject forbidden units; regenerate once, then fall back to a template)
-- [ ] **U:** sliders and the before/after panel against stub data
-- [ ] **Gate check:** pass or switch to OSM proxies
+- [ ] **D:** interventions (`tree_row`, `shade`, `depave`, `pocket_green`, `cool_roof`) and incremental `rescore`; ventilation check with canopy obstruction
+- [ ] **D:** greedy baseline; Repair direction tests; ventilation guard test; budget test
+- [ ] **A:** `POST /rescore`, `/greedy`, `/sites`, `/shadows?portfolio=`
+- [ ] **A:** ADK agents and tool wrappers; generic `LoopAgent` search (Gemini proposer, code scorer, code judge); SSE progress events
+- [ ] **A:** output guard as `after_model_callback`; template fallback
+- [ ] **U:** budget and unit-cost panel (planner-input badges); live search progress; plan table with rejected rows; shadow before/after
+- [ ] **All:** set default unit costs from a cited public source (for example municipal tender rates), labeled planner input
 
-## Oct 15
+## Oct 16: Gate 2, both modes end to end
 
-- [ ] **D:** pick the test parcels: wide riverfront, dense interior block, isolated corner plot
-- [ ] **D:** direction sweep test (more height or footprint never improves VCI or lowers HEI; more green never raises HEI or lowers GCS)
-- [ ] **D:** `simulate_buildout`, capped at about 30 parcels; measure its speed
-- [ ] **D:** export the true-color and vegetation false-color image clips per candidate parcel
-- [ ] **A:** design search loop (propose four, score, refine; stop at three rounds or when no candidate beats the best by more than 2 points)
-- [ ] **A:** options A, B and C selection from scored candidates only
-- [ ] **U:** option cards and live design-search progress
+Passes when Repair (priority, search, plan) and Protect (preview, design search, build-out) work locally. If it fails: search rounds to one; build-out to one prepared street.
 
-## Oct 16: Gate 2, full flow works locally
-
-Passes when select, simulate, explain, design search and area build-out work end to end locally. If it fails: cut the design search to one round and keep the loop code behind a setting.
-
-- [ ] **A:** `analyze_imagery` with confidence levels, the 15-point disagreement flag and AI-estimated labels
-- [ ] **A:** explanation with fixed parts (diagnosed impact, drivers, options and trade-offs, recommendation, caveats)
-- [ ] **A:** `format_planning_brief`
-- [ ] **A:** Gemini summary of what loses most in the build-out view
-- [ ] **U:** area build-out view (street selection, envelope input, parcels colored by risk label plus text and arrows, area averages)
-- [ ] **U:** data badges for AI-estimated and disagreement flags
-- [ ] **U:** accessibility basics: keyboard-operable sliders, visible labels, one-sentence index definitions on hover or focus
-- [ ] **All:** run the whole flow once end to end on a test parcel
-- [ ] **Optional if the gate passes early:** Gemini searches area rules (height cap, minimum green share)
+- [ ] **D:** Protect: `apply_building`, simulate, risk label (including PSS drop), build-out through the shared `rescore`; Protect direction tests
+- [ ] **A:** Protect routes; design search on the same loop; Planning Advisor: cooling plan and planning brief
+- [ ] **A:** imagery reading with confidence, disagreement flags and field check lists for Repair sites
+- [ ] **A:** Firestore persistence of sessions, portfolios, scenarios, plans; `runs` logging to BigQuery
+- [ ] **U:** Protect panels: sliders, before/after with arrows and numbers, explain, option cards with Apply, build-out view
+- [ ] **U:** brief view (printable HTML); AI-estimated, disagreement and planner-input badges
+- [ ] **All:** run both flows end to end on the frozen area
 - [ ] **Gate check**
 
 ## Oct 17: Gate 3, feature freeze
 
-Passes when deployed on Cloud Run, evals run, and the demo parcel is chosen. After this, fix only what breaks the demo.
+Passes when deployed on Cloud Run, evals run, and the demo area and parcel are chosen. After this, fix only what breaks the demo.
 
-- [ ] **U:** deploy the full app to Cloud Run; check it opens without a login
-- [ ] **D / A:** run the evals in `evals/`: determinism, range, direction, grounding, tool use (ten parcels), design search, speed, heat check
-- [ ] **D:** tune the risk-label thresholds and weights on the first half of blocks only; report on the held-out half
-- [ ] **All:** choose the demo parcel from real output; do not pre-write scores into the script
-- [ ] **All:** capture the prototype screenshots (deck slide 11)
-- [ ] **All:** fill deck slide 12 with measured results, whatever they are; slide 10 cost after deployment
-- [ ] **All:** draft deck slides 6, 7 and 8 (flow, wireframe, architecture)
-- [ ] **A:** confirm no keys in the code; secrets come from environment variables
+- [ ] **A:** full deploy (one container, min instances 1, session affinity); opens without a login
+- [ ] **D / A:** run all evals; results to `eval_results` and `evals/REPORT.md` (including Gemini vs greedy and the heat check)
+- [ ] **D:** tune thresholds and weights on the tuning half only; report on the held-out half
+- [ ] **All:** choose the demo area and parcel from real output; no pre-written scores
+- [ ] **U:** accessibility pass (keyboard, legends in words, arrows and text with color)
+- [ ] **All:** deck slides 5–13 from real screenshots and results ([PITCH_DECK_PLAN.md](PITCH_DECK_PLAN.md))
+- [ ] **A:** check no keys in code or history; billing budget alert set
 - [ ] **Gate check**
 
-## Oct 18: Submit (do it in the morning)
+## Oct 18: submit in the morning
 
-- [ ] **All:** record the 3-minute demo video from real output; keep a backup recording
-- [ ] **All:** upload the video as a public YouTube, Vimeo or Drive link; check it plays when logged out
-- [ ] **All:** finish the deck, remove every placeholder, and export to PDF (covers problem, solution, feasibility, scalability; theme stated as Sustainability & Social Impact)
-- [ ] **All:** update the README with measured evaluation results and run instructions; add a licence
-- [ ] **All:** make the GitHub repository public; check there are no keys in the code or history
-- [ ] **All:** check the Cloud Run link opens without a login
-- [ ] **All:** check all materials are in English
-- [ ] **All:** submit repo, video, deck PDF and live link with time left for a failed upload
+- [ ] **All:** record the 3-minute video from real output (script in PLANNING.md); keep a backup recording
+- [ ] **All:** upload as a public YouTube, Vimeo or Drive link; check it plays logged out
+- [ ] **All:** finish the deck, remove placeholders, export to PDF (problem, solution, feasibility, scalability; theme stated)
+- [ ] **All:** README: measured evaluation results and run instructions
+- [ ] **All:** make the repository public; check the live link opens without a login; all materials in English
+- [ ] **All:** submit repo, video, deck PDF and live link, leaving time for a failed upload
 
-## If time runs short (cut in this order)
+## Cut order (only when a gate fails)
 
-1. Satellite indices become OSM proxy indices; the heat check is skipped and listed as future work.
-2. Design search drops from three rounds to one.
-3. Area build-out runs on one prepared street instead of any selected area.
-4. UI polish is reduced; the logic and the demo path stay.
+1. Satellite layers become OSM proxy indices; roof albedo uses a labeled default; the heat check moves to future work.
+2. Imagery reading shrinks to field check lists only.
+3. Build-out runs on one prepared street.
+4. Search rounds drop from three to one.
+5. 3D building extrusion and visual polish.
 
-## Open questions to settle early
+Never cut: Repair with all five interventions, the shade score, the Protect preview.
 
-- [ ] Earth Engine noncommercial eligibility for a hackathon entry
-- [ ] Prevailing wind direction and season (verify against downloaded data before fixing in the engine)
-- [ ] Open Buildings heights in the frozen area (spot-check about 10 buildings)
-- [ ] Gemini model name
-- [ ] Team registration status
+## Open questions
+
+- [ ] Earth Engine approval (applied, waiting)
+- [ ] Gemini model name on Vertex AI
+- [ ] Team leader and member names
+- [ ] Registration status
+- [ ] Source for default unit costs
+- [ ] Basemap provider and its terms
+- [ ] Sentinel-2 albedo coefficient set and citation

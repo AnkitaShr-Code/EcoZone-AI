@@ -1,154 +1,133 @@
 # Pitch deck plan: EcoZone AI
 
-Plan for filling **Submission Template _ AI Builder Cup.pptx** (16 slides, template order kept). Content comes from the [planning document](EcoZoning%20AI%20Climate%20Impact%20Preview%20for%20Building%20Proposals.md). The deck is exported to PDF and must cover problem, solution, feasibility and scalability, with the theme stated as **Sustainability & Social Impact**.
+Plan for filling **Submission Template _ AI Builder Cup.pptx** (16 slides, template order kept). The working copy is `NeuralNodes - AI Builder Cup Submission.pptx`. Content comes from [PLANNING.md](PLANNING.md) and [DESIGN.md](DESIGN.md). The deck is exported to PDF and must cover problem, solution, feasibility and scalability, with the theme stated as **Sustainability & Social Impact**.
 
-Template note (slide 2): download the template as .pptx and edit the copy; do not send edit requests.
+**Story order:** Repair leads ("fix the streets people already wait on"), Protect follows ("don't undo it with the next building"). One line to repeat: *Repair and protect a city's cooling network.*
 
 ## Rules for the deck
 
-- **No invented numbers.** Prototype scores, benchmarks and the heat-check result go in only after they are measured. Until then the slide shows the marked placeholder below.
-- **No temperatures or wind speeds** on any planner-facing screenshot. Surface temperature appears only on the heat-check scatter plot (slide 12).
-- **Lead with the decision gap**, not the technology: cities ask "Can we build here?" and not "What happens to the neighborhood?"
-- Every slide should map to a judging criterion (see the last table).
+- **No invented numbers.** Scores, benchmarks, costs and the heat-check result go in only after they are measured. Until then the slide shows a marked placeholder.
+- **No temperatures or wind speeds** on any planner-facing screenshot. Surface temperature appears only on the heat-check scatter plot.
+- **Lead with people and places:** a bus stop on an east–west street at 3 pm, not the technology.
+- Every slide maps to a judging criterion (table at the end).
 
 ## Slide by slide
 
-### 1. Team Details
+### 1. Team Details (filled in the working copy)
 | Field | Content |
 | --- | --- |
-| Team name | **NeuralNodes** |
-| Team leader | **TBD, needs the team** (the doc names Abhishek Sirohi as author; confirm who leads) |
-| Problem statement | Building proposals are checked against fixed rules and never against what they do to the airflow and heat of the blocks around them. |
-| Theme (add a line) | Sustainability & Social Impact |
+| Team name | NeuralNodes |
+| Team leader | **TBD** |
+| Problem statement | Cities have no quick way to decide where trees, shade, depaving and cool roofs would cool the people who wait outdoors, or to stop new buildings breaking the breeze and green that cool a street. Theme: Sustainability & Social Impact. |
 
-Also add team members' names, since the checklist requires 2–4 working professionals aged 21+ in JAPAC.
+Add member names if the template allows (2–4 working professionals, 21+, JAPAC).
 
 ### 2. Template note
-Keep as is, or delete before export. Remove the "refrain from sending edit requests" note from the final PDF if the template allows.
+Delete before export.
 
 ### 3. Brief about the idea
-Carries the problem and the pitch in one slide.
-- **Hook:** A climate impact preview before a permit.
-- **Problem (3 bullets):** legal buildings can still block breeze and hold heat; outdoor workers, the elderly and children pay; once a cooling corridor is built over it cannot be restored.
-- **Evidence (2 bullets, cited on slide):** India recorded 10,545–20,615 heat deaths 2000–2020 depending on the agency (Dialogue Earth via PreventionWeb, Apr 2026); Pune's built-up area grew from 44.8% to 55.17% from 2012 to 2023 (Tiwari et al., 2025).
-- **Solution in one sentence:** a decision-support copilot that previews a proposal's effect on ventilation, heat and green connectivity, searches for better designs with Gemini, and shows the cumulative effect of a whole street building out.
-- **Visual:** one before/after pair of bars (placeholder until real parcel output exists).
+- **Hook:** Repair and protect a city's cooling network.
+- **Problem (3 bullets):** people wait in the heat on footpaths, at bus stops and in school yards with no shade; cities lack a way to spend a limited greening budget where it helps most; new legal buildings can still block breeze and pave over green.
+- **Evidence (2 bullets, cited):** 10,545–20,615 heat deaths in India 2000–2020 depending on the agency (Dialogue Earth via PreventionWeb, Apr 2026); Pune's built-up area grew from 44.8% to 55.17% from 2012 to 2023 (Tiwari et al., 2025).
+- **Solution:** Repair: Gemini designs a costed plan of trees, shade, depaving, pocket green and cool roofs, scored by an engine that measures footpath shade and rejects options that block the breeze. Protect: preview a proposed building's impact and find better designs.
+- **Visual:** shadow map of one street at 3 pm, before and after (from real output).
 
 ### 4. Opportunities
-Three template questions, one block each.
 | Question | Answer |
 | --- | --- |
-| How different is it from existing ideas? | Tools like Autodesk Forma are paid and aimed at architects in early design. EcoZone AI is aimed at the official reviewing a proposal: free public data, one-minute screening, plain-language explanation, AI design search. Complements a detailed study; does not replace one. |
-| How will it solve the problem? | Gives planners the missing question's answer at three existing moments: large projects, development plan revisions, and making the case for a rule (height cap, minimum green share). Not a new mandatory permit step. |
-| USP | (1) Gemini proposes, an engine scores, Gemini refines: every number is engine-computed. (2) Area build-out shows the cumulative effect. (3) Heat index checked against satellite measurement. (4) AI-estimated inputs are labeled. |
+| How different is it? | Forma is a paid wind and microclimate tool for architects. Tree equity tools show where canopy is missing, but don't design, cost or check interventions. EcoZone AI designs a costed mix of five intervention types for a budget, checks each against ventilation and shade geometry, and explains it, using free data for Indian cities. |
+| How will it solve the problem? | Gives ward and tree officials a ranked, phased, costed plan for land the city already controls (footpaths, school yards, parking, medians, roofs), at the moment budgets are set; gives planners a preview before approving large projects. |
+| USP | (1) AI designs the plan, an engine scores it, and it knows when trees backfire. (2) Shade measured as geometry where people actually wait. (3) Gemini benchmarked against a greedy baseline, reported honestly. (4) Every number traceable; AI-estimated inputs labeled. |
 
 ### 5. List of features
-Six features, one line each, grouped:
-1. Parcel selection and baseline indices (VCI, HEI, GCS, 0–100).
-2. Proposal input: floors, footprint %, green %, orientation.
-3. Before/after preview with a LOW / MODERATE / HIGH risk label and named drivers.
-4. Gemini design search: three ranked options (A developer maximized, B balanced, C climate optimized), shown live as candidates are scored.
-5. Area build-out: one envelope on every vacant parcel on a street, all parcels rescored.
-6. Aerial-imagery reading with disagreement flags and AI-estimated labels; planning brief output.
+**Repair:** priority map (heat × missing shade × waiting points × dense low-rise) · budget and unit costs · Gemini portfolio search with live progress · five intervention types · ventilation check with rejected options · shadow comparison at 1, 3 and 4 pm · phased cooling plan with field check lists.
+**Protect:** proposal preview with risk label · Gemini design search (options A, B, C) · area build-out.
+**Trust strip:** output guard · no temperatures or wind speeds · AI-estimated labels · never approves or orders work.
 
-Trust strip along the bottom: output guard, no physical units, never approves or denies.
+### 6. Process flow
+Two rows on one map:
+- **Repair:** select area → priority map → set budget → Gemini proposes portfolios → engine scores (shade, heat, green, ventilation, cost) → refine ×3 → plan and shadows → cooling plan brief.
+- **Protect:** select parcel → enter proposal → engine scores → Gemini explains → design search → options A/B/C → build-out → planning brief.
+Small inset: the search loop (Gemini proposer → code scorer → code judge; stop at 3 rounds or no gain).
 
-### 6. Process flow / use-case diagram
-Linear flow, one row of 7 steps, with the planner as the actor:
-select parcel → enter building → engine scores baseline and proposed → Gemini explains drivers → design search (propose, score, refine, up to 3 rounds) → options A/B/C → planning brief. A branch from step 2 to **Area build-out** → area averages, HIGH parcel count.
+### 7. Wireframes / mock diagrams
+Real screenshot of the Repair screen if ready by Oct 17; otherwise the annotated mockup. Callouts: rejected tree row with reason, live search progress, planner-input and AI-estimated badges, arrows and text with color.
 
-Second small diagram: the design search loop (Gemini proposes 4 candidates → `simulate_scenario` scores → drop candidates breaking the floor-area rule → refine → stop at 3 rounds or <2 points gain).
+### 8. Architecture
+Redraw section 1 of DESIGN.md: offline pipeline → BigQuery and Cloud Storage; one Cloud Run service with React, FastAPI, the ADK agent layer (orchestrator, 4 agents, LoopAgent search, output guard) and the engine; Firestore; Gemini on Vertex AI. Dashed path: Landsat → heat check only.
 
-Source: "What it does" and "Design search loop" sections.
-
-### 7. Wireframes / mock diagrams (optional)
-Include. Use a real screenshot if the app is ready by Oct 17, otherwise a labeled wireframe of the one screen: map (left); parcel analysis, inputs, before/after, explain, option cards, build-out (right); data badges. Annotate three callouts: arrows plus text for change direction (accessibility), live design-search progress, AI-estimated badge.
-
-### 8. Architecture diagram
-Redraw the doc's four layers and one guard:
-Planner app → Agent layer (Orchestrator; Spatial Analyst, Scenario Analyst, Planning Advisor) → Scoring engine (only place a score is computed) → Preprocessed data (BigQuery, Firestore, image clips) → Output guard → planner. Show the dashed evaluation-only path (Landsat surface temperature to heat check) separately. Add the offline pipeline (OSM, Open Buildings, Sentinel-2, WorldCover, Open-Meteo → BigQuery) on the left.
-
-### 9. Technologies to be used
+### 9. Technologies
 | Area | Technology |
 | --- | --- |
-| AI | Gemini (**confirm the current model name against the Google Cloud model list before coding**); Google Agent Development Kit |
-| Compute and hosting | Cloud Run |
-| Data stores | BigQuery (GEOGRAPHY), Firestore |
-| Geospatial processing | Google Earth Engine (noncommercial), Overpass API |
-| Data | OpenStreetMap, Google Open Buildings 2.5D Temporal, Sentinel-2, ESA WorldCover, Open-Meteo (ERA5), Landsat 8/9 |
-| App | Frontend with map; scoring engine in plain code |
+| AI | Gemini on Vertex AI (model name confirmed on day 1), Google Agent Development Kit (LlmAgent, LoopAgent, callbacks) |
+| Backend | Python, FastAPI, shapely, geopandas, pvlib |
+| Front end | React, TypeScript, deck.gl, MapLibre GL |
+| Cloud | Cloud Run, BigQuery (GEOGRAPHY), Firestore, Cloud Storage, Cloud Build, Earth Engine |
+| Data | OpenStreetMap, Google Open Buildings 2.5D, Sentinel-2, ESA WorldCover, Open-Meteo, Landsat 8/9 (validation) |
 
-Add a one-line note: Google Maps satellite tiles are deliberately not used because of the Maps Platform AI-use terms.
+Note on the slide: Google Maps tiles are not used because of the Maps Platform AI-use terms.
 
-### 10. Estimated implementation cost (optional)
-Include only what is known; do not invent a figure.
-- **Free by design:** all data sources are open or free for non-commercial use; Earth Engine Community tier gives 150 compute-hours a month at no charge.
-- **Usage-based, to be measured:** Gemini calls per design search, Cloud Run, BigQuery, Firestore.
-- **Action:** after the Oct 17 freeze, compute cost per design search and per month for a pilot of N planner sessions, using the Google Cloud pricing calculator. **TBD**
-- **Per new city:** one preprocessing job run plus storage; no code changes.
+### 10. Estimated implementation cost
+- **Free by design:** all data sources open; Earth Engine noncommercial.
+- **Measured after deployment:** Gemini calls per search (at most 3), Cloud Run, BigQuery, Firestore. **TBD**
+- **Intervention costs:** planner unit costs, with defaults from a cited public source. Never presented as market prices.
+- **Per new city:** one pipeline run plus storage; no code changes.
 
 ### 11. Snapshots of the prototype
-Four real screenshots, taken from the demo parcel chosen on day 5:
-1. Selected parcel with baseline indices and a data flag.
-2. Before/after with risk label and Explain.
-3. Design search mid-run, then options A/B/C.
-4. Area build-out with parcels colored by risk label.
+Five real screenshots: priority map with shadows at 3 pm; search mid-run; plan with a rejected tree row; shadows before and after; Protect options A/B/C. No pre-written scores.
 
-Do not write scores into the script or slide in advance; capture from real output.
-
-### 12. Prototype performance report / benchmarking
-Report only measured results, whatever they are. Layout: one table (test, result) plus the heat-check scatter plot.
-| Test | Result to report |
+### 12. Performance report / benchmarking
+Report only measured results.
+| Test | Report |
 | --- | --- |
-| Determinism (10 runs) | pass/fail |
-| Range (0–100) on riverfront, dense interior, isolated corner parcels | pass/fail |
-| Direction sweep | pass/fail |
+| Determinism, range, direction (both modes) | pass/fail |
+| Shadow geometry, ventilation guard, budget | pass/fail |
+| Gemini vs greedy | win/tie/loss per test area, with ACS gain and cost |
 | Grounding violations | count |
-| Tool-use success over ten parcels | rate |
-| Design search (B keeps floor-area share, C beats A) | pass/fail per parcel |
-| Speed: engine per scenario, preview, design search | measured times |
-| Heat check: Spearman correlation and block count on held-out blocks | value, with the two caveats (surface not air temperature; shared inputs) |
+| Speed: rescore, simulate, full search | measured times |
+| Heat check | Spearman correlation and block count on held-out blocks, scatter plot, caveats |
 
-If a result is poor, state it and the cause. If the satellite steps fell back to OSM proxies, mark the heat check "skipped, future work".
+If a result is poor, say so and why.
 
-### 13. Additional details / future development
-- **Scalability:** a new city means changing the bounding box, wind direction and road-class width defaults, then rerunning the same job. Claimed for the demo area only until a second city is run.
-- **Next steps:** validate and calibrate with a partner who can supply measurements or detailed studies for the same area; run a second city; search area rules (height cap, minimum green share) with the same Gemini loop if the Oct 16 gate passes early.
-- **Limits stated openly (one line each):** heuristic indices, only heat is validated; Open Buildings height accuracy unmeasured in India; parcels are road-network blocks, not legal plots; wind is a seasonal direction.
-- **What we will not claim:** temperatures, wind speeds, fluid dynamics, forecasts, permit decisions.
+### 13. Future development
+- **Close the loop:** plan in winter, plant with the monsoon, measure the next summer with Landsat, recalibrate; ward staff log tree survival with geotagged photos checked by Gemini.
+- **More interventions:** greening nala and river edges; street-level imagery for site checks once licensing is verified.
+- **More cities:** one pipeline run per city.
+- **Language:** plans in Marathi for ward offices.
+- **Limits stated openly:** heuristic indices, only heat validated; shade is clear-sky geometry; albedo block-level; Open Buildings heights unmeasured in India.
 
 ### 14. Links
-| Item | Source | Status |
-| --- | --- | --- |
-| GitHub public repository | This repo, made public | Needs no keys in code; created during the hackathon |
-| Demo video (3 min) | Public YouTube, Vimeo or Drive link | Record after freeze; keep a backup |
-| Final product | Cloud Run URL, opens without login | Deploy an empty version on Oct 13 to prove the path |
+| Item | Status |
+| --- | --- |
+| GitHub public repository | Make public; no keys |
+| Demo video (3 min) | Record after freeze; public link |
+| Final product | Cloud Run URL, opens without login |
 
-### 15–16. Closing slides
-The template's last two slides are blank. Suggested use: slide 15 as a one-line takeaway ("Ask what happens to the neighborhood, before the permit") with the three headline claims; slide 16 as contact and thanks. Delete either if unused.
+### 15–16. Closing
+Slide 15: *Repair and protect a city's cooling network*, with three proof points (engine-scored AI plans, shade where people wait, heat index checked against satellite). Slide 16: contact and thanks. Delete if unused.
 
 ## Mapping to judging criteria
 
-| Criterion (weight) | Slides that carry it |
+| Criterion (weight) | Slides |
 | --- | --- |
 | Technical merit and Gen AI (40%) | 5, 6, 8, 9, 12 |
 | Problem alignment and impact (25%) | 3, 4, 13 |
-| Innovation and creativity (25%) | 4, 5, 6 |
-| User experience and design (10%) | 7, 11 |
+| Innovation and creativity (25%) | 4, 5, 6, 7 |
+| User experience (10%) | 7, 11 |
 
-## Build order and owners
+## Build order
 
 | When | Task |
 | --- | --- |
-| Oct 13 | Fill slides 1, 3, 4, 5, 9, 13 from the doc (no dependencies on code). Confirm the team leader, member names and Gemini model name. |
-| Oct 14–16 | Draw slides 6 and 8. Slide 7 wireframe if no UI yet. |
-| Oct 17 (freeze) | Capture slide 11 screenshots; fill slide 12 from the evals run; compute slide 10 cost; add slide 14 links once deployed. |
-| Oct 18 morning | Export PDF, check every placeholder is gone, submit with time left for a failed upload. |
+| Oct 13–14 | Slides 1, 3, 4, 9, 13 (no code dependencies) |
+| Oct 15–16 | Slides 5, 6, 8 diagrams |
+| Oct 17 | Slides 7, 11, 12 from real output; slide 10 cost; slide 14 links |
+| Oct 18 morning | Export PDF, check no placeholders remain, submit |
 
 ## Open items
 
-1. Team leader and member list (slide 1). Team name is set: NeuralNodes.
-2. Final Gemini model name (slide 9).
-3. Cost figures (slide 10) after deployment.
-4. All measured results (slides 11, 12) and links (slide 14).
-5. Whether to delete slide 2 and the empty slides 15–16.
+1. Team leader and member names (slide 1).
+2. Gemini model name (slide 9).
+3. Default unit-cost source (slide 10).
+4. Measured results, screenshots and links (slides 11, 12, 14).
+5. Precedents to verify before citing: Ahmedabad Heat Action Plan cool roofs, Telangana Cool Roof Policy (2023), Paris OASIS schoolyards, American Forests Tree Equity Score.
