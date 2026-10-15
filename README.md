@@ -13,10 +13,12 @@ Built by team **NeuralNodes** for the **Google Cloud AI Builder Cup 2026**, them
 
 | Document | Contents |
 | --- | --- |
-| [PLANNING.md](PLANNING.md) | Problem, solution, scoring formulas, agents, data, trust, build plan, locked decisions |
-| [DESIGN.md](DESIGN.md) | Components, interfaces, data stores, flows, performance and effort |
-| [TASKS.md](TASKS.md) | Day-by-day checklist by lane |
-| [PITCH_DECK_PLAN.md](PITCH_DECK_PLAN.md) | Slide-by-slide plan for the submission deck |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System shape, component ownership, the two rules every change must preserve |
+| [docs/PLANNING.md](docs/PLANNING.md) | Problem, solution, scoring formulas, agents, data, trust, build plan, locked decisions |
+| [docs/DESIGN.md](docs/DESIGN.md) | Components, interfaces, data stores, flows, performance and effort |
+| [docs/TASKS.md](docs/TASKS.md) | Day-by-day checklist by lane |
+| [docs/PITCH_DECK_PLAN.md](docs/PITCH_DECK_PLAN.md) | Slide-by-slide plan for the submission deck |
+| [AGENTS.md](AGENTS.md) | Guidance for AI coding agents working in this repo |
 
 ## Why
 
@@ -70,12 +72,12 @@ offline pipeline (OSM, Open Buildings, Sentinel-2, WorldCover, Landsat, Open-Met
 sessions and plans ──► Firestore          one Cloud Run service serves UI and API
 ```
 
-- **Engine:** the only place a score is computed. Indices on a 0 to 100 scale: Ventilation Corridor Index, Heat Exposure Index (with a roof albedo term), Green Connectivity Score and Pedestrian Shade Score. Repair maximizes an exposure-weighted Area Cooling Score within the budget, and no block may lose 10 or more ventilation points. Formulas: [PLANNING.md](PLANNING.md#scoring-engine).
+- **Engine:** the only place a score is computed. Indices on a 0 to 100 scale: Ventilation Corridor Index, Heat Exposure Index (with a roof albedo term), Green Connectivity Score and Pedestrian Shade Score. Repair maximizes an exposure-weighted Area Cooling Score within the budget, and no block may lose 10 or more ventilation points. Formulas: [docs/PLANNING.md](docs/PLANNING.md#scoring-engine).
 - **Agents:** an ADK orchestrator with Spatial Analyst, Repair Planner, Scenario Analyst and Planning Advisor. Both searches run as one ADK `LoopAgent`: Gemini proposes, and plain code scores the candidates and decides when to stop.
 - **Trust:** an output guard rejects any number not found in the turn's tool results or planner inputs, and any temperature, wind or energy unit. AI-estimated values are labeled.
 - **Data:** OpenStreetMap, Google Open Buildings 2.5D heights, Sentinel-2, ESA WorldCover, Open-Meteo wind, computed sun position; Landsat surface temperature is used only to validate the heat index. Google Maps tiles are not used.
 
-Full component design: [DESIGN.md](DESIGN.md).
+Full component design: [docs/DESIGN.md](docs/DESIGN.md). System shape and component ownership: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Evaluation
 
@@ -96,9 +98,12 @@ Tests live in `evals/`. Results will be reported here once measured; no targets 
 
 Limits stated openly: the indices are heuristic screening indicators and only the heat index is checked; the shade score is clear-sky geometry; roof albedo is a block-level estimate; parcels are road-network blocks; wind is one seasonal direction; trees take years to grow the canopy the plan assumes.
 
-## Repository layout (planned)
+## Repository layout
+
+Code directories are scaffolded (each holds a `README.md` describing what will live there and linking to its design section) but not yet implemented:
 
 ```
+docs/       architecture, planning, design, tasks, deck plan
 pipeline/   offline data job per city
 engine/     deterministic scoring engine
 api/        FastAPI routes
