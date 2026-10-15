@@ -20,14 +20,16 @@ export function RepairWorkflow() {
   const { areaId, changes, result } = useScenario()
   const { data: area } = useArea(areaId)
   const budgetLakh = useRepairStore((s) => s.budgetLakh)
+  const quickWinSharePct = useRepairStore((s) => s.quickWinSharePct)
   const startSearch = useRepairStore((s) => s.startSearch)
   const unitCosts = useCostsStore((s) => s.unitCosts)
   const plan = useRepairPlan()
   const { stateOf, edit, advance } = useSteps('repair')
   const budgetInr = budgetLakh * LAKH
   const budgetValid = Number.isFinite(budgetLakh) && budgetLakh > 0
-  const inputsChanged = !!plan.run && (plan.run.request.budgetInr !== budgetInr || plan.run.request.unitCosts !== unitCosts)
+  const inputsChanged = !!plan.run && (plan.run.request.budgetInr !== budgetInr || plan.run.request.unitCosts !== unitCosts || plan.run.request.quickWinSharePct !== quickWinSharePct)
   const overBudget = (result?.costInr ?? 0) > budgetInr
+  const belowQuickWins = !!result && result.quickWinCostInr < (budgetInr * quickWinSharePct) / 100
   const draft = () => {
     if (!unitCosts) return
     startSearch(unitCosts)
@@ -72,19 +74,21 @@ export function RepairWorkflow() {
         title="Review plan"
         state={stateOf(2)}
         summary={result ? `${formatCount(changes.length, 'intervention')} · ${formatInr(result.costInr)}` : undefined}
-        staleNote={inputsChanged ? 'Budget or costs changed. Draft the plan again.' : undefined}
+        staleNote={inputsChanged ? 'Budget, quick-win share or costs changed. Draft the plan again.' : undefined}
         instruction={plan.applied ? 'Untick anything you want to leave out; scores update instantly. Click an item to see it on the map.' : 'Gemini is drafting options; the engine scores each one.'}
         lockedReason="Draft a plan first"
         primary={{
           label: 'Accept plan',
           onClick: advance,
-          disabled: !plan.applied || !changes.length || overBudget,
-          disabledReason: overBudget ? 'The plan is over budget. Untick an item.' : !changes.length ? 'Tick at least one intervention.' : 'Wait for the search to finish.',
+          disabled: !plan.applied || !changes.length || overBudget || belowQuickWins,
+          disabledReason: overBudget ? 'The plan is over budget. Untick an item.'
+            : belowQuickWins ? 'Below the quick-win share. Tick a shade structure, cool roof or depave site.'
+              : !changes.length ? 'Tick at least one intervention.' : 'Wait for the search to finish.',
         }}
         secondary={plan.applied ? { label: 'Draft again', onClick: draft } : undefined}
         onEdit={() => edit(2)}
       >
-        <PlanStepContent plan={plan} budgetInr={budgetInr} />
+        <PlanStepContent plan={plan} budgetInr={budgetInr} quickWinSharePct={quickWinSharePct} />
       </StepCard>
 
       <StepCard

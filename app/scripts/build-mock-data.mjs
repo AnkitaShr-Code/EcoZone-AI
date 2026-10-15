@@ -297,7 +297,8 @@ for (const fp of footpaths) {
     ventilation: deep ? { ok: false, driver: 'CANOPY_OBSTRUCTION', reason: `Deep, narrow street (height-to-width ${r1(hw)}). Dense canopy would block the breeze and trap heat at night.` } : { ok: true },
     effects: {
       segments: shadeEffect(rings, CROWN.bottom, CROWN.top, fp.line),
-      blocks: Object.fromEntries(blocksTouched.map((b) => [b, { hei: r1(-0.3 * dGc), gcs: r1(0.5 * dGc), vci: deep ? -12 : 0 }])),
+      // Deep streets never enter a plan (site rule, docs/PLANNING.md), so tree rows don't change VCI.
+      blocks: Object.fromEntries(blocksTouched.map((b) => [b, { hei: r1(-0.3 * dGc), gcs: r1(0.5 * dGc), vci: 0 }])),
     },
     drivers: deep ? ['CANOPY_OBSTRUCTION'] : ['SHADE_GAIN', 'GREEN_LINK'],
   })

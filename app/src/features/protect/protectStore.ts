@@ -23,6 +23,8 @@ interface ProtectState {
   setBuildout: (patch: Partial<ProtectState['buildout']>) => void
 }
 
+const clearedResults = { run: null, chosen: null, buildout: { radiusM: 400, ran: false } }
+
 export const useProtectStore = create<ProtectState>((set) => ({
   parcelId: null,
   design: null,
@@ -30,9 +32,10 @@ export const useProtectStore = create<ProtectState>((set) => ({
   run: null,
   chosen: null,
   buildout: { radiusM: 400, ran: false },
-  setParcel: (parcelId, design) => set({ parcelId, design, run: null, chosen: null, buildout: { radiusM: 400, ran: false } }),
-  setDesign: (patch) => set((s) => (s.design ? { design: { ...s.design, ...patch } } : s)),
-  setKeepFloorAreaPct: (keepFloorAreaPct) => set({ keepFloorAreaPct }),
+  setParcel: (parcelId, design) => set({ parcelId, design, ...clearedResults }),
+  // Search inputs changing after a search clear its results (the caller relocks the later steps).
+  setDesign: (patch) => set((s) => (s.design ? { design: { ...s.design, ...patch }, ...(s.run ? clearedResults : {}) } : s)),
+  setKeepFloorAreaPct: (keepFloorAreaPct) => set((s) => ({ keepFloorAreaPct, ...(s.run ? clearedResults : {}) })),
   startSearch: () => set((s) => (s.parcelId && s.design
     ? {
       run: { id: Date.now(), request: { mode: 'protect', parcelId: s.parcelId, proposal: s.design, keepFloorAreaPct: s.keepFloorAreaPct, minFloorAreaPct: MIN_FLOOR_AREA_PCT } },

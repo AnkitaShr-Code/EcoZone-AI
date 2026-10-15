@@ -61,14 +61,14 @@ Rules:
 - One open step at a time. The primary button advances to the next step.
 - Primary button text is a verb phrase naming the outcome: "Draft cooling plan", "Preview impact", "Export brief". Never "Next", "Submit" or "OK".
 - At most one primary button per open step. Other actions are secondary (outline) or ghost buttons.
-- Editing an earlier step that invalidates later results marks those steps as stale ("Budget changed. Draft the plan again.") rather than silently deleting them.
+- Editing an earlier step never silently deletes later results. If the later results still make sense, mark the step stale ("Budget changed. Draft the plan again."). If they can no longer apply (a different parcel, a changed proposal after a design search), clear them, relock the later steps with `resetSteps`, and say so in a toast.
 
 **Repair steps**
 
 | # | Step | Primary action | Result |
 | --- | --- | --- | --- |
 | 1 | Choose area | Use this area | Priority map shown |
-| 2 | Set budget | Draft cooling plan | Starts the AI search |
+| 2 | Set budget | Draft cooling plan | Budget, quick-win share and unit costs; starts the AI search |
 | 3 | Review plan | Accept plan | Live search progress, then the plan table, rejected options and before/after |
 | 4 | Export brief | Download brief | Printable cooling plan |
 
@@ -178,6 +178,7 @@ Rules:
 - A scroll area that holds `sr-only` text must be `relative`, or the hidden labels escape and make the whole page scroll.
 - `maplibre-gl` stays in `optimizeDeps.exclude` in `vite.config.ts`; pre-bundling breaks its worker URL.
 - deck.gl layer ids equal registry ids, so clicks and tooltips map back to the registry.
+- `components/ui/slider.tsx` is edited to pass `aria-label` to the thumb (the focusable element). Keep that when re-adding the component.
 
 ## 9. Accessibility
 

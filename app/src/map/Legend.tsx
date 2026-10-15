@@ -8,7 +8,8 @@ import { layersFor, legendOf, type LegendEntry } from './layerRegistry'
 export function Legend() {
   const mode = useUiStore((s) => s.mode)
   const visible = useUiStore((s) => s.visibleLayers)
-  const hasScenario = useScenarioStore((s) => s.view === 'scenario' && s.scenario[mode].changes.length > 0)
+  const changes = useScenarioStore((s) => s.scenario[mode].changes)
+  const hasScenario = useScenarioStore((s) => s.view === 'scenario') && changes.length > 0
   const shown = layersFor(mode).filter((l) => visible[l.id as keyof typeof visible] && (!l.scenarioOnly || hasScenario))
   if (!shown.length) return null
   return (
@@ -19,7 +20,7 @@ export function Legend() {
           <li key={layer.id}>
             <p className="mb-1 font-semibold">{layer.label}</p>
             <ul className="space-y-1">
-              {legendOf(layer, mode).map((entry) => (
+              {legendOf(layer, mode, changes).map((entry) => (
                 <li key={entry.label} className="flex items-center gap-2 text-muted-foreground">
                   <Swatch entry={entry} />
                   {entry.label}

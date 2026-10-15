@@ -181,6 +181,8 @@ export interface AreaResult {
   worstVciDrop: number
   waitPointsCovered: number
   costInr: number
+  /** Cost of interventions that help within weeks or one season (docs/PLANNING.md, quick-win share). */
+  quickWinCostInr: number
   drivers: string[]
   /** Existing blocks whose cooling score falls. */
   blocksWorse: number
@@ -213,7 +215,7 @@ export interface Candidate {
 }
 
 export type SearchRequest =
-  | { mode: 'repair'; budgetInr: number; unitCosts: UnitCosts }
+  | { mode: 'repair'; budgetInr: number; unitCosts: UnitCosts; quickWinSharePct: number }
   | { mode: 'protect'; parcelId: string; proposal: BuildingDesign; keepFloorAreaPct: number; minFloorAreaPct: number }
 
 export interface DesignOption {

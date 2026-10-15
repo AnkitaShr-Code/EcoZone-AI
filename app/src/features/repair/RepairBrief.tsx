@@ -24,7 +24,7 @@ export function RepairBrief({ plan }: { plan: RepairPlan }) {
   const types = [...new Set(chosen.map((x) => x.site.type))] as InterventionType[]
 
   return (
-    <BriefSheet title={`Cooling plan: ${area.name}, ${area.city}`} subtitle={`Budget ${formatInr(budgetLakh * LAKH)} · plan cost ${formatInr(result.costInr)} · ${chosen.length} interventions`}>
+    <BriefSheet title={`Cooling plan: ${area.name}, ${area.city}`} subtitle={`Budget ${formatInr(budgetLakh * LAKH)} · plan cost ${formatInr(result.costInr)}, of which ${formatInr(result.quickWinCostInr)} helps this summer · ${chosen.length} interventions`}>
       <BriefSection title="Outcome">
         <table className="w-full text-left">
           <thead><tr className="border-b"><th className="py-1">Score</th><th>Today</th><th>With plan</th><th>Change</th></tr></thead>

@@ -134,8 +134,8 @@ def rescore(area: AreaModel, changes: list[Change], unit_costs: dict) -> AreaRes
 | Shadows | Building shadow = convex hull of the footprint and the footprint translated by `h / tan(altitude)` away from the sun's azimuth; crowns are circles translated by crown height; shade structures are polygons at 3 m. Shapely 2 vectorized operations |
 | Incremental rescoring | A change only touches blocks and segments within a radius (300 m for green terms, the longest shadow for PSS). STRtree finds them; the rest keep their baseline. Target: under 200 ms per portfolio |
 | Interventions | Each `apply_*` returns the attribute deltas and new shadow geometry for its site; `rescore` merges them and recomputes indices only where touched |
-| Ventilation check | After applying tree rows, recompute `r_eff` for affected deep-canyon segments; any block VCI drop of 10 or more sets `ventilation_ok = False` and the CANOPY_OBSTRUCTION driver |
-| Greedy baseline | Score each candidate site alone, sort by ACS gain per rupee, add in order while within budget, rescoring the portfolio after each addition |
+| Ventilation | Site rule at classification: tree-row candidates on streets with height-to-width 1 or more are marked rejected (CANOPY_OBSTRUCTION) and never enter a plan. `rescore` still sets `ventilation_ok = False` when any block's VCI drops by 10 or more (mainly Protect buildings) |
+| Greedy baseline | Score each candidate site alone; fill the quick-win share with quick wins by ACS gain per rupee, then add the rest by gain per rupee while within budget |
 | Determinism | No randomness; stable sort keys; float rounding only at the API edge |
 
 ### C3. API service (FastAPI)
@@ -172,7 +172,7 @@ The same container serves the React build as static files, so there is one URL, 
 **One search loop, two uses.** `search.py` builds an ADK `LoopAgent` with `max_iterations=3` and three steps:
 
 1. **Proposer** (`LlmAgent`, Gemini): reads the best results so far from session state, proposes four candidates as structured JSON (portfolios for Repair, designs for Protect).
-2. **Scorer** (custom `BaseAgent`, no LLM): calls the engine for each candidate, drops invalid ones (over budget, ventilation fail, floor-area rule), writes scores to state, emits one progress event per candidate.
+2. **Scorer** (custom `BaseAgent`, no LLM): calls the engine for each candidate, drops invalid ones (over budget, below the quick-win share, ventilation fail, floor-area rule), writes scores to state, emits one progress event per candidate.
 3. **Judge** (custom `BaseAgent`, no LLM): stops the loop (escalate) when no candidate beats the best by the threshold (0.5 ACS points for Repair, 2 points for Protect).
 
 The scorer and judge are plain code, so the loop's control flow is deterministic and only the proposals come from Gemini.
@@ -229,7 +229,7 @@ The scorer and judge are plain code, so the loop's control flow is deterministic
 
 | Part | Design |
 | --- | --- |
-| Engine tests | pytest: determinism, range, direction (both modes), shadow geometry, ventilation guard, budget |
+| Engine tests | pytest: determinism, range, direction (both modes), shadow geometry, ventilation site rule, budget and quick-win share |
 | Agent evals | Scripted runs over fixed areas and parcels: grounding violations, tool-use order, design search rules, Gemini vs greedy |
 | Heat check | `pipeline/validate.py`, held-out half, Spearman plus scatter PNG |
 | Output | Rows in `eval_results`, and `evals/REPORT.md` generated for the README and deck |
@@ -250,7 +250,7 @@ The scorer and judge are plain code, so the loop's control flow is deterministic
 **Repair: draft a cooling plan**
 
 1. UI loads the area: layers from GCS, `GET /hotspots`, baseline shadows.
-2. Planner sets budget and unit costs; UI calls `POST /agent/runs` with mode `repair`.
+2. Planner sets budget, quick-win share and unit costs; UI calls `POST /agent/runs` with mode `repair`.
 3. Orchestrator → Spatial Analyst (`get_area_context`) → Repair Planner (`rank_hotspots`, `list_candidate_sites`, `greedy_baseline`).
 4. Search loop: up to 3 rounds of propose (Gemini) → score (engine) → judge. Each scored candidate streams to the UI.
 5. Planning Advisor writes the plan from the best portfolio's `AreaResult`; the guard checks it.

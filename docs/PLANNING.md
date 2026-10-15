@@ -20,6 +20,8 @@ The Oct 12 version was a permit-stage preview only. After a design review the te
 | Repair budget | Rupees, using planner-entered unit costs |
 | Vulnerability | Built-form proxy (dense low-rise blocks), named as a built form, never as a social label |
 | Capacity | 100 to 130 person-hours for Oct 13 to 18 |
+| Quick wins (Oct 15) | A planner-set share of the Repair budget (default 20%) must go to interventions that help this summer |
+| Canopy on deep streets (Oct 15) | A site rule keeps dense tree rows off streets with height-to-width of 1 or more |
 
 ## Problem statement
 
@@ -63,7 +65,7 @@ EcoZone AI treats a neighborhood as one **cooling network** with three layers:
 
 1. The planner selects an area: the frozen demo area or a ward-sized part of it.
 2. The map ranks blocks and footpaths by **priority**: heat exposure, lack of afternoon shade, waiting points nearby, and dense low-rise built form.
-3. The planner sets a rupee budget and checks the unit costs for each intervention type. Defaults are labeled planner input.
+3. The planner sets a rupee budget, the share of it that must help this summer (quick wins), and checks the unit costs for each intervention type. Defaults are labeled planner input.
 4. The engine lists candidate sites for each intervention type, using site rules (below).
 5. Gemini runs the **portfolio search**: it proposes mixes of interventions within the budget, the engine scores each one, and Gemini refines. The engine also computes a simple greedy baseline, and the best of the two is shown.
 6. The planner reads the plan: each intervention with its site, cost, the drivers that justify it, the waiting points it covers, its time to benefit, and its ventilation check. Rejected options are listed with the reason.
@@ -74,7 +76,7 @@ EcoZone AI treats a neighborhood as one **cooling network** with three layers:
 
 | Intervention | Site rule (prototype settings) | Engine terms changed | Backfires when | Time to benefit |
 | --- | --- | --- | --- | --- |
-| Street tree row | Footpath segment on a road with a width class that allows a planting strip; prefers east–west segments with low building shade | Shade (crown shadows), green share, green links; ventilation check | The street is deep and narrow (height-to-width 1 or more): canopy blocks the breeze and traps heat at night, so the engine applies an obstruction penalty and the planner sees a CANOPY_OBSTRUCTION flag | Years |
+| Street tree row | Footpath segment on a road with a width class that allows a planting strip, and height-to-width below 1; prefers east–west segments with low building shade | Shade (crown shadows), green share, green links | The street is deep and narrow (height-to-width 1 or more): canopy blocks the breeze and traps heat at night. The site rule keeps dense tree rows off these streets; the planner sees them as rejected (CANOPY_OBSTRUCTION) with a shade structure suggested instead | Years |
 | Shade structure | Within 30 m of a waiting point (bus stop, market, school gate, hospital entrance) | Shade only | Monsoon wind load; needs maintenance and seasonal removal | Weeks |
 | Depave and plant | Public paved open land: school yards, municipal parking, medians, traffic islands | Impervious share, green share, green links | Replaced with lawn that needs irrigation; prefer native shrubs and trees | One season |
 | Pocket green | Vacant or amenity plot; scored higher when it closes a gap between existing green patches | Green share, green buffer, green links | Isolated scraps add little connectivity | 2 to 3 years |
@@ -150,12 +152,10 @@ VCI = 0.30\,W_a + 0.25\,C_o + 0.25\,O_b + 0.20\,P_g
 
 W_a = \max(0,\ 100\cos\Delta\theta) \qquad C_o = \max\left(0,\ 100 - \frac{L_{built}}{5}\right)
 
-O_b = 100\left(1 - \min\left(1,\ \frac{r_{eff}}{2.5}\right)\right) \qquad P_g = \max\left(0,\ 100 - \frac{d_{water}}{10}\right)
-
-r_{eff} = \frac{H}{W} + 0.5\,c_{canopy}\quad \text{when } \frac{H}{W} \ge 1,\ \text{else } \frac{H}{W}
+O_b = 100\left(1 - \min\left(1,\ \frac{H/W}{2.5}\right)\right) \qquad P_g = \max\left(0,\ 100 - \frac{d_{water}}{10}\right)
 ```
 
-`c_canopy` is the share of the street section covered by new tree crowns (0 to 1). The penalty applies only to deep canyons, which is where canopy blocks air.
+Tree rows do not enter VCI. They are offered only on streets with height-to-width below 1, where canopy does not block the corridor; deeper streets are excluded by the site rule (see the intervention library).
 
 ### Heat Exposure Index (HEI)
 
@@ -206,7 +206,7 @@ The **Area Cooling Score** is what the Repair search maximizes:
 ACS = \frac{\sum_b w_b\,C_b}{\sum_b w_b} \qquad C_b = 0.45\,(100 - HEI_b) + 0.35\,PSS_b + 0.20\,GCS_b \qquad w_b = E_b\,V_b
 ```
 
-Constraints: total cost within budget, and no block's VCI may drop by 10 points or more.
+Constraints: total cost within budget; at least the planner's **quick-win share** of the budget (default 20%) goes to interventions that help within weeks or one season (shade structures, cool roofs, depave and plant); and no block's VCI may drop by 10 points or more. Trees win on score per rupee but take years to give shade, so without the quick-win share a plan would leave this summer's heat untouched.
 
 ### Terms and what changes them
 
@@ -215,7 +215,6 @@ Constraints: total cost within budget, and no block's VCI may drop by 10 points 
 | Δθ | Angle between the prevailing seasonal wind and the building's long axis (baseline: the street canyon axis) | Open-Meteo; OSM street geometry | Protect: orientation |
 | L\_built | Longest unbroken built-up run along the wind line, within 300 m | OSM buildings | Protect: footprint |
 | H, W | Building height (floors × 3 m) and adjacent street width | OSM, Open Buildings, road-class widths | Protect: floors |
-| c\_canopy | Share of the street section under new tree crowns | Intervention geometry | Repair: street trees |
 | d\_water | Distance to the nearest upwind park or water body | OSM | No |
 | I\_s, G\_c | Impervious and vegetation share, area-weighted over a 150 m buffer | WorldCover, Sentinel-2 | Protect: footprint, green %; Repair: depave, pocket green, trees |
 | V, V\_ref | Building volume and the area's 95th-percentile building volume | OSM, Open Buildings | Protect: floors, footprint |
@@ -259,10 +258,10 @@ Four agents sit under one orchestrator, built with the Agent Development Kit (AD
 ### Portfolio search loop (Repair)
 
 1. The Repair Planner receives the top hotspots, candidate sites (each with its cost and its single-site score gain) and the budget.
-2. The engine computes a greedy baseline: add the site with the best score gain per rupee until the budget is spent.
+2. The engine computes a greedy baseline: fill the quick-win share with the best quick wins by score gain per rupee, then add the remaining sites by gain per rupee until the budget is spent.
 3. Gemini proposes four portfolios per round. Its job is to find what greedy misses: interactions between sites. Two shade measures on the same footpath overlap, so the second adds little; depaving a school yard next to a pocket green links two patches, so together they add more than apart.
 4. `simulate_interventions` scores each portfolio: ACS change, cost, ventilation check, waiting points covered, driver tags.
-5. Gemini discards portfolios over budget or failing the ventilation check, and refines. The loop stops after three rounds, or earlier when no portfolio beats the best by more than 0.5 ACS points.
+5. Gemini discards portfolios over budget, below the quick-win share or failing the ventilation check, and refines. The loop stops after three rounds, or earlier when no portfolio beats the best by more than 0.5 ACS points.
 6. The best scored portfolio is shown. If the greedy baseline beats every Gemini portfolio, the app shows the greedy one and says so.
 
 ### Design search loop (Protect)
@@ -305,8 +304,8 @@ Primary drivers are computed by the engine. Protect: OBSTRUCTION, BUILT\_RUN, IM
 | analyze\_imagery | parcel or site id | Structured observations with a confidence per field; field check list for Repair sites |
 | rank\_hotspots | area id, top n | Blocks and footpath segments by priority, with driver tags |
 | list\_candidate\_sites | area id, intervention types | Sites with type, geometry id, quantity, cost, single-site ACS gain |
-| simulate\_interventions | area id, list of (site id, type, quantity) | ACS before and after, per-block deltas, PSS before and after, cost, ventilation check, waiting points covered, driver tags |
-| greedy\_baseline | area id, budget | The greedy portfolio and its simulate\_interventions result |
+| simulate\_interventions | area id, list of (site id, type, quantity) | ACS before and after, per-block deltas, PSS before and after, cost, quick-win cost, ventilation check, waiting points covered, driver tags |
+| greedy\_baseline | area id, budget, quick-win share | The greedy portfolio and its simulate\_interventions result |
 | simulate\_scenario | parcel id, floors, footprint %, green %, orientation, green placement | Baseline and proposed indices, deltas, driver tags, floor area, risk label |
 | compare\_scenarios | parcel id, scenario ids | Ranked table by climate score and floor area |
 | simulate\_buildout | area id or parcel ids, floors, footprint %, green % | Per-parcel deltas and labels, area averages, HIGH count, driver tags |
@@ -416,8 +415,8 @@ Tests live in `evals/`. Results are measured and reported in the README; targets
 | Direction (Protect) | More height or footprint never improves VCI or lowers HEI; more green never raises HEI or lowers GCS | Holds across a settings sweep |
 | Direction (Repair) | Adding trees or shade never lowers PSS; depaving or cool roofs never raise HEI; adding green never lowers GCS | Holds for every intervention type on every test area |
 | Shadow geometry | A test building of known height gives the expected shadow length and direction | Matches the formula within 1% |
-| Ventilation guard | A dense tree row in a deep narrow lane is flagged CANOPY_OBSTRUCTION and fails the ventilation check | Holds on the test lanes |
-| Budget | Every shown portfolio is within budget | Always |
+| Ventilation site rule | No tree row is offered on a street with height-to-width 1 or more; such streets appear as rejected options with CANOPY_OBSTRUCTION | Holds on the test lanes |
+| Budget and quick wins | Every shown portfolio is within budget and meets the quick-win share | Always |
 | Gemini vs greedy | Gemini's best portfolio against the greedy baseline, same budget | Reported as win, tie or loss per test area; no pass mark |
 | Grounding | Answers contain only numbers from tool results or planner input, and no forbidden units | Zero violations on all test runs |
 | Tool use | The agent fetches context and simulates before explaining | Success rate over ten runs per mode |
@@ -450,7 +449,8 @@ Caveats that travel with the number: surface temperature is not the air temperat
 - Roof albedo at 10 m is a block-level estimate.
 - Parcels are road-network blocks, not legal plots.
 - Wind is a seasonal prevailing direction, not a wind field.
-- Trees take years to give the canopy the plan assumes.
+- Trees take years to give the canopy the plan assumes; the quick-win share keeps part of every plan working this summer.
+- One proposed building barely moves the heat exposure index, because paving and green are averaged over a 150 m buffer; Protect's risk is usually driven by ventilation.
 
 The path beyond the prototype: validate with a partner who can supply measurements, run a second city, and close the loop each year (plan in winter, plant with the monsoon, measure the next summer with Landsat, recalibrate).
 
@@ -496,7 +496,8 @@ Repair with all five interventions, the shade score, and the Protect preview are
 | Shade | Pedestrian Shade Score from heights and sun position | Shows the benefit people feel most, with geometry not guesswork |
 | Role of Gemini | Portfolio search and design search (propose, score, refine); imagery reading; explanations | Carries the Gen AI and innovation criteria |
 | Benchmark | Gemini's portfolio is compared with a greedy baseline | Shows the AI adds value, honestly |
-| Budget | Rupees from planner unit costs | Lets Gemini trade between intervention types |
+| Budget | Rupees from planner unit costs, with a quick-win share (default 20%) that must help this summer | Lets Gemini trade between intervention types without leaving this summer's heat untouched |
+| Canopy on deep streets | Site rule: no dense tree rows where height-to-width is 1 or more | One clear rule a planner can check on site |
 | Vulnerability | Built-form proxy, labeled as built form | Targets cool roofs without stigmatizing labels |
 | Data | Real OSM geometry, satellite-derived indices, Open Buildings heights, preprocessed | Credibility; no live raster processing |
 | Stack | React + deck.gl + MapLibre; FastAPI; ADK on Vertex AI Gemini; BigQuery; Firestore; Cloud Storage; one Cloud Run service serving UI and API | Team skills cover all four areas; one URL, no proxy timeouts on live search streams |

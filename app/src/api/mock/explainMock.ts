@@ -16,7 +16,7 @@ const INDEX_WORDS: Record<IndexKey, { name: string; worse: string }> = {
   pss: { name: 'footpath shade', worse: 'falls' },
 }
 
-export function explainPlan(index: AreaIndex, chosen: Candidate, result: AreaResult, greedy: Candidate, rejectedCount: number, budgetInr: number): Explanation {
+export function explainPlan(index: AreaIndex, chosen: Candidate, result: AreaResult, greedy: Candidate, rejectedCount: number, budgetInr: number, quickWinSharePct: number): Explanation {
   const counts = new Map<InterventionType, number>()
   for (const ch of chosen.changes) {
     const site = index.siteById.get(ch.siteId)
@@ -26,6 +26,7 @@ export function explainPlan(index: AreaIndex, chosen: Candidate, result: AreaRes
   const paragraphs = [
     `This plan raises the area cooling score from ${formatScore(result.before.acs)} to ${formatScore(result.after.acs)}, using ${formatInr(result.costInr)} of the ${formatInr(budgetInr)} budget.`,
     `It combines ${listWords(mix)}. Footpath shade goes from ${formatScore(result.before.pss)} to ${formatScore(result.after.pss)}${result.waitPointsCovered ? `, and ${result.waitPointsCovered} waiting points get shade at their entrance` : ''}.`,
+    `${formatInr(result.quickWinCostInr)} goes to work that helps this summer, meeting the ${quickWinSharePct}% quick-win share; the trees give shade only after a few years.`,
   ]
   if (rejectedCount) paragraphs.push(`${rejectedCount} tree rows near the hotspots were left out: the streets are deep and narrow, so canopy there would block the breeze. A shade structure works better on those streets.`)
   paragraphs.push(chosen.source === 'greedy'
@@ -34,12 +35,15 @@ export function explainPlan(index: AreaIndex, chosen: Candidate, result: AreaRes
   return { paragraphs, drivers: result.drivers, source: 'gemini' }
 }
 
-export function explainDesigns(index: AreaIndex, parcel: ParcelProps, options: DesignOption[]): Explanation {
+export function explainDesigns(index: AreaIndex, parcel: ParcelProps, options: DesignOption[], keepFloorAreaPct: number): Explanation {
   const [a, b, c] = options
   const risk = riskOf(index, a.candidate.changes)
   const paragraphs = risk ? [riskSentence(risk, a.design.floors, parcel)] : []
+  const bHelps = formatScore(b.candidate.score) !== formatScore(a.candidate.score)
   paragraphs.push(
-    `Option B keeps ${b.candidate.floorAreaPct}% of the floor area and brings the worst change from ${formatScore(a.candidate.score)} to ${formatScore(b.candidate.score)}.`,
+    bHelps
+      ? `Option B keeps ${b.candidate.floorAreaPct}% of the floor area and brings the worst change from ${formatScore(a.candidate.score)} to ${formatScore(b.candidate.score)}.`
+      : `No design that keeps at least ${keepFloorAreaPct}% of the floor area lowers the worst change on this street. Lower that share in step 2 to see more options.`,
     `Option C keeps ${c.candidate.floorAreaPct}% of the floor area and brings it to ${formatScore(c.candidate.score)}. The planner decides which trade-off fits.`,
   )
   return { paragraphs, drivers: rescoreMock(index, a.candidate.changes, index.area.unitCostDefaults).drivers, source: 'gemini' }

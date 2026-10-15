@@ -12,7 +12,7 @@ import { RejectedList } from './RejectedList'
 import type { RepairPlan } from './useRepairPlan'
 
 /** Step 3: live search, then the plan with its scores, explanation and rejected options. */
-export function PlanStepContent({ plan, budgetInr }: { plan: RepairPlan; budgetInr: number }) {
+export function PlanStepContent({ plan, budgetInr, quickWinSharePct }: { plan: RepairPlan; budgetInr: number; quickWinSharePct: number }) {
   const { areaId, changes, rejected, result: scores, unitCosts } = useScenario()
   const { data: area } = useArea(areaId)
   const { data: siteList } = useSites(areaId)
@@ -35,6 +35,8 @@ export function PlanStepContent({ plan, budgetInr }: { plan: RepairPlan; budgetI
   const drafted = plan.result?.best.changes ?? changes
   const edited = !!plan.result && changesKey(changes) !== changesKey(plan.result.best.changes)
   const cost = scores?.costInr ?? 0
+  const quickWins = scores?.quickWinCostInr ?? 0
+  const quickWinTarget = (budgetInr * quickWinSharePct) / 100
 
   return (
     <div className="space-y-4">
@@ -57,6 +59,10 @@ export function PlanStepContent({ plan, budgetInr }: { plan: RepairPlan; budgetI
         <div className="flex justify-between">
           <dt className="text-muted-foreground">Cost</dt>
           <dd className={cost > budgetInr ? 'font-semibold text-delta-worse' : 'font-semibold'}>{formatInr(cost)} of {formatInr(budgetInr)}</dd>
+        </div>
+        <div className="flex justify-between">
+          <dt className="text-muted-foreground">Helps this summer</dt>
+          <dd className={quickWins < quickWinTarget ? 'text-delta-worse' : ''}>{formatInr(quickWins)} (needs {formatInr(quickWinTarget)})</dd>
         </div>
         <div className="flex justify-between">
           <dt className="text-muted-foreground">Ventilation check</dt>

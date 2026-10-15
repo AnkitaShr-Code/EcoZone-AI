@@ -3,7 +3,7 @@
 // change's effects, recomputes block PSS from footpath shade and the area scores
 // with the ACS formula from docs/PLANNING.md. Mock values only.
 
-import type { AreaResult, AreaScores, BlockResult, Change, IndexDelta, IndexKey, RiskLabel, Scores, ShadeByTime, UnitCosts } from '../types'
+import type { AreaResult, AreaScores, BlockResult, Change, IndexDelta, IndexKey, RiskLabel, Scores, ShadeByTime, TimeToBenefit, UnitCosts } from '../types'
 import type { AreaIndex } from './areaIndex'
 import { buildingEffects, designOf } from './buildingEffects'
 
@@ -14,6 +14,11 @@ const clamp = (v: number) => Math.max(0, Math.min(100, v))
 const round1 = (v: number) => Math.round(v * 10) / 10
 const shadeShare = (s: ShadeByTime) => s.filter(Boolean).length / s.length
 const blockCooling = (s: Scores) => 0.45 * (100 - s.hei) + 0.35 * s.pss + 0.2 * s.gcs
+
+/** Interventions that help this summer: within weeks or one season. */
+export function isQuickWin(timeToBenefit: TimeToBenefit) {
+  return timeToBenefit !== 'years'
+}
 
 export function riskLabel(worst: number): RiskLabel {
   return worst >= RISK.high ? 'HIGH' : worst >= RISK.moderate ? 'MODERATE' : 'LOW'
@@ -30,6 +35,7 @@ export function rescoreMock(index: AreaIndex, changes: Change[], unitCosts: Unit
   const drivers = new Set<string>()
   const buildingBlocks: { parcelId: string; blockId: string }[] = []
   let costInr = 0
+  let quickWinCostInr = 0
   let ventilationFlagged = false
   const waitPoints = new Set<string>()
 
@@ -64,7 +70,9 @@ export function rescoreMock(index: AreaIndex, changes: Change[], unitCosts: Unit
     site.drivers.forEach((d) => drivers.add(d))
     if (!site.ventilation.ok) ventilationFlagged = true
     if (site.waitPoint) waitPoints.add(site.waitPoint)
-    costInr += change.quantity * unitCosts[site.type].inr
+    const cost = change.quantity * unitCosts[site.type].inr
+    costInr += cost
+    if (isQuickWin(site.timeToBenefit)) quickWinCostInr += cost
   }
 
   const blocks: BlockResult[] = []
@@ -108,6 +116,7 @@ export function rescoreMock(index: AreaIndex, changes: Change[], unitCosts: Unit
     worstVciDrop: round1(worstVciDrop),
     waitPointsCovered: waitPoints.size,
     costInr,
+    quickWinCostInr,
     drivers: [...drivers],
     blocksWorse,
   }

@@ -24,6 +24,8 @@ interface UiState {
   setMode: (mode: Mode) => void
   openStepAt: (index: number) => void
   advance: () => void
+  /** Reopens a step and locks every step after it (their results no longer apply). */
+  resetSteps: (mode: Mode, index: number) => void
   setLayerVisible: (id: LayerId, visible: boolean) => void
   setShadeTime: (time: ShadeTime) => void
   select: (selection: Selection | null) => void
@@ -46,6 +48,10 @@ export const useUiStore = create<UiState>((set) => ({
       reachedStep: { ...s.reachedStep, [s.mode]: Math.max(s.reachedStep[s.mode], next) },
     }
   }),
+  resetSteps: (mode, index) => set((s) => ({
+    openStep: { ...s.openStep, [mode]: index },
+    reachedStep: { ...s.reachedStep, [mode]: index },
+  })),
   setLayerVisible: (id, visible) => set((s) => ({ visibleLayers: { ...s.visibleLayers, [id]: visible } })),
   setShadeTime: (shadeTime) => set({ shadeTime }),
   select: (selection) => set({ selection }),

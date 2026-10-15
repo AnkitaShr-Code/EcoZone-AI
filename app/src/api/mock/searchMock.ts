@@ -5,11 +5,13 @@
 import type { BuildingDesign, Candidate, Change, DesignOption, SearchEvent, SearchRequest, Site } from '../types'
 import type { AreaIndex } from './areaIndex'
 import { explainDesigns, explainPlan } from './explainMock'
-import { rescoreMock } from './rescoreMock'
+import { isQuickWin, rescoreMock } from './rescoreMock'
 
 const MAX_ROUNDS = 3
 const STOP_THRESHOLD = { repair: 0.5, protect: 2 }
 const ORIENTATION_STEP = 15
+/** A worst-change gain smaller than this counts as no improvement. */
+const NO_GAIN = 0.5
 
 export function sleep(ms: number, signal: AbortSignal) {
   return new Promise<void>((resolve, reject) => {
@@ -31,6 +33,7 @@ export function searchMock(index: AreaIndex, request: SearchRequest, signal: Abo
 
 async function* repairSearch(index: AreaIndex, req: Extract<SearchRequest, { mode: 'repair' }>, signal: AbortSignal): AsyncGenerator<SearchEvent> {
   const { budgetInr, unitCosts } = req
+  const quickWinTarget = (budgetInr * req.quickWinSharePct) / 100
   const base = index.area.baseline.acs
   const cost = (s: Site) => s.quantity * unitCosts[s.type].inr
   const changeOf = (s: Site): Change => ({ kind: s.type, siteId: s.id, quantity: s.quantity })
@@ -41,24 +44,37 @@ async function* repairSearch(index: AreaIndex, req: Extract<SearchRequest, { mod
   const gain = new Map(eligible.map((s) => [s.id, evaluate([s]).after.acs - base]))
   const ratio = (s: Site) => (gain.get(s.id) ?? 0) / Math.max(1, cost(s))
   const byRatio = [...eligible].sort((a, b) => ratio(b) - ratio(a))
+  const quickWins = byRatio.filter((s) => isQuickWin(s.timeToBenefit))
+  // Turns a priority order into a plan: the quick-win share first (in the order's preference,
+  // then by gain per rupee), then everything else in order, all within the budget.
   const fill = (order: Site[], start: Site[] = []) => {
     const picked = [...start]
     let spent = picked.reduce((a, s) => a + cost(s), 0)
-    for (const s of order) {
-      if (picked.includes(s) || (gain.get(s.id) ?? 0) <= 0 || spent + cost(s) > budgetInr) continue
+    let quick = picked.filter((s) => isQuickWin(s.timeToBenefit)).reduce((a, s) => a + cost(s), 0)
+    const add = (s: Site) => {
+      if (picked.includes(s) || (gain.get(s.id) ?? 0) <= 0 || spent + cost(s) > budgetInr) return
       picked.push(s)
       spent += cost(s)
+      if (isQuickWin(s.timeToBenefit)) quick += cost(s)
     }
+    for (const s of [...order.filter((x) => isQuickWin(x.timeToBenefit)), ...quickWins]) {
+      if (quick >= quickWinTarget) break
+      add(s)
+    }
+    for (const s of order) add(s)
     return picked
   }
   let n = 0
   const candidate = (round: number, source: Candidate['source'], label: string, sites: Site[]): Candidate => {
     const r = evaluate(sites)
-    return { id: `c${++n}`, round, source, label, changes: sites.map(changeOf), score: r.after.acs, costInr: r.costInr, valid: r.costInr <= budgetInr && r.ventilationOk }
+    const invalidReason = r.costInr > budgetInr ? 'Over budget'
+      : r.quickWinCostInr < quickWinTarget ? 'Below the quick-win share'
+        : !r.ventilationOk ? 'Fails the ventilation check' : undefined
+    return { id: `c${++n}`, round, source, label, changes: sites.map(changeOf), score: r.after.acs, costInr: r.costInr, valid: !invalidReason, invalidReason }
   }
 
   await sleep(500, signal)
-  const greedy = candidate(0, 'greedy', 'Best gain per rupee, in order', fill(byRatio))
+  const greedy = candidate(0, 'greedy', 'Quick wins, then best gain per rupee', fill(byRatio))
   yield { type: 'baseline', candidate: greedy }
 
   const hot = new Set([...index.blocks].sort((a, b) => b.priority - a.priority).slice(0, 5).map((b) => b.id))
@@ -121,7 +137,7 @@ async function* repairSearch(index: AreaIndex, req: Extract<SearchRequest, { mod
     type: 'done',
     result: {
       best: chosen, geminiBeatGreedy, rejected, rounds,
-      explanation: explainPlan(index, chosen, result, greedy, rejected.length, budgetInr),
+      explanation: explainPlan(index, chosen, result, greedy, rejected.length, budgetInr, req.quickWinSharePct),
     },
   }
 }
@@ -212,12 +228,14 @@ async function* protectSearch(index: AreaIndex, req: Extract<SearchRequest, { mo
     ({ key, title, candidate: c, design: designs.get(c.id) as BuildingDesign, tradeOff })
   const options: DesignOption[] = [
     option('A', 'Developer maximised', proposal, 'All the proposed floor area.'),
-    option('B', 'Balanced', optionB, `Keeps ${optionB.floorAreaPct}% of the floor area.`),
+    option('B', 'Balanced', optionB, optionB.score >= proposal.score - NO_GAIN
+      ? `Keeps ${optionB.floorAreaPct}% of the floor area, but no design at this share lowers the worst change.`
+      : `Keeps ${optionB.floorAreaPct}% of the floor area.`),
     option('C', 'Climate optimised', optionC, `Keeps ${optionC.floorAreaPct}% of the floor area.`),
   ]
   await sleep(400, signal)
   yield {
     type: 'done',
-    result: { best: optionB, options, rejected: [], rounds, explanation: explainDesigns(index, parcel, options) },
+    result: { best: optionB, options, rejected: [], rounds, explanation: explainDesigns(index, parcel, options, req.keepFloorAreaPct) },
   }
 }

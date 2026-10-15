@@ -5,6 +5,7 @@ import type { InterventionType } from '@/api/types'
 import { Provenance } from '@/components/Provenance'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Slider } from '@/components/ui/slider'
 import { INTERVENTION_META } from '@/lib/meta'
 import { useCostsStore } from '@/state/costsStore'
 import { useUiStore } from '@/state/uiStore'
@@ -14,7 +15,7 @@ import { useRepairStore } from './repairStore'
 export function BudgetStepContent() {
   const areaId = useUiStore((s) => s.areaId)
   const { data: area } = useArea(areaId)
-  const { budgetLakh, setBudgetLakh } = useRepairStore()
+  const { budgetLakh, setBudgetLakh, quickWinSharePct, setQuickWinSharePct } = useRepairStore()
   const { unitCosts, edited, initUnitCosts, setUnitCost } = useCostsStore()
 
   useEffect(() => {
@@ -42,6 +43,17 @@ export function BudgetStepContent() {
           />
           <span className="text-sm text-muted-foreground">lakh</span>
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-baseline justify-between">
+          <Label htmlFor="quick-wins">Helps this summer</Label>
+          <span className="text-sm tabular-nums">at least {quickWinSharePct}% of the budget</span>
+        </div>
+        <Slider id="quick-wins" min={0} max={50} step={5} value={[quickWinSharePct]} onValueChange={([v]) => setQuickWinSharePct(v)} aria-label="Share of the budget that helps this summer" />
+        <p className="text-xs text-muted-foreground">
+          Shade structures, cool roofs and depaving help within weeks or a season. Trees give the most per rupee but take years. <Provenance kind="planner" className="py-0" />
+        </p>
       </div>
 
       <details className="group rounded-lg border">

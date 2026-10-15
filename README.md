@@ -35,7 +35,7 @@ The tool treats a neighborhood as one cooling network: air paths, green patches 
 ### Repair (lead mode)
 
 1. Select an area. The map ranks blocks and footpaths by heat, missing afternoon shade, nearby waiting points (schools, hospitals, markets, bus stops) and dense low-rise built form.
-2. Set a rupee budget and check the unit costs (planner input).
+2. Set a rupee budget, the share that must help this summer (quick wins), and check the unit costs (planner input).
 3. Gemini proposes portfolios of interventions; the engine scores each one; Gemini refines for up to three rounds. A greedy baseline is computed alongside, and the better result is shown.
 4. Read the plan: site, cost, why, waiting points covered, time to benefit, ventilation check, and rejected options with reasons.
 5. Compare footpath shadows at 1, 3 and 4 pm before and after, and export a phased cooling plan with field check lists.
@@ -72,7 +72,7 @@ offline pipeline (OSM, Open Buildings, Sentinel-2, WorldCover, Landsat, Open-Met
 sessions and plans ──► Firestore          one Cloud Run service serves UI and API
 ```
 
-- **Engine:** the only place a score is computed. Indices on a 0 to 100 scale: Ventilation Corridor Index, Heat Exposure Index (with a roof albedo term), Green Connectivity Score and Pedestrian Shade Score. Repair maximizes an exposure-weighted Area Cooling Score within the budget, and no block may lose 10 or more ventilation points. Formulas: [docs/PLANNING.md](docs/PLANNING.md#scoring-engine).
+- **Engine:** the only place a score is computed. Indices on a 0 to 100 scale: Ventilation Corridor Index, Heat Exposure Index (with a roof albedo term), Green Connectivity Score and Pedestrian Shade Score. Repair maximizes an exposure-weighted Area Cooling Score within the budget, with a quick-win share that must help this summer; dense tree rows are kept off deep, narrow streets, and no block may lose 10 or more ventilation points. Formulas: [docs/PLANNING.md](docs/PLANNING.md#scoring-engine).
 - **Agents:** an ADK orchestrator with Spatial Analyst, Repair Planner, Scenario Analyst and Planning Advisor. Both searches run as one ADK `LoopAgent`: Gemini proposes, and plain code scores the candidates and decides when to stop.
 - **Trust:** an output guard rejects any number not found in the turn's tool results or planner inputs, and any temperature, wind or energy unit. AI-estimated values are labeled.
 - **Data:** OpenStreetMap, Google Open Buildings 2.5D heights, Sentinel-2, ESA WorldCover, Open-Meteo wind, computed sun position; Landsat surface temperature is used only to validate the heat index. Google Maps tiles are not used.
@@ -88,8 +88,8 @@ Tests live in `evals/`. Results will be reported here once measured; no targets 
 | Determinism, range | Same inputs give the same scores; every index stays within 0 to 100 |
 | Direction | Protect: more height or footprint never helps; more green never hurts. Repair: trees and shade never lower shade; depaving and cool roofs never raise heat |
 | Shadow geometry | Known building height gives the expected shadow length and direction |
-| Ventilation guard | Dense trees in a deep narrow lane are flagged and rejected |
-| Budget | Every shown portfolio is within budget |
+| Ventilation site rule | No tree row on a street with height-to-width 1 or more; such streets show as rejected |
+| Budget and quick wins | Every shown portfolio is within budget and meets the quick-win share |
 | Gemini vs greedy | Win, tie or loss per test area at the same budget |
 | Grounding | No number outside tool results or planner input; no forbidden units |
 | Design search | Options B and C come from scored candidates and follow their rules |

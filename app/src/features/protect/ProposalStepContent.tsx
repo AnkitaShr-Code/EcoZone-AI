@@ -1,3 +1,4 @@
+import { toast } from 'sonner'
 import { useLayer } from '@/api/hooks'
 import type { Explanation } from '@/api/types'
 import { ExplanationCard } from '@/components/ExplanationCard'
@@ -8,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Slider } from '@/components/ui/slider'
 import { useScenario } from '@/state/useScenario'
+import { useUiStore } from '@/state/uiStore'
 import { DesignSliders } from './DesignSliders'
 import { useProtectStore } from './protectStore'
 
@@ -19,7 +21,16 @@ interface Props {
 /** Step 2: proposal sliders with the engine's before and after for the parcel's block. */
 export function ProposalStepContent({ explanation, explanationStale }: Props) {
   const { areaId, result } = useScenario()
-  const { parcelId, design, keepFloorAreaPct, setDesign, setKeepFloorAreaPct } = useProtectStore()
+  const { parcelId, design, keepFloorAreaPct, run, setDesign, setKeepFloorAreaPct } = useProtectStore()
+  const resetSteps = useUiStore((s) => s.resetSteps)
+  // Changing a search input after a search makes its options and the build-out obsolete (UI_RULES.md §3).
+  const changeInput = (apply: () => void) => {
+    if (run) {
+      resetSteps('protect', 1)
+      toast('Proposal changed, so the design options and build-out were cleared.')
+    }
+    apply()
+  }
   const { data: parcels } = useLayer(areaId, 'parcels')
   const parcel = parcels?.features.find((f) => f.properties.id === parcelId)?.properties
   if (!design || !parcel) return null
@@ -31,7 +42,7 @@ export function ProposalStepContent({ explanation, explanationStale }: Props) {
         <p className="text-sm font-semibold">{parcel.name}</p>
         <Provenance kind="planner" />
       </div>
-      <DesignSliders design={design} onChange={setDesign} />
+      <DesignSliders design={design} onChange={(patch) => changeInput(() => setDesign(patch))} />
 
       <section className="space-y-2" aria-live="polite" aria-label="Impact on the parcel's block">
         <h3 className="text-sm font-semibold">Impact on the parcel's block</h3>
@@ -53,7 +64,7 @@ export function ProposalStepContent({ explanation, explanationStale }: Props) {
           <Label htmlFor="keep-floor-area">Option B keeps at least</Label>
           <span className="text-sm tabular-nums">{keepFloorAreaPct}% of floor area</span>
         </div>
-        <Slider id="keep-floor-area" min={50} max={95} step={5} value={[keepFloorAreaPct]} onValueChange={([v]) => setKeepFloorAreaPct(v)} aria-label="Floor area option B keeps" />
+        <Slider id="keep-floor-area" min={50} max={95} step={5} value={[keepFloorAreaPct]} onValueChange={([v]) => changeInput(() => setKeepFloorAreaPct(v))} aria-label="Floor area option B keeps" />
         <p className="text-xs text-muted-foreground">Used when searching for better designs. <Provenance kind="planner" className="py-0" /></p>
       </div>
     </div>

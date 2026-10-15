@@ -28,6 +28,8 @@ export interface LegendEntry {
   label: string
   color: ColorToken
   shape: 'fill' | 'line' | 'dot'
+  /** Shown only when the working scenario contains a change of this kind. */
+  changeKind?: Change['kind']
 }
 
 /** The working scenario as the map sees it. */
@@ -126,11 +128,11 @@ export const LAYERS = [
     selects: 'site',
     legend: {
       repair: [
-        { label: 'Street tree row', color: 'iv-tree', shape: 'dot' },
-        { label: 'Shade structure', color: 'iv-shade', shape: 'fill' },
-        { label: 'Depave and plant', color: 'iv-depave', shape: 'fill' },
-        { label: 'Pocket green', color: 'iv-green', shape: 'fill' },
-        { label: 'Cool roof', color: 'iv-roof', shape: 'fill' },
+        { label: 'Street tree row', color: 'iv-tree', shape: 'dot', changeKind: 'tree_row' },
+        { label: 'Shade structure', color: 'iv-shade', shape: 'fill', changeKind: 'shade' },
+        { label: 'Depave and plant', color: 'iv-depave', shape: 'fill', changeKind: 'depave' },
+        { label: 'Pocket green', color: 'iv-green', shape: 'fill', changeKind: 'pocket_green' },
+        { label: 'Cool roof', color: 'iv-roof', shape: 'fill', changeKind: 'cool_roof' },
       ],
       protect: [{ label: 'Proposed building', color: 'map-proposal', shape: 'fill' }],
     },
@@ -194,8 +196,10 @@ export function layersFor(mode: Mode): LayerDef[] {
   return DEFS.filter((l) => !l.modes || l.modes.includes(mode))
 }
 
-export function legendOf(layer: LayerDef, mode: Mode): LegendEntry[] {
-  return Array.isArray(layer.legend) ? layer.legend : layer.legend[mode]
+/** Legend entries for a mode, keeping change-kind entries only when the scenario has that kind. */
+export function legendOf(layer: LayerDef, mode: Mode, changes: Change[] = []): LegendEntry[] {
+  const entries = Array.isArray(layer.legend) ? layer.legend : layer.legend[mode]
+  return entries.filter((e) => !e.changeKind || changes.some((c) => c.kind === e.changeKind))
 }
 
 export function defaultVisibility(mode: Mode): Record<LayerId, boolean> {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { FileText } from 'lucide-react'
+import { toast } from 'sonner'
 import { buildingChange } from '@/api/changes'
 import { useArea, useExplain, useLayer } from '@/api/hooks'
 import { changesKey } from '@/api/keys'
@@ -34,6 +35,7 @@ export function ProtectWorkflow() {
   const search = useProtectSearch()
   const explain = useExplain(areaId)
   const { stateOf, edit, advance } = useSteps('protect')
+  const resetSteps = useUiStore((s) => s.resetSteps)
 
   const parcel = parcels?.features.find((f) => f.properties.id === parcelId)?.properties
   const inRadius = useMemo(() => (parcel && parcels
@@ -56,7 +58,11 @@ export function ProtectWorkflow() {
   const chooseParcel = () => {
     const p = parcels?.features.find((f) => f.properties.id === selection?.id)?.properties
     if (!p) return
-    store.setParcel(p.id, { floors: 12, footprintPct: 60, greenPct: 10, orientationDeg: Math.round(p.streetBearingDeg / 15) * 15 % 180 })
+    if (parcelId && p.id !== parcelId) {
+      resetSteps('protect', 0)
+      toast('New parcel, so the proposal, design options and build-out were reset.')
+    }
+    if (p.id !== parcelId) store.setParcel(p.id, { floors: 12, footprintPct: 60, greenPct: 10, orientationDeg: Math.round(p.streetBearingDeg / 15) * 15 % 180 })
     explain.reset()
     advance()
   }
