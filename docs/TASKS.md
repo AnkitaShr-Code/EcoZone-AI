@@ -43,6 +43,16 @@ Passes when blocks, footpaths and baseline indices including PSS exist for the f
 - [ ] **U:** deck.gl layers on real data: priority blocks, extruded buildings, footpaths by PSS, waiting points, shadows with a time slider
 - [ ] **Gate check:** pass, or switch to fallbacks
 
+## Backend baseline (re-planned Oct 15)
+
+No backend code existed on Oct 15, so the D and A lanes follow the build order in [ENGINEERING_RULES.md](ENGINEERING_RULES.md#13-build-order-for-the-baseline). The dated lists below still describe the outcome each gate needs; this list is the order to get there. Each step is one or more PRs to `main`.
+
+- [ ] **Oct 15:** 1 skeleton (uv workspace, CI, Dockerfile, `/healthz` on Cloud Run) · 2 contract (Pydantic models, `openapi.json`, generated TS, mock validation; changes agreed with U)
+- [ ] **Oct 16 morning:** 3 pipeline → Deccan bundle v1 (OSM, 10 m chunks, typology heights, sun, wind, sites, parcels) · 4 engine core with golden and property tests · 5 read routes; UI tries `VITE_API_MODE=http`
+- [ ] **Oct 16 afternoon (Gate 2):** 6 interventions, `building` change, `rescore`, greedy; snapshot replaces the JS mock builder
+- [ ] **Oct 17 (Gate 3):** 7 agents, search loop, guard, runs over SSE · 8 Firestore store, BigQuery `runs` and `eval_results`, briefs · deploy
+- [ ] **If EE approval lands:** 9 Earth Engine layers as bundle v2; heat check
+
 ## Oct 15: Repair end to end
 
 - [ ] **D:** interventions (`tree_row`, `shade`, `depave`, `pocket_green`, `cool_roof`) and incremental `rescore`; ventilation check with canopy obstruction
@@ -105,5 +115,6 @@ Never cut: Repair with all five interventions, the shade score, the Protect prev
 - [ ] Team leader and member names
 - [ ] Registration status
 - [ ] Source for default unit costs
-- [ ] Basemap provider and its terms
+- [x] Basemap provider: OpenFreeMap Positron (app/UI_RULES.md)
+- [x] Demo area: Deccan box, frozen Oct 15
 - [ ] Sentinel-2 albedo coefficient set and citation
