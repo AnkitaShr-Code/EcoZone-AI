@@ -37,11 +37,16 @@ export function formatShadeTime(time: string): string {
   return `${h12}${m ? `:${String(m).padStart(2, '0')}` : ''} ${h < 12 ? 'am' : 'pm'}`
 }
 
+/** "12 floors · 60% footprint · 10% green · long side 105°". */
+export function formatDesign(d: { floors: number; footprintPct: number; greenPct: number; orientationDeg: number }): string {
+  return `${d.floors} floors · ${d.footprintPct}% footprint · ${d.greenPct}% green · long side ${d.orientationDeg}°`
+}
+
 /** "2026-04-15" → "15 April". */
 export function formatReferenceDate(date: string): string {
   return new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long' })
 }
 
 function trim(n: number): string {
-  return n.toFixed(n >= 10 ? 0 : 1).replace(/\.0$/, '')
+  return n.toFixed(n >= 100 ? 0 : 1).replace(/\.0$/, '')
 }

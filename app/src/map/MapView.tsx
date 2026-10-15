@@ -3,8 +3,10 @@ import { MapboxOverlay } from '@deck.gl/mapbox'
 import type { Layer, PickingInfo } from '@deck.gl/core'
 import { Map as MaplibreMap, NavigationControl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import { useScenario } from '@/state/useScenario'
 import { useUiStore } from '@/state/uiStore'
-import { LAYERS, type LayerContext } from './layerRegistry'
+import { layerDefById, layersFor, type LayerContext } from './layerRegistry'
+import { pickableOf } from './layers/shared'
 import { fitBounds, registerMap } from './mapController'
 import { tooltipText } from './tooltip'
 import { useMapLayerData } from './useMapLayerData'
@@ -21,7 +23,9 @@ const TOOLTIP_STYLE = {
 export function MapView() {
   const container = useRef<HTMLDivElement>(null)
   const overlay = useRef<MapboxOverlay | null>(null)
-  const { area, data } = useMapLayerData()
+  const { area, data, sites } = useMapLayerData()
+  const { view, changes, rejected, result } = useScenario()
+  const mode = useUiStore((s) => s.mode)
   const visible = useUiStore((s) => s.visibleLayers)
   const shadeTime = useUiStore((s) => s.shadeTime)
   const selection = useUiStore((s) => s.selection)
@@ -61,25 +65,37 @@ export function MapView() {
     if (area) fitBounds(area.bbox)
   }, [area])
 
-  const { blocks, segments, buildings, waitPoints, shadows } = data
+  const { blocks, segments, buildings, waitPoints, parcels, shadows } = data
   const layers = useMemo(() => {
-    const ctx: LayerContext = { data: { blocks, segments, buildings, waitPoints, shadows }, shadeTime, shadeIndex, selection }
-    return LAYERS.filter((l) => visible[l.id]).flatMap((l): Layer[] => l.render(ctx))
-  }, [blocks, segments, buildings, waitPoints, shadows, visible, shadeTime, shadeIndex, selection])
+    const ctx: LayerContext = {
+      mode,
+      data: { blocks, segments, buildings, waitPoints, parcels, shadows },
+      sites,
+      shadeTime,
+      shadeIndex,
+      selection,
+      scenario: { view, changes, rejected, result },
+      metresPerFloor: area?.engine.metresPerFloor ?? 3,
+    }
+    return layersFor(mode).filter((l) => visible[l.id as keyof typeof visible]).flatMap((l): Layer[] => l.render(ctx))
+  }, [mode, blocks, segments, buildings, waitPoints, parcels, shadows, sites, visible, shadeTime, shadeIndex, selection, view, changes, rejected, result, area])
 
   useEffect(() => {
     overlay.current?.setProps({
       layers,
       onClick: (info: PickingInfo) => {
-        const def = registryLayerOf(info)
-        const props = (info.object as { properties?: { id: string } } | undefined)?.properties
-        select(def && 'selects' in def && props ? { kind: def.selects, id: props.id } : null)
+        const def = layerDefById(info.layer?.id ?? '')
+        const picked = pickableOf(info.object)
+        const kind = picked?.selectKind ?? def?.selects
+        select(picked && kind ? { kind, id: picked.id } : null)
       },
       getTooltip: (info: PickingInfo) => {
-        const def = registryLayerOf(info)
-        const props = (info.object as { properties?: unknown } | undefined)?.properties
-        if (!def || !('selects' in def) || !props) return null
-        return { text: tooltipText(def.selects, props, shadeIndex, shadeTime), style: TOOLTIP_STYLE }
+        const def = layerDefById(info.layer?.id ?? '')
+        const picked = pickableOf(info.object)
+        const kind = picked?.selectKind ?? def?.selects
+        if (!picked || !kind) return null
+        const props = (info.object as { properties?: unknown }).properties ?? info.object
+        return { text: tooltipText(kind, props, shadeIndex, shadeTime), style: TOOLTIP_STYLE }
       },
     })
   }, [layers, select, shadeIndex, shadeTime])
@@ -90,10 +106,4 @@ export function MapView() {
       <div ref={container} className="size-full" aria-label="Map of the selected area" role="region" />
     </div>
   )
-}
-
-/** Each deck.gl layer id starts with its registry id (sub-layers append a suffix). */
-function registryLayerOf(info: PickingInfo) {
-  const id = info.layer?.id ?? ''
-  return LAYERS.find((l) => id === l.id || id.startsWith(`${l.id}-`))
 }

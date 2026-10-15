@@ -8,7 +8,7 @@ export type ColorToken =
   | 'priority-high' | 'priority-medium' | 'priority-low'
   | 'iv-tree' | 'iv-shade' | 'iv-depave' | 'iv-green' | 'iv-roof'
   | 'status-rejected'
-  | 'map-building' | 'map-wait-point' | 'map-shadow' | 'map-selection'
+  | 'map-building' | 'map-wait-point' | 'map-shadow' | 'map-selection' | 'map-proposal' | 'map-parcel'
 
 const cache = new Map<ColorToken, [number, number, number]>()
 

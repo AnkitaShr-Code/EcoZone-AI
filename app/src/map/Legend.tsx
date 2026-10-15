@@ -1,21 +1,25 @@
 import { cssVar } from '@/lib/colors'
 import { cn } from '@/lib/utils'
+import { useScenarioStore } from '@/state/scenarioStore'
 import { useUiStore } from '@/state/uiStore'
-import { LAYERS, type LegendEntry } from './layerRegistry'
+import { layersFor, legendOf, type LegendEntry } from './layerRegistry'
 
 /** Entries for visible layers only, generated from the registry (UI_RULES.md §2). */
 export function Legend() {
+  const mode = useUiStore((s) => s.mode)
   const visible = useUiStore((s) => s.visibleLayers)
-  const shown = LAYERS.filter((l) => visible[l.id])
+  const hasScenario = useScenarioStore((s) => s.view === 'scenario' && s.scenario[mode].changes.length > 0)
+  const shown = layersFor(mode).filter((l) => visible[l.id as keyof typeof visible] && (!l.scenarioOnly || hasScenario))
   if (!shown.length) return null
   return (
-    <div className="max-w-56 rounded-lg border bg-background/95 p-3 text-xs shadow-sm" aria-label="Map legend">
+    <details open className="group max-h-[60vh] max-w-56 overflow-y-auto rounded-lg border bg-background/95 p-3 text-xs shadow-sm" aria-label="Map legend">
+      <summary className="cursor-pointer font-semibold text-muted-foreground group-open:mb-2">Legend</summary>
       <ul className="space-y-2">
         {shown.map((layer) => (
           <li key={layer.id}>
             <p className="mb-1 font-semibold">{layer.label}</p>
             <ul className="space-y-1">
-              {(layer.legend as readonly LegendEntry[]).map((entry) => (
+              {legendOf(layer, mode).map((entry) => (
                 <li key={entry.label} className="flex items-center gap-2 text-muted-foreground">
                   <Swatch entry={entry} />
                   {entry.label}
@@ -25,7 +29,7 @@ export function Legend() {
           </li>
         ))}
       </ul>
-    </div>
+    </details>
   )
 }
 

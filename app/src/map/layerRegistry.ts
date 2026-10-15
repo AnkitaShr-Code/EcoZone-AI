@@ -3,12 +3,16 @@
 // Adding a layer = adding one entry here (plus its render function in ./layers).
 
 import type { Layer } from '@deck.gl/core'
-import type { LayerData, LayerName, Mode, ShadeTime } from '@/api/types'
+import type { AreaResult, Change, LayerData, LayerName, Mode, RejectedOption, ShadeTime, Site } from '@/api/types'
 import type { ColorToken } from '@/lib/colors'
+import type { MapView } from '@/state/scenarioStore'
 import type { Selection, SelectionKind } from '@/state/uiStore'
 import { renderBuildings } from './layers/buildings'
+import { renderChanges } from './layers/changes'
 import { renderFootpathShade } from './layers/footpathShade'
+import { renderParcels } from './layers/parcels'
 import { renderPriority } from './layers/priority'
+import { renderRejected } from './layers/rejected'
 import { renderShadows } from './layers/shadows'
 import { renderWaitPoints } from './layers/waitPoints'
 
@@ -26,12 +30,24 @@ export interface LegendEntry {
   shape: 'fill' | 'line' | 'dot'
 }
 
+/** The working scenario as the map sees it. */
+export interface ScenarioContext {
+  view: MapView
+  changes: Change[]
+  rejected: RejectedOption[]
+  result: AreaResult | undefined
+}
+
 export interface LayerContext {
+  mode: Mode
   data: Partial<LayerData>
+  sites: Site[] | undefined
   shadeTime: ShadeTime
   /** Position of shadeTime in AreaSummary.shadeTimes; indexes ShadeByTime arrays. */
   shadeIndex: number
   selection: Selection | null
+  scenario: ScenarioContext
+  metresPerFloor: number
 }
 
 export interface LayerDef {
@@ -39,14 +55,19 @@ export interface LayerDef {
   label: string
   description: string
   group: LayerGroup
+  /** Modes the layer exists in; omitted = both. */
+  modes?: Mode[]
   defaultOn: Record<Mode, boolean>
   /** Layer data this layer needs; loaded only while the layer is visible. */
   needs: LayerName[]
+  needsSites?: boolean
+  /** Draws only the working scenario; hidden from the legend until there is one. */
+  scenarioOnly?: boolean
   /** Shows the shade-time control while visible. */
   usesShadeTime?: boolean
   /** Clicking a feature selects it as this kind. */
   selects?: SelectionKind
-  legend: LegendEntry[]
+  legend: LegendEntry[] | Record<Mode, LegendEntry[]>
   render: (ctx: LayerContext) => Layer[]
 }
 
@@ -56,6 +77,7 @@ export const LAYERS = [
     label: 'Priority',
     description: 'Where heat, missing shade and waiting people overlap.',
     group: 'analysis',
+    modes: ['repair'],
     defaultOn: { repair: true, protect: false },
     needs: ['blocks'],
     selects: 'block',
@@ -69,9 +91,9 @@ export const LAYERS = [
   {
     id: 'footpathShade',
     label: 'Footpath shade',
-    description: 'Footpath in sun or shade at the selected time.',
+    description: 'Footpath in sun or shade at the selected time, today or with the plan.',
     group: 'analysis',
-    defaultOn: { repair: true, protect: false },
+    defaultOn: { repair: true, protect: true },
     needs: ['segments'],
     usesShadeTime: true,
     selects: 'segment',
@@ -84,13 +106,61 @@ export const LAYERS = [
   {
     id: 'shadows',
     label: 'Shadows',
-    description: 'Building shadows at the selected time.',
+    description: 'Building shadows today at the selected time.',
     group: 'analysis',
-    defaultOn: { repair: false, protect: true },
+    defaultOn: { repair: false, protect: false },
     needs: ['shadows'],
     usesShadeTime: true,
     legend: [{ label: 'Building shadow', color: 'map-shadow', shape: 'fill' }],
     render: renderShadows,
+  },
+  {
+    id: 'changes',
+    label: 'Proposed changes',
+    description: 'The plan or proposal you are reviewing.',
+    group: 'plan',
+    defaultOn: { repair: true, protect: true },
+    needs: ['parcels'],
+    needsSites: true,
+    scenarioOnly: true,
+    selects: 'site',
+    legend: {
+      repair: [
+        { label: 'Street tree row', color: 'iv-tree', shape: 'dot' },
+        { label: 'Shade structure', color: 'iv-shade', shape: 'fill' },
+        { label: 'Depave and plant', color: 'iv-depave', shape: 'fill' },
+        { label: 'Pocket green', color: 'iv-green', shape: 'fill' },
+        { label: 'Cool roof', color: 'iv-roof', shape: 'fill' },
+      ],
+      protect: [{ label: 'Proposed building', color: 'map-proposal', shape: 'fill' }],
+    },
+    render: renderChanges,
+  },
+  {
+    id: 'rejected',
+    label: 'Rejected options',
+    description: 'Options the engine rejected, with the reason in the plan.',
+    group: 'plan',
+    modes: ['repair'],
+    defaultOn: { repair: true, protect: false },
+    needs: [],
+    needsSites: true,
+    scenarioOnly: true,
+    selects: 'site',
+    legend: [{ label: 'Rejected: would block the breeze', color: 'status-rejected', shape: 'line' }],
+    render: renderRejected,
+  },
+  {
+    id: 'parcels',
+    label: 'Vacant parcels',
+    description: 'Plots where a proposed building can be tested.',
+    group: 'context',
+    modes: ['protect'],
+    defaultOn: { repair: false, protect: true },
+    needs: ['parcels'],
+    selects: 'parcel',
+    legend: [{ label: 'Vacant parcel', color: 'map-parcel', shape: 'fill' }],
+    render: renderParcels,
   },
   {
     id: 'buildings',
@@ -117,10 +187,22 @@ export const LAYERS = [
 
 export type LayerId = (typeof LAYERS)[number]['id']
 
-export function defaultVisibility(mode: Mode): Record<LayerId, boolean> {
-  return Object.fromEntries(LAYERS.map((l) => [l.id, l.defaultOn[mode]])) as Record<LayerId, boolean>
+const DEFS = LAYERS as readonly LayerDef[]
+
+/** Layers that exist in a mode, in registry order. */
+export function layersFor(mode: Mode): LayerDef[] {
+  return DEFS.filter((l) => !l.modes || l.modes.includes(mode))
 }
 
-export function layerDef(id: string): LayerDef | undefined {
-  return (LAYERS as readonly LayerDef[]).find((l) => l.id === id)
+export function legendOf(layer: LayerDef, mode: Mode): LegendEntry[] {
+  return Array.isArray(layer.legend) ? layer.legend : layer.legend[mode]
+}
+
+export function defaultVisibility(mode: Mode): Record<LayerId, boolean> {
+  return Object.fromEntries(DEFS.map((l) => [l.id, l.defaultOn[mode]])) as Record<LayerId, boolean>
+}
+
+/** Each deck.gl layer id starts with its registry id (sub-layers append a suffix). */
+export function layerDefById(deckLayerId: string): LayerDef | undefined {
+  return DEFS.find((l) => deckLayerId === l.id || deckLayerId.startsWith(`${l.id}-`))
 }

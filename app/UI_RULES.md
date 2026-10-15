@@ -27,8 +27,8 @@ Desktop first (planners use laptops). Minimum supported width: 1024 px. Below 10
 │                  │                                           │
 │ Selection card   │                                           │
 │ (when selected)  │                                           │
-│                  │        [Shade time: 1 pm · 3 pm · 4 pm]   │
-│ 1 Step ✓ summary │                               [Legend]    │
+│                  │                                           │
+│ 1 Step ✓ summary │ [Today|With plan] [Shade time]  [Legend]  │
 │ 2 Step (open)    │                                           │
 │   …              │                                           │
 │   [Primary]      │                                           │
@@ -42,8 +42,8 @@ Desktop first (planners use laptops). Minimum supported width: 1024 px. Below 10
 | Workflow panel | Selection card (when something is selected), the mode's steps | Map styling controls |
 | Map | Basemap and data layers, hover tooltips, selection highlight | Buttons that change the plan |
 | Layers control (top right of map) | Layer toggles, grouped | Anything else |
-| Time control (bottom centre of map) | The three shade times; shown only when a shade or shadow layer is visible | A free time slider |
-| Legend (bottom right of map) | Entries for the visible layers only, generated from the layer registry | Hand-written entries |
+| Display controls (bottom left of map) | Today / With plan (or With proposal), shown once a scenario exists; the three shade times, shown only when a shade or shadow layer is visible | A free time slider, anything that changes the plan |
+| Legend (bottom right of map, collapsible) | Entries for the visible layers only, generated from the layer registry | Hand-written entries |
 | Toasts (bottom left) | Short confirmations and errors | Results that must be read later |
 
 ## 3. Workflow steps
@@ -53,7 +53,7 @@ Each mode is a list of steps rendered by one `StepCard` component.
 | State | Shows | Can the user act? |
 | --- | --- | --- |
 | Done | Number with a check, title, one-line summary of the choice, **Edit** | Edit reopens it |
-| Open | Number, title, one-sentence instruction, the controls, one primary button | Yes |
+| Open | Number, title, one-sentence instruction, the controls, one primary button, at most one secondary (outline) button below it | Yes |
 | Locked | Number, title, why it is locked ("Set a budget first") | No |
 
 Rules:
@@ -148,9 +148,10 @@ app/
     main.tsx, App.tsx    providers and the fixed layout regions
     shell/               TopBar, WorkflowPanel, SelectionCard
     components/ui/       shadcn components (generated; style changes only through tokens)
-    components/          shared app components: StepCard, Stat, Delta, Provenance, EmptyState
-    features/repair/     Repair steps and hooks
-    features/protect/    Protect steps and hooks
+    components/          shared app components: StepCard, Stat, Delta, ScoreChanges, Provenance, RiskBadge,
+                         SearchProgress, ExplanationCard, BriefSheet, EmptyState
+    features/repair/     Repair steps, plan table, brief, useRepairPlan
+    features/protect/    Protect steps, sliders, options, build-out, brief, useProtectSearch
     map/                 MapView, layerRegistry, LayersControl, Legend, TimeControl, layers/ (one render function per layer)
     api/                 types.ts (mirrors the Pydantic schemas), client.ts (one interface), mock/, http/
     state/               Zustand stores for UI state only
@@ -163,7 +164,8 @@ Rules:
 - **Data access.** Only `src/api/` talks to data. Components call hooks (TanStack Query) that call `api`. No `fetch` anywhere else, and no component imports from `api/mock` directly.
 - **Swappable adapter.** `api/client.ts` defines the `EcoZoneApi` interface. `VITE_API_MODE=mock|http` picks the adapter. Switching to the real backend is a change to that one variable.
 - **Mock adapter.** `api/mock` is the only front-end code allowed to calculate values, because it stands in for the engine. It returns exactly the shapes in `api/types.ts`, with realistic latency.
-- **State.** Server data lives in TanStack Query. UI state (mode, open step, visible layers, selection, shade time) lives in Zustand. Never copy server data into Zustand.
+- **State.** Server data lives in TanStack Query. UI state (mode, open step, visible layers, selection, shade time) lives in Zustand. Never copy server data into Zustand, with one deliberate exception: the **working scenario** (`state/scenarioStore.ts`), the change set the planner is reviewing. It starts from a search result and the planner then edits it, so it is planner state. Its scores always come from the rescore query (`state/useScenario.ts`), never from the store.
+- **Agent runs.** A search is one streamed query (`useSearchRun`, built on TanStack's `streamedQuery`) reduced into `SearchState`. Repair and Protect use the same hook, the same `SearchProgress` component and the same `runSearch` contract, mirroring the single `LoopAgent` on the backend. Keep the hook in the workflow component, not a step, so a running search survives step changes.
 - **Formatting.** Every displayed number goes through `lib/format.ts` (`formatScore`, `formatDelta`, `formatInr`, `formatPercent`, `formatCount`). No `toFixed` in components.
 - **Naming.** Components are `PascalCase.tsx`; hooks are `useThing.ts`; everything else is `camelCase.ts`. One component per file. Feature components live in their feature folder until a second feature needs them; then they move to `components/`.
 - **Size.** If a component file passes about 200 lines, split it.
@@ -180,6 +182,7 @@ Rules:
 ## 9. Accessibility
 
 - Every control is reachable and usable from the keyboard, with a visible focus ring.
+- AI-written text is always marked as such (`ExplanationCard`) and says when it is out of date with the current plan or proposal.
 - Colour is never the only signal: priority classes, shade and deltas also use words or arrows.
 - Everything on the map has a list equivalent in the panel (the plan table, the hotspot list).
 - Search progress is announced through an `aria-live` region.

@@ -1,11 +1,13 @@
 // Mock adapter: serves the files built by scripts/build-mock-data.mjs and stands in
-// for the engine's rescore. The only front-end code allowed to calculate values
-// (UI_RULES.md §8). Delete nothing here when the http adapter lands; switch
-// VITE_API_MODE instead.
+// for the engine (rescore) and the agents (search, explain). The only front-end
+// code allowed to calculate values (UI_RULES.md §8). Switch VITE_API_MODE to replace it.
 
 import type { EcoZoneApi } from '../client'
-import type { LayerData, LayerName, ShadeTime } from '../types'
+import type { AreaSummary, LayerData, LayerName, ShadeTime, Site } from '../types'
+import { buildAreaIndex, type AreaIndex } from './areaIndex'
+import { explainChanges } from './explainMock'
 import { rescoreMock } from './rescoreMock'
+import { searchMock, sleep } from './searchMock'
 
 const BASE = `${import.meta.env.BASE_URL}mock`
 const LAYER_FILES: Record<Exclude<LayerName, 'shadows'>, string> = {
@@ -13,30 +15,48 @@ const LAYER_FILES: Record<Exclude<LayerName, 'shadows'>, string> = {
   segments: 'segments.json',
   buildings: 'buildings.json',
   waitPoints: 'wait-points.json',
+  parcels: 'parcels.json',
 }
 
-const cache = new Map<string, Promise<unknown>>()
+const files = new Map<string, Promise<unknown>>()
+const indexes = new Map<string, Promise<AreaIndex>>()
 
 function latency(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, 120 + Math.random() * 180))
+  return new Promise((resolve) => setTimeout(resolve, 80 + Math.random() * 120))
 }
 
-async function load<T>(areaId: string, file: string): Promise<T> {
-  const key = `${areaId}/${file}`
-  if (!cache.has(key)) {
-    cache.set(key, fetch(`${BASE}/${key}`).then((res) => {
+function file<T>(areaId: string, name: string): Promise<T> {
+  const key = `${areaId}/${name}`
+  if (!files.has(key)) {
+    files.set(key, fetch(`${BASE}/${key}`).then((res) => {
       if (!res.ok) throw new Error(`Mock file ${key} returned ${res.status}`)
       return res.json()
     }))
   }
+  return files.get(key) as Promise<T>
+}
+
+async function load<T>(areaId: string, name: string): Promise<T> {
   await latency()
-  return cache.get(key) as Promise<T>
+  return file<T>(areaId, name)
+}
+
+function areaIndex(areaId: string): Promise<AreaIndex> {
+  if (!indexes.has(areaId)) {
+    indexes.set(areaId, Promise.all([
+      file<AreaSummary>(areaId, 'area.json'),
+      file<LayerData['blocks']>(areaId, LAYER_FILES.blocks),
+      file<LayerData['segments']>(areaId, LAYER_FILES.segments),
+      file<Site[]>(areaId, 'sites.json'),
+      file<LayerData['parcels']>(areaId, LAYER_FILES.parcels),
+    ]).then((parts) => buildAreaIndex(...parts)))
+  }
+  return indexes.get(areaId) as Promise<AreaIndex>
 }
 
 async function loadShadows(areaId: string): Promise<LayerData['shadows']> {
   const times: ShadeTime[] = ['13:00', '15:00', '16:00']
-  const entries = await Promise.all(times.map(async (t) =>
-    [t, await load(areaId, `shadows-${t.replace(':', '')}.json`)] as const))
+  const entries = await Promise.all(times.map(async (t) => [t, await load(areaId, `shadows-${t.replace(':', '')}.json`)] as const))
   return Object.fromEntries(entries) as LayerData['shadows']
 }
 
@@ -49,12 +69,16 @@ export const mockApi: EcoZoneApi = {
   getHotspots: (areaId) => load(areaId, 'hotspots.json'),
   getSites: (areaId) => load(areaId, 'sites.json'),
   rescore: async (areaId, changes, unitCosts) => {
-    const [area, blocks, segments, sites] = await Promise.all([
-      mockApi.getArea(areaId),
-      mockApi.getLayer(areaId, 'blocks'),
-      mockApi.getLayer(areaId, 'segments'),
-      mockApi.getSites(areaId),
-    ])
-    return rescoreMock({ area, blocks, segments, sites, changes, unitCosts })
+    const index = await areaIndex(areaId)
+    await latency()
+    return rescoreMock(index, changes, unitCosts)
+  },
+  runSearch: async function* (areaId, request, signal) {
+    yield* searchMock(await areaIndex(areaId), request, signal)
+  },
+  explain: async (areaId, changes, unitCosts) => {
+    const index = await areaIndex(areaId)
+    await sleep(900, new AbortController().signal)
+    return explainChanges(index, changes, unitCosts)
   },
 }

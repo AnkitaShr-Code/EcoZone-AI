@@ -26,12 +26,14 @@ interface StepCardProps {
   /** Done: a later change made this step's result out of date. */
   staleNote?: string
   primary?: PrimaryAction
+  /** At most one secondary action, shown under the primary as an outline button. */
+  secondary?: { label: string; onClick: () => void }
   onEdit?: () => void
   children?: React.ReactNode
 }
 
 /** The one step pattern for every workflow (UI_RULES.md §3). */
-export function StepCard({ number, title, state, summary, instruction, lockedReason, staleNote, primary, onEdit, children }: StepCardProps) {
+export function StepCard({ number, title, state, summary, instruction, lockedReason, staleNote, primary, secondary, onEdit, children }: StepCardProps) {
   const open = state === 'open'
   return (
     <section
@@ -83,6 +85,11 @@ export function StepCard({ number, title, state, summary, instruction, lockedRea
                 <p className="text-center text-xs text-muted-foreground">{primary.disabledReason}</p>
               )}
             </div>
+          )}
+          {secondary && (
+            <Button variant="outline" className="w-full" onClick={secondary.onClick}>
+              {secondary.label}
+            </Button>
           )}
         </div>
       )}

@@ -6,6 +6,7 @@ import { Provenance } from '@/components/Provenance'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { INTERVENTION_META } from '@/lib/meta'
+import { useCostsStore } from '@/state/costsStore'
 import { useUiStore } from '@/state/uiStore'
 import { useRepairStore } from './repairStore'
 
@@ -13,7 +14,8 @@ import { useRepairStore } from './repairStore'
 export function BudgetStepContent() {
   const areaId = useUiStore((s) => s.areaId)
   const { data: area } = useArea(areaId)
-  const { budgetLakh, unitCosts, edited, setBudgetLakh, initUnitCosts, setUnitCost } = useRepairStore()
+  const { budgetLakh, setBudgetLakh } = useRepairStore()
+  const { unitCosts, edited, initUnitCosts, setUnitCost } = useCostsStore()
 
   useEffect(() => {
     if (area) initUnitCosts(area.unitCostDefaults)

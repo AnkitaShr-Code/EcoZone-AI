@@ -148,6 +148,11 @@
     --map-wait-point: #3c3489;
     --map-shadow: #2c2a5c;
     --map-selection: #2563eb;
+    --map-proposal: #64748b;
+    --map-parcel: #0e7490;
+    --risk-low: #15803d;
+    --risk-moderate: #b45309;
+    --risk-high: #b91c1c;
     --prov-planner: #1d4ed8;
     --prov-ai: #6d28d9;
     --prov-default: #57534e;
@@ -170,9 +175,20 @@
     --color-delta-better: var(--delta-better);
     --color-delta-worse: var(--delta-worse);
     --color-map-selection: var(--map-selection);
+    --color-risk-low: var(--risk-low);
+    --color-risk-moderate: var(--risk-moderate);
+    --color-risk-high: var(--risk-high);
 }
 
 @layer base {
   html, body, #root { height: 100%; overflow: hidden; }
   .tabular-nums { font-variant-numeric: tabular-nums; }
+}
+
+/* Printing: only the brief in #print-root is printed (components/BriefSheet.tsx). */
+#print-root { display: none; }
+@media print {
+  html, body { height: auto; overflow: visible; background: white; }
+  #root { display: none; }
+  #print-root { display: block; }
 }

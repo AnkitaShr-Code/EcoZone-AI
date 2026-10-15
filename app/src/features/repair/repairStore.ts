@@ -1,25 +1,28 @@
-// Repair planner inputs (UI state, labelled planner input in the UI).
+// Repair planner inputs and the active search run (UI state).
 
 import { create } from 'zustand'
-import type { InterventionType, UnitCosts } from '@/api/types'
+import type { SearchRequest, UnitCosts } from '@/api/types'
+
+const LAKH = 1e5
 
 interface RepairState {
   budgetLakh: number
-  /** Null until the area's defaults load; then the planner can edit them. */
-  unitCosts: UnitCosts | null
-  edited: Partial<Record<InterventionType, boolean>>
+  /** The request and id of the current plan search; null before the first draft. */
+  run: { id: number; request: Extract<SearchRequest, { mode: 'repair' }> } | null
+  /** The run whose result has been loaded into the working plan. */
+  appliedRunId: number | null
   setBudgetLakh: (value: number) => void
-  initUnitCosts: (defaults: UnitCosts) => void
-  setUnitCost: (type: InterventionType, inr: number) => void
+  startSearch: (unitCosts: UnitCosts) => void
+  markApplied: (runId: number) => void
 }
 
 export const useRepairStore = create<RepairState>((set) => ({
   budgetLakh: 25,
-  unitCosts: null,
-  edited: {},
+  run: null,
+  appliedRunId: null,
   setBudgetLakh: (budgetLakh) => set({ budgetLakh }),
-  initUnitCosts: (defaults) => set((s) => (s.unitCosts ? s : { unitCosts: defaults })),
-  setUnitCost: (type, inr) => set((s) => (s.unitCosts
-    ? { unitCosts: { ...s.unitCosts, [type]: { ...s.unitCosts[type], inr } }, edited: { ...s.edited, [type]: true } }
-    : s)),
+  startSearch: (unitCosts) => set((s) => ({
+    run: { id: Date.now(), request: { mode: 'repair', budgetInr: s.budgetLakh * LAKH, unitCosts } },
+  })),
+  markApplied: (appliedRunId) => set({ appliedRunId }),
 }))

@@ -5,7 +5,7 @@ import { create } from 'zustand'
 import type { Mode, ShadeTime } from '@/api/types'
 import { defaultVisibility, type LayerId } from '@/map/layerRegistry'
 
-export type SelectionKind = 'block' | 'segment' | 'waitPoint'
+export type SelectionKind = 'block' | 'segment' | 'waitPoint' | 'parcel' | 'site'
 export interface Selection {
   kind: SelectionKind
   id: string

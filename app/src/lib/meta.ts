@@ -25,22 +25,47 @@ export const INDEX_ORDER: (IndexKey | 'acs')[] = ['acs', 'pss', 'hei', 'gcs', 'v
 
 export interface InterventionMeta {
   label: string
+  plural: string
   icon: LucideIcon
   color: ColorToken
+  /** What the ward engineer checks on site before work starts (10 m imagery can't see these). */
+  fieldChecks: string[]
 }
 
 export const INTERVENTION_META: Record<InterventionType, InterventionMeta> = {
-  tree_row: { label: 'Street tree row', icon: Trees, color: 'iv-tree' },
-  shade: { label: 'Shade structure', icon: Umbrella, color: 'iv-shade' },
-  depave: { label: 'Depave and plant', icon: Shovel, color: 'iv-depave' },
-  pocket_green: { label: 'Pocket green', icon: Sprout, color: 'iv-green' },
-  cool_roof: { label: 'Cool roof', icon: Building2, color: 'iv-roof' },
+  tree_row: {
+    label: 'Street tree row', plural: 'Street tree rows', icon: Trees, color: 'iv-tree',
+    fieldChecks: ['Footpath wide enough for a planting strip', 'No overhead wires or underground utilities in the way', 'Existing young trees to keep', 'Native, high-crown species (neem, karanj, jamun, arjun)'],
+  },
+  shade: {
+    label: 'Shade structure', plural: 'Shade structures', icon: Umbrella, color: 'iv-shade',
+    fieldChecks: ['Where people actually wait at the entrance', 'Anchoring for monsoon wind; plan seasonal removal', 'Who owns and maintains the footpath'],
+  },
+  depave: {
+    label: 'Depave and plant', plural: 'Depave and plant sites', icon: Shovel, color: 'iv-depave',
+    fieldChecks: ['Owner agreement (school or department)', 'Drainage and soil under the paving', 'Play or parking space that must remain'],
+  },
+  pocket_green: {
+    label: 'Pocket green', plural: 'Pocket greens', icon: Sprout, color: 'iv-green',
+    fieldChecks: ['Plot ownership and public access', 'Water for the first two summers', 'Native shrubs and trees rather than lawn'],
+  },
+  cool_roof: {
+    label: 'Cool roof', plural: 'Cool roof blocks', icon: Building2, color: 'iv-roof',
+    fieldChecks: ['Roof material and owner consent', 'Glare onto taller neighbours', 'A yearly re-coat in the maintenance plan'],
+  },
 }
 
 export const TIME_TO_BENEFIT_LABEL: Record<TimeToBenefit, string> = {
   weeks: 'Weeks',
   season: 'One season',
   years: 'Years',
+}
+
+/** When to do the work, by time to benefit (docs/PLANNING.md, who uses it and when). */
+export const PHASE: Record<TimeToBenefit, { order: number; title: string }> = {
+  weeks: { order: 1, title: 'Before the March to May heat' },
+  season: { order: 2, title: 'In the dry season' },
+  years: { order: 3, title: 'Plant with the monsoon, June and July' },
 }
 
 export const PRIORITY_META: Record<PriorityClass, { label: string; color: ColorToken }> = {
@@ -62,6 +87,12 @@ export const DRIVER_LABEL: Record<string, string> = {
   ALBEDO_GAIN: 'Reflects more sunlight',
   WAIT_POINT_COVERED: 'Shades a waiting point',
   CANOPY_OBSTRUCTION: 'Canopy would block the breeze',
+  OBSTRUCTION: 'Tall against the street width',
+  ORIENTATION: 'Turned across the wind',
+  BUILT_RUN: 'Longer built-up run',
+  IMPERVIOUS_GAIN: 'Adds paving and roof',
+  MASS_GAIN: 'Adds building mass',
+  GREEN_LOSS: 'Removes open green',
 }
 
 export const driverLabel = (tag: string) => DRIVER_LABEL[tag] ?? tag

@@ -7,8 +7,10 @@ import { GROUND_PARAMETERS, isSelected } from './shared'
 
 type Segment = Feature<LineString, SegmentProps>
 
-export function renderFootpathShade({ data, shadeIndex, selection }: LayerContext) {
+export function renderFootpathShade({ data, shadeIndex, selection, scenario }: LayerContext) {
   if (!data.segments) return []
+  // With the scenario view on, changed segments take their new shade state from the rescore result.
+  const overrides = scenario.view === 'scenario' ? scenario.result?.segments : undefined
   return [
     new PathLayer<Segment>({
       id: 'footpathShade',
@@ -17,13 +19,14 @@ export function renderFootpathShade({ data, shadeIndex, selection }: LayerContex
       getPath: (f) => f.geometry.coordinates as [number, number][],
       getColor: (f) => {
         if (isSelected(selection, 'segment', f.properties.id)) return rgba('map-selection')
-        return f.properties.shaded[shadeIndex] ? rgba('data-shade') : rgba('data-sun')
+        const shaded = (overrides?.[f.properties.id] ?? f.properties.shaded)[shadeIndex]
+        return shaded ? rgba('data-shade') : rgba('data-sun')
       },
       getWidth: 2.5,
       widthUnits: 'meters',
       widthMinPixels: 2,
       capRounded: true,
-      updateTriggers: { getColor: [shadeIndex, selection?.id] },
+      updateTriggers: { getColor: [shadeIndex, selection?.id, overrides] },
       parameters: GROUND_PARAMETERS,
     }),
   ]

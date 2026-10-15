@@ -3,13 +3,16 @@ import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Switch } from '@/components/ui/switch'
 import { useUiStore } from '@/state/uiStore'
-import { LAYER_GROUPS, LAYERS } from './layerRegistry'
+import { LAYER_GROUPS, layersFor } from './layerRegistry'
 
 /** Layer toggles, grouped, generated from the registry (UI_RULES.md §4). */
 export function LayersControl() {
+  const mode = useUiStore((s) => s.mode)
   const visible = useUiStore((s) => s.visibleLayers)
   const setLayerVisible = useUiStore((s) => s.setLayerVisible)
-  const onCount = LAYERS.filter((l) => visible[l.id]).length
+  const available = layersFor(mode)
+  const isOn = (id: string) => visible[id as keyof typeof visible]
+  const onCount = available.filter((l) => isOn(l.id)).length
 
   return (
     <Popover>
@@ -22,7 +25,7 @@ export function LayersControl() {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
         {LAYER_GROUPS.map((group) => {
-          const layers = LAYERS.filter((l) => l.group === group.id)
+          const layers = available.filter((l) => l.group === group.id)
           if (!layers.length) return null
           return (
             <div key={group.id} className="border-b p-3 last:border-b-0">
@@ -32,8 +35,8 @@ export function LayersControl() {
                   <li key={layer.id} className="flex items-start gap-3">
                     <Switch
                       id={`layer-${layer.id}`}
-                      checked={visible[layer.id]}
-                      onCheckedChange={(on) => setLayerVisible(layer.id, on)}
+                      checked={isOn(layer.id)}
+                      onCheckedChange={(on) => setLayerVisible(layer.id as keyof typeof visible, on)}
                       className="mt-0.5"
                     />
                     <label htmlFor={`layer-${layer.id}`} className="cursor-pointer text-sm leading-tight">

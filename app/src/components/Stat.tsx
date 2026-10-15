@@ -19,10 +19,10 @@ export function Stat({ index, value, before }: { index: IndexKey | 'acs'; value:
           <TooltipContent className="max-w-60">{meta.description}</TooltipContent>
         </Tooltip>
       </div>
-      <div className="mt-0.5 flex items-baseline gap-2">
+      <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2">
         <span className="text-lg font-semibold tabular-nums">{formatScore(value)}</span>
         <span className="text-xs text-muted-foreground">/ 100</span>
-        {before !== undefined && <Delta value={value - before} better={meta.better} className="ml-auto" />}
+        {before !== undefined && <Delta value={value - before} better={meta.better} className="ml-auto text-xs whitespace-nowrap" />}
       </div>
     </div>
   )

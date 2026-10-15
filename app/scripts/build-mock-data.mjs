@@ -155,13 +155,17 @@ const blockOf = (pt) => blocks.find((b) => turf.booleanPointInPolygon(pt, b.feat
 for (const b of buildings) b.block = blockOf(b.centroid)
 
 // ---------- footpath segments ----------
+const COMPASS = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west']
+const compass = (deg) => COMPASS[Math.round(deg / 45) % 8]
 const segments = []
 const footpaths = [] // one per road side; candidate lines for tree rows
 for (const road of roads) {
   for (const side of [-1, 1]) {
     let off
     try { off = turf.lineOffset(road.line, side * (road.width / 2 + FOOTPATH_W_M / 2), { units: 'meters' }) } catch { continue }
-    const fp = { id: `${road.id}_${side > 0 ? 'r' : 'l'}`, road, line: off, segIds: [] }
+    const coords = road.line.geometry.coordinates
+    const facing = (turf.bearing(coords[0], coords[coords.length - 1]) + (side > 0 ? 90 : -90) + 360) % 360
+    const fp = { id: `${road.id}_${side > 0 ? 'r' : 'l'}`, road, line: off, segIds: [], sideName: compass(facing) }
     for (const chunk of turf.lineChunk(off, CHUNK_M, { units: 'meters' }).features) {
       const path = chunk.geometry.coordinates.map(rc)
       if (path.some((c) => !Number.isFinite(c[0]) || !Number.isFinite(c[1]))) continue
@@ -255,14 +259,20 @@ const segIndexNear = (geom, metres) => {
   return segments.filter((sg) => sg.mid[0] >= w && sg.mid[0] <= e && sg.mid[1] >= s && sg.mid[1] <= n)
 }
 // Which nearby segments a set of new shade-casting rings shades, per time.
-function shadeEffect(rings, z0, z1, searchGeom) {
-  const candidates = segIndexNear(searchGeom, 40)
+function shadeEffect(rings, z0, z1, searchGeom, radiusM = 40) {
+  const candidates = segIndexNear(searchGeom, radiusM)
   const out = {}
   SHADE_TIMES.forEach((t, ti) => {
     const idx = buildIndex(rings.map((r) => shadowOf(r, z0, z1, SUN[t])).filter(Boolean))
     for (const sg of candidates) if (!sg.shaded[ti] && inIndex(idx, sg.mid)) (out[sg.id] ??= [false, false, false])[ti] = true
   })
   return out
+}
+// Axis-aligned rectangle ring of w × d metres centred on a point.
+function rectRing(center, w, d) {
+  const corners = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]]
+    .map(([dx, dy]) => rc(turf.destination(turf.destination(center, dx / 1000, 90), dy / 1000, 0).geometry.coordinates))
+  return [...corners, corners[0]]
 }
 const sites = []
 const addSite = (s) => sites.push({ ...s, unitCost: UNIT_COSTS[s.type], timeToBenefit: TIME_TO_BENEFIT[s.type] })
@@ -278,8 +288,10 @@ for (const fp of footpaths) {
   const deep = hw >= DEEP_CANYON_HW
   const blocksTouched = [...new Set(fp.segIds.map((id) => segById.get(id).block).filter(Boolean))]
   const dGc = Math.min(8, (trees.length * 28) / 1000)
+  const mainBlock = blocksTouched.sort((x, y) => fp.segIds.filter((id) => segById.get(id).block === y).length - fp.segIds.filter((id) => segById.get(id).block === x).length)[0]
   addSite({
-    id: `st_${fp.id}`, type: 'tree_row', name: `Tree row, ${fp.road.name ?? `unnamed ${fp.road.cls} road`}`,
+    id: `st_${fp.id}`, type: 'tree_row',
+    name: `Tree row, ${fp.road.name ?? `unnamed ${fp.road.cls} road`}, ${fp.sideName} side${mainBlock ? `, block ${mainBlock.slice(2)}` : ''}`,
     geometry: { type: 'LineString', coordinates: fp.line.geometry.coordinates.map(rc) }, points: trees,
     quantity: trees.length, hw: r1(hw),
     ventilation: deep ? { ok: false, driver: 'CANOPY_OBSTRUCTION', reason: `Deep, narrow street (height-to-width ${r1(hw)}). Dense canopy would block the breeze and trap heat at night.` } : { ok: true },
@@ -297,10 +309,7 @@ for (const w of waits) {
     return d < best.d ? { d, sg } : best
   }, { d: Infinity, sg: null })
   if (!nearest.sg || nearest.d > 60) continue
-  const at = nearest.sg.mid
-  const corners = [[-SAIL.w / 2, -SAIL.d / 2], [SAIL.w / 2, -SAIL.d / 2], [SAIL.w / 2, SAIL.d / 2], [-SAIL.w / 2, SAIL.d / 2]]
-    .map(([dx, dy]) => rc(turf.destination(turf.destination(at, dx / 1000, 90), dy / 1000, 0).geometry.coordinates))
-  const ring = [...corners, corners[0]]
+  const ring = rectRing(nearest.sg.mid, SAIL.w, SAIL.d)
   addSite({
     id: `ss_${w.id}`, type: 'shade', name: `Shade structure, ${w.name ?? w.type}`,
     geometry: { type: 'Polygon', coordinates: [ring] }, quantity: SAIL.w * SAIL.d, waitPoint: w.id,
@@ -354,6 +363,43 @@ for (const b of blocks.filter((x) => blockScores.get(x.id).builtForm === 'dense_
   })
 }
 
+// ---------- Protect: candidate vacant parcels ----------
+// A parcel is a plot inside a low-coverage block. Shade effects of a proposed building are
+// precomputed for a grid of footprint shares and heights, so the mock can look them up.
+const PARCEL = { w: 36, d: 28 }
+const FOOTPRINT_LEVELS = [25, 40, 55, 70]
+const HEIGHT_LEVELS = [6, 12, 18, 30, 45, 60]
+const parcels = []
+const parcelBlocks = blocks.filter((b) => blockScores.get(b.id).coverage < 0.25 && b.area > 2500)
+  .sort((a, b) => blockScores.get(a.id).coverage - blockScores.get(b.id).coverage)
+for (const b of parcelBlocks) {
+  if (parcels.length >= 8) break
+  const c = rc(turf.pointOnFeature(b.feature).geometry.coordinates)
+  const plot = rectRing(c, PARCEL.w, PARCEL.d)
+  if (!turf.booleanWithin(turf.polygon([plot]), b.feature)) continue
+  const road = roads.reduce((best, r) => {
+    const d = turf.pointToLineDistance(c, r.line, { units: 'meters' })
+    return d < best.d ? { d, r } : best
+  }, { d: Infinity, r: null }).r
+  const coords = road.line.geometry.coordinates
+  const streetBearing = (turf.bearing(coords[0], coords[coords.length - 1]) + 360) % 180
+  const near = buildings.filter((x) => turf.distance(c, x.centroid, { units: 'meters' }) < 80)
+  const shade = {}
+  for (const fp of FOOTPRINT_LEVELS) {
+    const k = Math.sqrt(fp / 100)
+    const ring = rectRing(c, PARCEL.w * k, PARCEL.d * k)
+    for (const h of HEIGHT_LEVELS) shade[`${fp}_${h}`] = shadeEffect([ring], 0, h, turf.polygon([ring]), 100)
+  }
+  parcels.push({
+    id: `pc${String(parcels.length + 1).padStart(2, '0')}`, blockId: b.id, plot, center: c,
+    name: `Vacant plot on ${road.name ?? `an unnamed ${road.cls} road`}`, areaM2: Math.round(turf.area(turf.polygon([plot]))),
+    roadName: road.name, roadWidthM: road.width, streetBearingDeg: Math.round(streetBearing),
+    neighbourHeightM: r1(near.length ? near.reduce((a, x) => a + x.h, 0) / near.length : DEFAULT_HEIGHT_M),
+    nearbyBlocks: blocks.filter((o) => o.id !== b.id && turf.distance(c, blockScores.get(o.id).centroid, { units: 'meters' }) < 200).map((o) => o.id),
+    shade,
+  })
+}
+
 // ---------- area summary ----------
 function areaScores() {
   let w = 0
@@ -379,13 +425,14 @@ write('area.json', {
   counts: { blocks: blocks.length, buildings: buildings.length, segments: segments.length, waitPoints: waits.length, sites: sites.length },
   dataGaps: { buildingsDefaultHeight: buildings.filter((b) => b.source === 'default').length, defaultHeightM: DEFAULT_HEIGHT_M },
   unitCostDefaults: UNIT_COSTS, mock: true,
+  engine: { windFromDeg: MOCK_WIND_FROM_DEG, vRefM3: Math.round(V_REF), metresPerFloor: 3, footprintLevels: FOOTPRINT_LEVELS, heightLevelsM: HEIGHT_LEVELS },
   attribution: 'Geometry © OpenStreetMap contributors (ODbL). Scores, costs and effects are mock values.',
 })
 write('blocks.json', fc(blocks.map((b) => {
   const s = blockScores.get(b.id)
   return feat(b.feature.geometry, {
     id: b.id, areaM2: Math.round(b.area), scores: s.scores, priority: s.priority, priorityClass: priorityClass(s.priority),
-    builtForm: s.builtForm, waitWeight: s.waitWeight, drivers: s.drivers,
+    builtForm: s.builtForm, waitWeight: s.waitWeight, drivers: s.drivers, centroid: s.centroid,
   })
 })))
 write('buildings.json', fc(buildings.map((b) => feat({ type: 'Polygon', coordinates: [b.ring] }, { id: b.id, heightM: b.h, heightSource: b.source }))))
@@ -397,8 +444,9 @@ for (const t of SHADE_TIMES) {
   write(`shadows-${t.replace(':', '')}.json`, fc(buildingShadows[t].map((r) => feat({ type: 'Polygon', coordinates: [r] }, {}))))
 }
 write('sites.json', sites)
+write('parcels.json', fc(parcels.map(({ plot, ...p }) => feat({ type: 'Polygon', coordinates: [plot] }, p))))
 write('hotspots.json', [...blockScores.entries()].sort((a, b) => b[1].priority - a[1].priority).slice(0, 10)
   .map(([id, s], i) => ({ rank: i + 1, blockId: id, priority: s.priority, priorityClass: priorityClass(s.priority), scores: s.scores, drivers: s.drivers, centroid: s.centroid })))
 
 const byType = sites.reduce((a, s) => ({ ...a, [s.type]: (a[s.type] ?? 0) + 1 }), {})
-console.log(`wrote ${OUT}: ${blocks.length} blocks, ${segments.length} segments, ${sites.length} sites`, byType, 'baseline', areaScores())
+console.log(`wrote ${OUT}: ${blocks.length} blocks, ${segments.length} segments, ${sites.length} sites, ${parcels.length} parcels`, byType, 'baseline', areaScores())

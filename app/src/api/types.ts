@@ -36,6 +36,8 @@ export interface AreaSummary {
   counts: { blocks: number; buildings: number; segments: number; waitPoints: number; sites: number }
   dataGaps: { buildingsDefaultHeight: number; defaultHeightM: number }
   unitCostDefaults: UnitCosts
+  /** Engine constants the UI shows or passes back (never used to compute scores in the UI). */
+  engine: { windFromDeg: number; vRefM3: number; metresPerFloor: number; footprintLevels: number[]; heightLevelsM: number[] }
   mock: boolean
   attribution: string
 }
@@ -49,6 +51,7 @@ export interface BlockProps {
   builtForm: 'dense_low_rise' | 'other'
   waitWeight: number
   drivers: string[]
+  centroid: [number, number]
 }
 
 export interface SegmentProps {
@@ -76,12 +79,29 @@ export interface WaitPointProps {
 
 export type ShadowProps = Record<string, never>
 
+/** A vacant plot that Protect can test a proposed building on. */
+export interface ParcelProps {
+  id: string
+  blockId: string
+  name: string
+  areaM2: number
+  center: [number, number]
+  roadName: string | null
+  roadWidthM: number
+  streetBearingDeg: number
+  neighbourHeightM: number
+  nearbyBlocks: string[]
+  /** Engine lookup: footpath shade added by a building, keyed "<footprint %>_<height m>". */
+  shade: Record<string, Record<string, ShadeByTime>>
+}
+
 /** Map layers served by GET /api/areas/{area}/layers/{name}. */
 export interface LayerData {
   blocks: FeatureCollection<Polygon, BlockProps>
   segments: FeatureCollection<LineString, SegmentProps>
   buildings: FeatureCollection<Polygon, BuildingProps>
   waitPoints: FeatureCollection<Point, WaitPointProps>
+  parcels: FeatureCollection<Polygon, ParcelProps>
   shadows: Record<ShadeTime, FeatureCollection<Polygon, ShadowProps>>
 }
 export type LayerName = keyof LayerData
@@ -127,6 +147,23 @@ export interface Change {
   params?: Record<string, number | string>
 }
 
+/** A proposed building envelope (Protect). Floor area proxy = footprint % × floors. */
+export interface BuildingDesign {
+  floors: number
+  footprintPct: number
+  greenPct: number
+  orientationDeg: number
+}
+
+export type RiskLabel = 'LOW' | 'MODERATE' | 'HIGH'
+
+/** Worst change on a parcel's block: the largest of VCI drop, HEI rise, GCS drop, PSS drop. */
+export interface RiskInfo {
+  label: RiskLabel
+  index: IndexKey
+  change: number
+}
+
 export interface BlockResult {
   id: string
   before: Scores
@@ -145,4 +182,70 @@ export interface AreaResult {
   waitPointsCovered: number
   costInr: number
   drivers: string[]
+  /** Existing blocks whose cooling score falls. */
+  blocksWorse: number
+  /** Protect: the worst risk across proposed buildings, and per parcel. */
+  risk?: RiskInfo
+  parcelRisk?: Record<string, RiskInfo>
+}
+
+export interface RejectedOption {
+  siteId: string
+  driver: string
+  reason: string
+}
+
+/** One option scored by the engine during a search. */
+export interface Candidate {
+  id: string
+  round: number
+  source: 'gemini' | 'greedy' | 'proposal'
+  label: string
+  changes: Change[]
+  /** Repair: area cooling score after. Protect: worst change (lower is better). */
+  score: number
+  costInr: number
+  floorAreaPct?: number
+  /** Protect: the engine's risk label for this design. */
+  risk?: RiskInfo
+  valid: boolean
+  invalidReason?: string
+}
+
+export type SearchRequest =
+  | { mode: 'repair'; budgetInr: number; unitCosts: UnitCosts }
+  | { mode: 'protect'; parcelId: string; proposal: BuildingDesign; keepFloorAreaPct: number; minFloorAreaPct: number }
+
+export interface DesignOption {
+  key: 'A' | 'B' | 'C'
+  title: string
+  candidate: Candidate
+  design: BuildingDesign
+  tradeOff: string
+}
+
+export interface SearchResult {
+  best: Candidate
+  /** Repair: whether Gemini's best beat the greedy baseline (if not, best is the greedy plan). */
+  geminiBeatGreedy?: boolean
+  /** Protect: options A, B and C. */
+  options?: DesignOption[]
+  rejected: RejectedOption[]
+  rounds: number
+  explanation: Explanation
+}
+
+/** Streamed over SSE from POST /api/agent/runs (DESIGN.md C3). */
+export type SearchEvent =
+  | { type: 'baseline'; candidate: Candidate }
+  | { type: 'round'; round: number }
+  | { type: 'candidate'; candidate: Candidate }
+  | { type: 'done'; result: SearchResult }
+
+/** An explanation written by the agent from engine values; every number appears in a tool result. */
+export interface Explanation {
+  paragraphs: string[]
+  drivers: string[]
+  /** 'template' when the output guard rejected the model twice and fell back. */
+  source: 'gemini' | 'template'
 }

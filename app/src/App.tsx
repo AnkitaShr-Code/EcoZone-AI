@@ -4,6 +4,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { LayersControl } from '@/map/LayersControl'
 import { Legend } from '@/map/Legend'
 import { MapView } from '@/map/MapView'
+import { ScenarioToggle } from '@/map/ScenarioToggle'
 import { TimeControl } from '@/map/TimeControl'
 import { TopBar } from '@/shell/TopBar'
 import { WorkflowPanel } from '@/shell/WorkflowPanel'
@@ -24,7 +25,8 @@ export default function App() {
               <div className="absolute top-3 right-3 z-10">
                 <LayersControl />
               </div>
-              <div className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2">
+              <div className="absolute bottom-8 left-3 z-10 flex flex-wrap items-center gap-2">
+                <ScenarioToggle />
                 <TimeControl />
               </div>
               <div className="absolute right-3 bottom-8 z-10">
