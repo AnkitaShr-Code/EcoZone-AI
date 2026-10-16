@@ -84,6 +84,22 @@ steps:
       - --set-env-vars=ECOZONE_MODEL_WRITER=${_MODEL_WRITER}
       - --set-env-vars=ECOZONE_BUNDLE_URI=${_BUNDLE_URI}
 
+  # 4. Allow unauthenticated access (org policy strips --allow-unauthenticated; gcloud beta required)
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    id: allow-unauthenticated
+    waitFor: [deploy]
+    entrypoint: gcloud
+    args:
+      - beta
+      - run
+      - services
+      - add-iam-policy-binding
+      - ${_SERVICE}
+      - --region=${_REGION}
+      - --project=${_PROJECT}
+      - --member=allUsers
+      - --role=roles/run.invoker
+
 images:
   - ${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}:${_SHORT_SHA}
   - ${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}:latest
