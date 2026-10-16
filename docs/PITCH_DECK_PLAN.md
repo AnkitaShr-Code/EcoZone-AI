@@ -17,7 +17,7 @@ Plan for filling **Submission Template _ AI Builder Cup.pptx** (16 slides, templ
 | Field | Content |
 | --- | --- |
 | Team name | NeuralNodes |
-| Team leader | **TBD** |
+| Team leader | Ankita Sharma |
 | Problem statement | Cities have no quick way to decide where trees, shade, depaving and cool roofs would cool the people who wait outdoors, or to stop new buildings breaking the breeze and green that cool a street. Theme: Sustainability & Social Impact. |
 
 Add member names if the template allows (2–4 working professionals, 21+, JAPAC).
@@ -126,7 +126,7 @@ Slide 15: *Repair and protect a city's cooling network*, with three proof points
 
 ## Open items
 
-1. Team leader and member names (slide 1).
+1. Member names for slide 1 if the template allows: Ankita Sharma, Abhishek Sirohi, Dhananjay (surname needed).
 2. Gemini model name (slide 9).
 3. Default unit-cost source (slide 10).
 4. Measured results, screenshots and links (slides 11, 12, 14).

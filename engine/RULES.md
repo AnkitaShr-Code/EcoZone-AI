@@ -34,14 +34,32 @@ engine/tests/
 - **Typed.** pyright strict. Results are frozen dataclasses with explicit fields, never loose dicts.
 - **Settings, not literals.** Weights, thresholds, radii, crown sizes, waiting-point weights and risk thresholds come from `settings.py`. A numeric literal in scoring code is a review blocker (0, 1, 100 and unit conversions excepted).
 
+## Public API
+
+The only names `api`, `agents` and `pipeline` import, re-exported from `ecozone_engine/__init__.py`. Stubs with these signatures land in WP1 so other packages can build against them; the engine owner replaces the bodies without changing the signatures (a signature change is its own PR, agreed with the API and agents owner).
+
+```python
+load_bundle(path: Path) -> AreaModel
+summary(area: AreaModel) -> AreaSummaryData
+layer(area: AreaModel, name: LayerName) -> list[Feature]            # EPSG:32643; api converts to WGS84
+hotspots(area: AreaModel, top: int) -> list[HotspotData]
+single_site(area: AreaModel, site_id: str, unit_costs: UnitCosts) -> SingleSiteData
+rescore(area: AreaModel, changes: Sequence[Change], unit_costs: UnitCosts) -> AreaResultData
+greedy_baseline(area: AreaModel, budget_inr: float, unit_costs: UnitCosts, quick_win_share_pct: float) -> PortfolioData
+shadows(area: AreaModel, time: ShadeTime, changes: Sequence[Change] = ()) -> list[Polygon]
+compute_baselines(area: AreaModel) -> BaselineData                   # used by pipeline/baselines.py
+```
+
+All return types are frozen dataclasses in `model.py`; `api` and `agents` convert them to `contract` models in their `to_contract.py`.
+
 ## Domain rules that resolve gaps in PLANNING.md
 
 - **Chunks.** Footpaths are 10 m chunks (the last chunk of a run may be shorter). A chunk is shaded at time *t* when its midpoint lies inside the union of shadows at *t*. Chunk PSS = 100 × shaded times ÷ 3. Block and area PSS are length-weighted means of chunk PSS.
 - **Shadow sources.** Buildings: the footprint swept along the shadow vector of length `h / tan(altitude)` away from the sun (union of the footprint, its translate, and the quad swept by each edge, so concave footprints stay correct). Tree crowns: discs of the settings radius, raised to the settings crown height. Shade structures: their polygon at 3 m. Shade under a structure counts at every reference time.
 - **Incremental rescoring.** A change touches only blocks and chunks within the settings radius (300 m for green terms, the longest shadow at 13:00 for shade). `STRtree` finds them; everything else keeps its baseline value object.
-- **Ventilation.** After tree rows, recompute `c_canopy` and `r_eff` for every touched block whose street has H/W ≥ 1; a block VCI drop ≥ the settings threshold sets `ventilation_ok = False` and the `CANOPY_OBSTRUCTION` driver on that change.
+- **Ventilation.** Tree rows never go on streets with H/W ≥ 1: the pipeline's site rule marks those candidates rejected (`CANOPY_OBSTRUCTION`), and the engine refuses them in `rescore`. Tree rows do not enter VCI (PLANNING.md, Oct 15 site rule; the old `c_canopy`/`r_eff` penalty is removed). `rescore` still sets `ventilation_ok = False` when any block's VCI drops by the settings threshold or more, which mainly applies to Protect buildings.
 - **Interactions are real.** Two changes that shade the same chunk count it once; green changes recompute `G_buf` and `d_green` from the merged geometry. Never sum single-site gains to get a portfolio score.
-- **Greedy.** Sort single-site gain per rupee, tie-break by site id; add while within budget; rescore the portfolio after each addition and skip a site whose marginal gain is ≤ 0 or which fails ventilation.
+- **Greedy.** First fill the quick-win share (sites helping within weeks or a season) by single-site gain per rupee, then the rest the same way; tie-break by site id; add while within budget; rescore the portfolio after each addition and skip a site whose marginal gain is ≤ 0 or which fails ventilation.
 - **Heights.** The engine uses `height_m` as given and never fills gaps; provenance is the pipeline's job.
 
 ## Tests required for a change here
