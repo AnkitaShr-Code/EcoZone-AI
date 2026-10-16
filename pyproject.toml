@@ -1,0 +1,100 @@
+# uv workspace root (docs/ENGINEERING_RULES.md §3–4). Holds shared tool config;
+# each folder is its own package with its own pyproject.toml.
+
+[project]
+name = "ecozone-workspace"
+version = "0.1.0"
+description = "EcoZone AI workspace root (not a package)"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "ecozone-contract",
+  "ecozone-engine",
+  "ecozone-pipeline",
+  "ecozone-agents",
+  "ecozone-api",
+]
+
+[dependency-groups]
+dev = [
+  "ruff>=0.8",
+  "pyright>=1.1.390",
+  "import-linter>=2.1",
+  "pytest>=8.3",
+  "hypothesis>=6.120",
+  "httpx>=0.28",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["contract", "engine", "pipeline", "agents", "api"]
+
+[tool.uv.sources]
+ecozone-contract = { workspace = true }
+ecozone-engine = { workspace = true }
+ecozone-pipeline = { workspace = true }
+ecozone-agents = { workspace = true }
+ecozone-api = { workspace = true }
+
+# ---------- ruff: lint + format ----------
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+src = ["contract/src", "engine/src", "pipeline/src", "agents/src", "api/src"]
+# fetch_sample.py is the legacy UI-mock fetcher, removed when the mock becomes an engine snapshot (pipeline/RULES.md).
+extend-exclude = ["app", "data", "docs", "*.md", "pipeline/fetch_sample.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "N", "PTH", "DTZ", "T20"]
+
+[tool.ruff.lint.per-file-ignores]
+"*/tests/*" = ["T20"]
+
+# ---------- pyright: strict for engine and contract, standard elsewhere ----------
+[tool.pyright]
+pythonVersion = "3.12"
+include = ["contract", "engine", "pipeline", "agents", "api"]
+exclude = ["**/.venv", "app", "data"]
+typeCheckingMode = "standard"
+strict = ["contract/src", "engine/src"]
+venvPath = "."
+venv = ".venv"
+
+# ---------- import-linter: package boundaries (ENGINEERING_RULES.md §4) ----------
+[tool.importlinter]
+root_packages = ["ecozone_contract", "ecozone_engine", "ecozone_pipeline", "ecozone_agents", "ecozone_api"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "engine imports nothing from this repo and no cloud, HTTP or LLM library"
+type = "forbidden"
+source_modules = ["ecozone_engine"]
+forbidden_modules = [
+  "ecozone_contract", "ecozone_pipeline", "ecozone_agents", "ecozone_api",
+  "google", "fastapi", "httpx", "requests", "osmnx", "pydantic",
+]
+
+[[tool.importlinter.contracts]]
+name = "contract imports only pydantic"
+type = "forbidden"
+source_modules = ["ecozone_contract"]
+forbidden_modules = ["ecozone_engine", "ecozone_pipeline", "ecozone_agents", "ecozone_api", "fastapi", "google"]
+
+[[tool.importlinter.contracts]]
+name = "pipeline never imports api or agents"
+type = "forbidden"
+source_modules = ["ecozone_pipeline"]
+forbidden_modules = ["ecozone_api", "ecozone_agents"]
+
+[[tool.importlinter.contracts]]
+name = "agents never import api or pipeline"
+type = "forbidden"
+source_modules = ["ecozone_agents"]
+forbidden_modules = ["ecozone_api", "ecozone_pipeline"]
+
+# ---------- pytest ----------
+[tool.pytest.ini_options]
+testpaths = ["contract/tests", "engine/tests", "pipeline/tests", "agents/tests", "api/tests"]
+addopts = "-q --import-mode=importlib"
+markers = ["cloud: needs live Google Cloud; skipped unless ECOZONE_CLOUD_TESTS=1"]

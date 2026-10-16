@@ -1,0 +1,14 @@
+.git
+.venv
+**/__pycache__
+.pytest_cache
+.ruff_cache
+.import_linter_cache
+.hypothesis
+data
+.env
+.claude
+app/node_modules
+app/dist
+docs/explainer
+*.pptx

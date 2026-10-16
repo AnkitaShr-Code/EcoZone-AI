@@ -115,7 +115,17 @@ infra/      Dockerfile, deploy config
 
 ## Running locally
 
-Setup instructions will be added when the code lands. Planned requirements: Python 3.11+, Node 20+, a Google Cloud project with Vertex AI, BigQuery, Firestore and Cloud Storage enabled, and Earth Engine noncommercial access for the pipeline. Authentication is through Application Default Credentials and a service account; **no keys are committed to this repository.**
+Requirements: [uv](https://docs.astral.sh/uv/) (installs Python 3.12 for you), Node 24, and Docker for the image. Google Cloud access comes later (Vertex AI, Firestore, Cloud Storage); authentication is Application Default Credentials locally and a service account on Cloud Run, so **no keys are committed to this repository.**
+
+```bash
+uv sync                      # Python workspace: contract, engine, pipeline, agents, api
+make check                   # ruff, pyright, import boundaries, pytest, plus the app's typecheck, lint and build
+uv run uvicorn ecozone_api.main:app --reload   # API at :8000/api, serves app/dist if built
+cd app && npm install && npm run dev            # the app alone at :5173, on mock data
+docker build -f infra/Dockerfile -t ecozone .   # the one Cloud Run image
+```
+
+Coding rules: [docs/ENGINEERING_RULES.md](docs/ENGINEERING_RULES.md) for everything outside `app/`, [app/UI_RULES.md](app/UI_RULES.md) for the app. Who builds what, and when: [docs/TASKS.md](docs/TASKS.md).
 
 ## Timeline
 
