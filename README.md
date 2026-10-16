@@ -1,225 +1,136 @@
 # EcoZone AI
 
-**Climate impact preview for building proposals.**
+**Repair and protect a city's cooling network.**
 
-EcoZone AI lets a city planner select a parcel, enter a proposed building, and see how ventilation, heat exposure and green connectivity change. Gemini then searches for better designs, and an area view shows what happens when every vacant parcel on a street is built out. The heat index is checked against satellite surface temperature.
+EcoZone AI helps a city cool the streets people already live and work on, and stops new buildings from undoing that work.
+
+- **Repair:** a planner selects an area and sets a rupee budget. Gemini designs a mix of street trees, shade structures, depaving, pocket green and cool roofs. A deterministic engine scores every option, including how much footpath it shades at 1, 3 and 4 pm, and rejects options that would block the breeze.
+- **Protect:** the planner previews what a proposed building does to ventilation, heat, green connectivity and shade. Gemini searches for better designs, and a build-out view shows the cumulative effect on a whole street.
 
 Built by team **NeuralNodes** for the **Google Cloud AI Builder Cup 2026**, theme **Sustainability & Social Impact**. Prototype due Oct 18, 2026.
 
-> **Status: planning complete, build in progress.** This README describes the designed system. Nothing below is a measured result. Evaluation numbers will be added to [Evaluation](#evaluation) only after the tests have been run.
+> **Status: design complete, build in progress.** Nothing below is a measured result. Evaluation numbers will be added to [Evaluation](#evaluation) only after the tests have been run.
+
+| Document | Contents |
+| --- | --- |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System shape, component ownership, the two rules every change must preserve |
+| [docs/PLANNING.md](docs/PLANNING.md) | Problem, solution, scoring formulas, agents, data, trust, build plan, locked decisions |
+| [docs/DESIGN.md](docs/DESIGN.md) | Components, interfaces, data stores, flows, performance and effort |
+| [docs/TASKS.md](docs/TASKS.md) | Day-by-day checklist by lane |
+| [docs/PITCH_DECK_PLAN.md](docs/PITCH_DECK_PLAN.md) | Slide-by-slide plan for the submission deck |
+| [AGENTS.md](AGENTS.md) | Guidance for AI coding agents working in this repo |
 
 ## Why
 
-Building proposals in fast-densifying cities such as Pune are checked against height limits, floor-area ratio and setbacks. None of these ask whether the building blocks the breeze that cools the blocks behind it, or replaces soil and trees with surfaces that hold heat. A fully legal building on the wrong plot can make a neighborhood hotter.
-
-Outdoor workers, the elderly and children bear that exposure, and a cooling corridor that is built over cannot be restored. Detailed microclimate studies exist, but they are specialist work, so most proposals never get one. Cities ask "Can we build here?" and not "What happens to the neighborhood if we build here?"
-
-Public evidence (full list in the [planning document](EcoZoning%20AI%20Climate%20Impact%20Preview%20for%20Building%20Proposals.md)):
+Indian cities are getting hotter street by street. Outdoor workers, vendors, commuters, the elderly and children spend the hottest hours on footpaths, at bus stops and in school yards, often without shade. Cities have no quick way to decide where a limited budget for trees, shade or cool surfaces would help most. Meanwhile new buildings that follow every rule can still block the breeze and pave over the green that cools a neighborhood.
 
 - India recorded between 10,545 and 20,615 heat deaths from 2000 to 2020, depending on the counting agency ([Dialogue Earth via PreventionWeb](https://www.preventionweb.net/news/indian-cities-struggle-plan-heat-most-vulnerable-suffer), Apr 2026).
 - About 57% of Indian districts are at high or very high heat risk (CEEW 2025, same article).
 - In Pune, built-up area grew from 44.8% to 55.17% between 2012 and 2023, and heat islands appeared at four of six study sites ([Tiwari et al., 2025](https://archives.christuniversity.in/items/show/23402)).
 
-## What it does
+## How it works
 
-1. The planner selects a parcel on the map of the frozen demo area (Shivajinagar or Kothrud, chosen on day 1 by building-height coverage).
-2. The planner enters a proposed building: height in floors, footprint %, green %, orientation.
-3. The scoring engine computes baseline and proposed values for three 0–100 indices: **Ventilation Corridor Index (VCI)**, **Heat Exposure Index (HEI)** and **Green Connectivity Score (GCS)**.
-4. Gemini explains the drivers, using only values returned by the engine.
-5. Gemini searches for better designs and ranks three options.
-6. The planner reads a short planning brief with the evidence and recommendation.
-7. In **Area build-out**, one envelope is applied to every vacant parcel on a street and the whole area is rescored.
+The tool treats a neighborhood as one cooling network: air paths, green patches and links, and the places where people wait outdoors.
 
-| Option | Optimizes | Rule |
+### Repair (lead mode)
+
+1. Select an area. The map ranks blocks and footpaths by heat, missing afternoon shade, nearby waiting points (schools, hospitals, markets, bus stops) and dense low-rise built form.
+2. Set a rupee budget, the share that must help this summer (quick wins), and check the unit costs (planner input).
+3. Gemini proposes portfolios of interventions; the engine scores each one; Gemini refines for up to three rounds. A greedy baseline is computed alongside, and the better result is shown.
+4. Read the plan: site, cost, why, waiting points covered, time to benefit, ventilation check, and rejected options with reasons.
+5. Compare footpath shadows at 1, 3 and 4 pm before and after, and export a phased cooling plan with field check lists.
+
+| Intervention | Where it helps | When the engine rejects or flags it |
 | --- | --- | --- |
-| A: Developer maximized | Floor area | The proposal as entered |
-| B: Balanced | Climate score, keeping most floor area | Best candidate keeping at least a set share of A's floor area (planner-adjustable) |
-| C: Climate optimized | Climate score | Best candidate above a minimum development floor, so the answer is never "do not build" |
+| Street tree row | Footpaths with little building shade, especially east–west streets | Deep narrow lanes, where canopy blocks the breeze |
+| Shade structure | Within 30 m of a waiting point | — |
+| Depave and plant | School yards, municipal parking, medians | — |
+| Pocket green | Vacant or amenity plots that link existing green | Isolated plots score low |
+| Cool roof | Dense low-rise blocks with dark roofs | — |
 
-Floor area = footprint % × floors, used as a simple proxy for development value.
+### Protect (second mode)
+
+1. Select a parcel and enter a proposal: floors, footprint %, green %, orientation.
+2. See baseline and proposed scores with a LOW, MODERATE or HIGH risk label, and Gemini's explanation of the drivers.
+3. Gemini searches for better designs: A (as proposed), B (balanced, keeps most floor area), C (climate optimized above a minimum floor).
+4. Build-out applies one envelope to every vacant parcel on a street and rescores the whole area.
 
 ### What it is not
 
-- Not a computational fluid dynamics model. It does not predict degrees or wind speeds; the indices are screening indicators for comparing scenarios on the same parcel.
-- Not a permit authority. It never approves or denies; it shows evidence and options.
-- Not a new mandatory approval step. It fits large projects, development plan revisions, and making the case for a rule such as a height cap or minimum green share.
-
-Professional tools such as [Autodesk Forma](https://www.autodesk.com/products/forma/environmental-impact-analysis) offer wind and microclimate analysis, but are paid and aimed at architects in early design. EcoZone AI is aimed at the official reviewing a proposal or plan, using free public data and a one-minute screening. It complements a detailed study on a large project; it does not replace one.
+Not a fluid dynamics or thermal comfort model: it never reports temperatures or wind speeds. Not a permit authority or work order. Costs come from planner unit costs, not market prices.
 
 ## Architecture
 
-Four layers and one guard. Requests flow down from the planner app; every answer returns through the output guard.
-
 ```
-Planner app (map, sliders, before/after, option cards, build-out view)
-        │
-Agent layer (Google Agent Development Kit, Gemini)
-  Orchestrator ─┬─ Spatial Analyst   get_parcel_context, analyze_imagery
-                ├─ Scenario Analyst  simulate_scenario, compare_scenarios, simulate_buildout
-                └─ Planning Advisor  format_planning_brief
-        │
-Scoring engine (deterministic code, the only place a score is computed)
-        │
-Preprocessed data (BigQuery parcel table, Firestore sessions, image clips)
-        │
-Output guard ──► planner
+React (deck.gl + MapLibre) ──REST──► FastAPI ──► engine (deterministic Python)
+            │                                     ▲
+            └──SSE──► ADK agents (Gemini on Vertex AI) ─┘ tools
+                      output guard on every answer
+
+offline pipeline (OSM, Open Buildings, Sentinel-2, WorldCover, Landsat, Open-Meteo)
+      ──► BigQuery + Cloud Storage ──► loaded into the engine's memory at startup
+sessions and plans ──► Firestore          one Cloud Run service serves UI and API
 ```
 
-| Store | Holds |
-| --- | --- |
-| BigQuery | Parcel table, geometry (GEOGRAPHY), attributes, baseline indices |
-| Firestore | Scenarios, design-search candidates, imagery observations, conversation state |
-| Cloud Run container | Engine, agents, frontend, demo image tiles |
+- **Engine:** the only place a score is computed. Indices on a 0 to 100 scale: Ventilation Corridor Index, Heat Exposure Index (with a roof albedo term), Green Connectivity Score and Pedestrian Shade Score. Repair maximizes an exposure-weighted Area Cooling Score within the budget, with a quick-win share that must help this summer; dense tree rows are kept off deep, narrow streets, and no block may lose 10 or more ventilation points. Formulas: [docs/PLANNING.md](docs/PLANNING.md#scoring-engine).
+- **Agents:** an ADK orchestrator with Spatial Analyst, Repair Planner, Scenario Analyst and Planning Advisor. Both searches run as one ADK `LoopAgent`: Gemini proposes, and plain code scores the candidates and decides when to stop.
+- **Trust:** an output guard rejects any number not found in the turn's tool results or planner inputs, and any temperature, wind or energy unit. AI-estimated values are labeled.
+- **Data:** OpenStreetMap, Google Open Buildings 2.5D heights, Sentinel-2, ESA WorldCover, Open-Meteo wind, computed sun position; Landsat surface temperature is used only to validate the heat index. Google Maps tiles are not used.
 
-### Scoring engine
-
-Plain code over geometry and preprocessed layers. Gemini never computes a score.
-
-$$VCI = 0.30\,W_a + 0.25\,C_o + 0.25\,O_b + 0.20\,P_g$$
-
-$$HEI = 0.40\,I_s + 0.35\,(100 - G_c) + 0.25\,T_m$$
-
-$$GCS = 0.5\,G_{buf} + 0.5\,L_{link}$$
-
-| Index | Higher means | A proposal worsens it by |
-| --- | --- | --- |
-| VCI | Air can pass through the corridor | Lengthening the built run, raising height against street width, turning the building across the wind |
-| HEI | More heat retention | Adding impervious surface, removing vegetation, adding building mass |
-| GCS | More connected green cover nearby | Removing green cover, or isolating the remaining green from existing patches |
-
-Term definitions, data sources and assumptions (3 m per floor, road-class street widths, remainder treated as paved) are in the [planning document](EcoZoning%20AI%20Climate%20Impact%20Preview%20for%20Building%20Proposals.md#scoring-engine).
-
-**Risk label:** the worst change is the largest of the VCI drop, HEI rise and GCS drop. Under 10 points is LOW, 10–24 is MODERATE, 25 or more is HIGH. These thresholds are prototype settings.
-
-> The indices are prototype composite indicators, not airflow or temperature measurements, and the weights are design heuristics. Only the heat index is checked against measurement; the other two are not validated.
-
-### Area build-out
-
-Applies one envelope (floors, footprint %, green %) to every candidate parcel in a selected area (capped at about 30 parcels) and rescores every parcel, neighbors included. Output: per-parcel change and risk label, area averages before and after, count of HIGH parcels, and how many existing blocks lose score. Floor-area and height limits are not in open data, so the envelope is planner input.
-
-### Gemini's two jobs
-
-**Design search** (propose, score, refine):
-
-1. Gemini receives the proposal, its scores and the floor-area rule for option B.
-2. It proposes four candidate designs within allowed ranges.
-3. Each candidate is scored by `simulate_scenario`.
-4. Candidates that break the floor-area rule are dropped; Gemini proposes a refined batch.
-5. The loop stops after three rounds, or earlier when no candidate beats the best by more than 2 points.
-6. Options B and C are selected from scored candidates only.
-
-Levers: height, footprint %, green %, orientation (15° steps), green placement (scattered or connected corridor). Candidates may not exceed the proposal's height or footprint, or reduce its green share.
-
-**Aerial imagery reading:** for the selected parcel, Gemini returns structured observations (tree-cover, paved and roof share, open spaces, confidence per field). Data layers stay primary. If imagery and a layer differ by more than 15 points, both values and a disagreement flag are shown. Where a layer is missing, the imagery estimate fills in, labeled **AI-estimated**.
-
-### Trust rules
-
-Enforced by code and tests:
-
-- Every number comes from an engine tool result in the same turn.
-- No physical units (°C, m/s, kWh) in planner-facing output.
-- The agent never approves or denies a proposal.
-- AI-estimated values always carry a label and confidence.
-- An **output guard** rejects any number not present in that turn's tool results and any forbidden unit. A rejected answer is regenerated once; if it fails again, the planner sees a plain template built from engine values.
-- Primary drivers (OBSTRUCTION, BUILT_RUN, IMPERVIOUS_GAIN, MASS_GAIN, GREEN_ISOLATED, …) are computed by the engine; Gemini only explains them.
-
-### Tool contracts
-
-| Tool | Inputs | Returns |
-| --- | --- | --- |
-| `get_parcel_context` | parcel id | Centroid, area, baseline indices, canyon axis, data-gap flags |
-| `analyze_imagery` | parcel id | Structured observations with confidence per field |
-| `simulate_scenario` | parcel id, floors, footprint %, green %, orientation, green placement | Baseline and proposed indices, deltas, driver tags, floor area, risk label |
-| `compare_scenarios` | parcel id, scenario ids | Ranked table by climate score and floor area |
-| `simulate_buildout` | area id or parcel ids, floors, footprint %, green % | Per-parcel deltas and labels, area averages, HIGH count, driver tags |
-| `format_planning_brief` | parcel id, scenarios, selected option | Summary, risk label, recommendation, caveats |
-
-## Data pipeline
-
-All data is prepared once, offline, from open sources. The app reads preprocessed tables and never processes rasters while a planner waits.
-
-| Layer | Source | Used for |
-| --- | --- | --- |
-| Buildings, roads, parks, water | OpenStreetMap (Overpass API) | Geometry, street width, canyon axis, distances |
-| Building heights | [Google Open Buildings 2.5D Temporal](https://sites.research.google/gr/open-buildings/temporal) (2023) | Height and volume where OSM has no floors tag |
-| Vegetation and built-up | Sentinel-2 SR (`COPERNICUS/S2_SR_HARMONIZED`) | Vegetation and built-up shares |
-| Land cover | [ESA WorldCover](https://registry.opendata.aws/esa-worldcover-vito/index.html) v200 (2021) | Impervious and green shares |
-| Prevailing wind | [Open-Meteo](https://open-meteo.com/) (ERA5) | Dominant seasonal wind direction |
-| Surface temperature | Landsat 8/9 Collection 2 Level 2 | **Heat-index validation only** |
-| Imagery for Gemini | Sentinel-2 true-color and vegetation false-color clips | `analyze_imagery` input |
-
-Google Maps satellite tiles are deliberately not used: the Maps Platform terms bar using Maps content to train, test or validate AI models.
-
-**Preprocessing job:** get Earth Engine noncommercial access → choose the demo area → extract OSM for a ~2.5 km × 2.5 km box → define parcels (road-network blocks with low building coverage or tagged vacant/open; OSM has no cadastral parcels) → add satellite layers in Earth Engine → get wind → compute per-parcel attributes → score and validate → export image clips → load to BigQuery.
-
-**New city:** change the bounding box, wind direction and road-class width defaults, and rerun the same job. No engine or agent code changes. This claim is made for the demo area only until a second city is run.
-
-**Fallback:** if the satellite steps miss the Oct 14 gate, use OSM land-use proxy indices and OSM-only heights with storey defaults, labeled as defaults.
+Full component design: [docs/DESIGN.md](docs/DESIGN.md). System shape and component ownership: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Evaluation
 
 Tests live in `evals/`. Results will be reported here once measured; no targets are claimed before then.
 
-| Test | Checks | Passes when |
-| --- | --- | --- |
-| Determinism | Same inputs, same scores | Ten repeated runs match exactly |
-| Range | Indices within 0–100 | Holds on all test parcels (riverfront, dense interior, isolated corner) |
-| Direction | More height/footprint never improves VCI or lowers HEI; more green never raises HEI or lowers GCS | Holds across a settings sweep per parcel |
-| Grounding | Explanations contain only tool-result numbers and no forbidden units | Zero violations |
-| Tool use | Agent fetches context and simulates before explaining | Success rate over ten parcels |
-| Design search | B and C come from scored candidates; B keeps the floor-area share; C beats A on climate score | Holds per test parcel |
-| Speed | Engine time per scenario, preview time, search time | Measured and reported |
-| Heat check | Baseline HEI ranks blocks like measured surface temperature | Spearman correlation and block count on held-out blocks; no pass mark |
+| Test | Checks |
+| --- | --- |
+| Determinism, range | Same inputs give the same scores; every index stays within 0 to 100 |
+| Direction | Protect: more height or footprint never helps; more green never hurts. Repair: trees and shade never lower shade; depaving and cool roofs never raise heat |
+| Shadow geometry | Known building height gives the expected shadow length and direction |
+| Ventilation site rule | No tree row on a street with height-to-width 1 or more; such streets show as rejected |
+| Budget and quick wins | Every shown portfolio is within budget and meets the quick-win share |
+| Gemini vs greedy | Win, tie or loss per test area at the same budget |
+| Grounding | No number outside tool results or planner input; no forbidden units |
+| Design search | Options B and C come from scored candidates and follow their rules |
+| Speed | Engine and search times |
+| Heat check | Spearman correlation between the heat index and Landsat surface temperature on held-out blocks |
 
-**Heat check method:** compute baseline HEI for every block → take each block's median Landsat surface temperature from cloud-free March–May scenes → split blocks randomly in half, tuning weights on the first half only → report Spearman correlation and block count on the second half. Two caveats travel with the number: surface temperature is not felt air temperature, and the index shares inputs with what drives surface temperature, so a good result shows ranking agreement, not that the weights are right.
+Limits stated openly: the indices are heuristic screening indicators and only the heat index is checked; the shade score is clear-sky geometry; roof albedo is a block-level estimate; parcels are road-network blocks; wind is one seasonal direction; trees take years to grow the canopy the plan assumes.
 
-### What we will not claim
+## Repository layout
 
-Temperature, wind speed or energy figures in planner-facing output; fluid dynamics modeling; long-range forecasts; permit approvals or denials; results for any city other than the demo area.
-
-### Known limits
-
-- Indices are heuristic screening indicators; ventilation and green connectivity are not validated.
-- OSM completeness varies; Open Buildings height accuracy has not been measured in India.
-- Parcels are road-network blocks, not legal plots.
-- Wind is a seasonal prevailing direction, not a wind field.
-
-## Repository layout (planned)
+Code directories are scaffolded (each holds a `README.md` describing what will live there and linking to its design section) but not yet implemented:
 
 ```
-.
-├── README.md
-├── EcoZoning AI Climate Impact Preview for Building Proposals.md   # full planning document
-├── pipeline/    # offline data job: Overpass, Earth Engine, Open-Meteo, BigQuery load
-├── engine/      # deterministic scoring engine (VCI, HEI, GCS, risk label, drivers)
-├── agents/      # ADK orchestrator and agents, tool wrappers, output guard
-├── app/         # frontend: map, sliders, before/after, option cards, build-out view
-└── evals/       # determinism, range, direction, grounding, design search, heat check
+docs/       architecture, planning, design, tasks, deck plan
+pipeline/   offline data job per city
+engine/     deterministic scoring engine
+api/        FastAPI routes
+agents/     ADK agents, search loop, output guard
+app/        React + TypeScript front end
+evals/      tests and evaluation reports
+infra/      Dockerfile, deploy config
 ```
 
-This layout is a proposal and may change as the build lands.
+## Running locally
+
+Setup instructions will be added when the code lands. Planned requirements: Python 3.11+, Node 20+, a Google Cloud project with Vertex AI, BigQuery, Firestore and Cloud Storage enabled, and Earth Engine noncommercial access for the pipeline. Authentication is through Application Default Credentials and a service account; **no keys are committed to this repository.**
 
 ## Timeline
 
 | Gate | Date | Passes when |
 | --- | --- | --- |
-| Engine on real parcels | Oct 14 | Indices computed for real parcels, range and determinism tests pass, heat check has a first number |
-| Full flow works | Oct 16 | Select, simulate, explain, design search and build-out work end to end locally |
-| Feature freeze | Oct 17 | Deployed on Cloud Run, evals run, demo parcel chosen |
+| Engine on real data | Oct 14 | Baseline indices including shade exist for the frozen area; range and determinism tests pass |
+| Both modes end to end | Oct 16 | Repair and Protect work locally |
+| Feature freeze | Oct 17 | Deployed; evals run; demo area chosen |
 | Submit | Oct 18 | Live link, repository, video and deck submitted |
-
-If time runs short: satellite indices fall back to OSM proxies, design search drops from three rounds to one, build-out runs on one prepared street, and UI polish is reduced.
-
-## Running locally
-
-Setup and run instructions will be added when the code lands. Planned requirements: Python, a Google Cloud project with Earth Engine (noncommercial), BigQuery and Firestore enabled, and a Gemini API key supplied through environment variables. **No keys are committed to this repository.**
 
 ## Submission
 
 - Competition: [Google Cloud AI Builder Cup 2026](https://aibuildercup.com), theme **Sustainability & Social Impact**
 - Deliverables: Cloud Run prototype (no login), public repository, demo video under 3 minutes, PDF deck
-- Planning document: [EcoZoning AI Climate Impact Preview for Building Proposals.md](EcoZoning%20AI%20Climate%20Impact%20Preview%20for%20Building%20Proposals.md)
 
 ## License
 
-To be decided before submission.
+[MIT](LICENSE)
