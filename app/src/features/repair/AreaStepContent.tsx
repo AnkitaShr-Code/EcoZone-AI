@@ -4,7 +4,7 @@ import { Provenance } from '@/components/Provenance'
 import { Stat } from '@/components/Stat'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cssVar } from '@/lib/colors'
-import { formatCount } from '@/lib/format'
+import { formatBlock, formatCount } from '@/lib/format'
 import { PRIORITY_META, driverLabel } from '@/lib/meta'
 import { flyTo } from '@/map/mapController'
 import { useUiStore } from '@/state/uiStore'
@@ -62,7 +62,7 @@ export function AreaStepContent() {
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5 text-sm">
                     <span className="size-2.5 rounded-sm" style={{ background: cssVar(PRIORITY_META[h.priorityClass].color) }} aria-hidden />
-                    Block {h.blockId.slice(2)} · {PRIORITY_META[h.priorityClass].label}
+                    {formatBlock(h.blockId)} · {PRIORITY_META[h.priorityClass].label}
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">{h.drivers.map(driverLabel).join(' · ')}</span>
                 </span>

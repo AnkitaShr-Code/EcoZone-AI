@@ -32,8 +32,9 @@ COPY agents/src agents/src
 COPY api/src api/src
 RUN uv sync --frozen --no-dev --package ecozone-api
 
+COPY pipeline/config/unit_costs.yaml /srv/config/unit_costs.yaml
 COPY --from=app /src/app/dist /srv/app/dist
-ENV ECOZONE_APP_DIST=/srv/app/dist PORT=8080
+ENV ECOZONE_APP_DIST=/srv/app/dist ECOZONE_UNIT_COSTS=/srv/config/unit_costs.yaml PORT=8080
 RUN useradd --system --uid 10001 ecozone
 USER ecozone
 EXPOSE 8080

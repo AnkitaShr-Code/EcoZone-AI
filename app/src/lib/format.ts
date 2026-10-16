@@ -50,3 +50,8 @@ export function formatReferenceDate(date: string): string {
 function trim(n: number): string {
   return n.toFixed(n >= 100 ? 0 : 1).replace(/\.0$/, '')
 }
+
+/** "Block 12" from a block id; ids carry a type prefix (`blk_12`, mock `bk012`). */
+export function formatBlock(id: string): string {
+  return `Block ${id.replace(/^\D+/, '')}`
+}

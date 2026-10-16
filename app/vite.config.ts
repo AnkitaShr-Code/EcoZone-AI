@@ -10,4 +10,6 @@ export default defineConfig({
   },
   // MapLibre v6 loads its worker relative to its own module; pre-bundling breaks that path.
   optimizeDeps: { exclude: ['maplibre-gl'] },
+  // VITE_API_MODE=http: the dev server forwards /api to the FastAPI service (`make api`).
+  server: { proxy: { '/api': process.env.ECOZONE_API_URL ?? 'http://localhost:8000' } },
 })
