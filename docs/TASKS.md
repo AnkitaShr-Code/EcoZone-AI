@@ -7,15 +7,17 @@ Team of 3, about 100 to 130 person-hours from Oct 13 to Oct 18. Repair leads; Pr
 - **U** = Front end (React, deck.gl, panels, brief view, accessibility; helps with deck and video) · about 33 h
 - **All** = whole team · about 12 h
 
-| Lane | Owner |
+| Lane | Owners |
 | --- | --- |
-| D | _TBD_ |
-| A | _TBD_ |
-| U | _TBD_ |
+| D | Dhananjay, Ankita |
+| A | Ankita, Abhishek |
+| U | Abhishek (with Claude) |
+
+Team leader: Ankita Sharma.
 
 ## Oct 13 (today): contracts and foundations
 
-- [ ] **All:** assign lane owners and name the team leader (deck slide 1)
+- [x] **All:** assign lane owners and name the team leader (deck slide 1)
 - [ ] **All:** confirm registration (2–4 members; email support if unsure) and eligibility (working professionals, 21+, JAPAC)
 - [ ] **All:** agree the API contracts: Pydantic schemas for `Change`, `AreaResult`, Protect simulate, and the SSE event types, so all lanes build against stubs from today
 - [ ] **D:** fill `pipeline/config/pune.yaml` (both candidate boxes, EPSG:32643, reference date 15 April, road-class widths)
