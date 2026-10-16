@@ -187,7 +187,7 @@ gcloud builds triggers create github \
   --branch-pattern=^main$ \
   --build-config=infra/cloudbuild.yaml \
   --service-account="projects/${PROJECT}/serviceAccounts/${SA_DEPLOY}@${PROJECT}.iam.gserviceaccount.com" \
-  --substitutions=_REGION=$REGION,_SERVICE=ecozone,_REGISTRY=${REGION}-docker.pkg.dev,_REPO=$REPO,_PROJECT=$PROJECT,_BUNDLE_URI=gs://${BUNDLE_BUCKET}/deccan
+  --substitutions=_REGION=$REGION,_SERVICE=ecozone,_REGISTRY=${REGION}-docker.pkg.dev,_REPO=$REPO,_PROJECT=$PROJECT,_BUNDLE_URI=gs://${BUNDLE_BUCKET}/deccan,_SHORT_SHA=\$SHORT_SHA
 ```
 
 ## 9. First manual deploy (before CI is wired)

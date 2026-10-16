@@ -12,9 +12,10 @@
 #   _GEMINI_LOC:    asia-south1
 #   _MODEL_PROPOSER: gemini-2.0-flash-001
 #   _MODEL_WRITER:   gemini-2.0-pro-001
+#   _SHORT_SHA:     set to $SHORT_SHA in the GitHub trigger; default 'init' for manual submit
 
 substitutions:
-  SHORT_SHA: 'init'   # overridden by GitHub trigger; fallback for manual gcloud builds submit
+  _SHORT_SHA: 'init'
   _REGION: asia-south1
   _SERVICE: ecozone
   _REGISTRY: asia-south1-docker.pkg.dev
@@ -38,7 +39,7 @@ steps:
       - -f
       - infra/Dockerfile
       - -t
-      - ${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}:${SHORT_SHA}
+      - ${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}:${_SHORT_SHA}
       - -t
       - ${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}:latest
       - --cache-from
@@ -63,7 +64,7 @@ steps:
       - run
       - deploy
       - ${_SERVICE}
-      - --image=${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}:${SHORT_SHA}
+      - --image=${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}:${_SHORT_SHA}
       - --region=${_REGION}
       - --project=${_PROJECT}
       - --platform=managed
@@ -84,5 +85,5 @@ steps:
       - --set-env-vars=ECOZONE_BUNDLE_URI=${_BUNDLE_URI}
 
 images:
-  - ${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}:${SHORT_SHA}
+  - ${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}:${_SHORT_SHA}
   - ${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}:latest
