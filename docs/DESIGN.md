@@ -2,6 +2,8 @@
 
 Team NeuralNodes · Oct 13, 2026
 
+> **Oct 15:** decisions in [ENGINEERING_RULES.md](ENGINEERING_RULES.md#2-decisions-locked-on-oct-15) supersede this file where they differ (area bundle instead of BigQuery at startup, code routing instead of an LLM orchestrator, 10 m footpath chunks, a `contract/` package, one `rescore` route for Protect previews). Per-folder detail is in each folder's `RULES.md`; the sections below are updated to match.
+
 How the system in [PLANNING.md](PLANNING.md) is built: the components, what each one owns, how they talk, where data lives, and how long each takes. The formulas live in PLANNING.md; this file does not repeat them.
 
 ## 1. Shape of the system
@@ -24,7 +26,7 @@ How the system in [PLANNING.md](PLANNING.md) is built: the components, what each
   ┌──────────────▼──────────────────────┐   ┌────────────▼────────────────────┐
   │  FastAPI routes                     │   │  ADK agent layer (Gemini on     │
   │  /areas /parcels /interventions     │   │  Vertex AI)                     │
-  │  /shadows /buildout                 │   │  Orchestrator → 4 agents        │
+  │  /shadows /buildout                 │   │  Code router → 4 agents         │
   └──────────────┬──────────────────────┘   │  LoopAgent searches             │
                  │                          │  Output guard (callback)        │
                  │                          └────────────┬────────────────────┘
@@ -34,9 +36,9 @@ How the system in [PLANNING.md](PLANNING.md) is built: the components, what each
   │  AreaModel in memory · shadows · VCI HEI GCS PSS · interventions ·       │
   │  area rescoring · priority · ACS · greedy baseline · drivers             │
   └──────────────┬───────────────────────────────────────────────────────────┘
-                 │ load area at startup                    writes
-            BigQuery ◄──────────────────────────  Firestore (sessions, plans,
-            Cloud Storage                          portfolios, observations)
+                 │ load area bundle at startup        api writes
+     Cloud Storage: area bundle (GeoParquet)      Firestore (sessions, plans,
+     BigQuery: analytics copy, runs, evals        portfolios, observations)
 ```
 
 Two rules shape everything:
@@ -50,7 +52,7 @@ Two rules shape everything:
 pipeline/          offline job, run once per city
   config/pune.yaml   bbox, CRS (EPSG:32643), wind season, reference date, road widths
   osm_extract.py     buildings, roads, sidewalks, green, water, waiting points, public land
-  geometry.py        blocks (polygonize), footpath segments (~50 m), road widths
+  geometry.py        blocks (polygonize), footpath runs and 10 m chunks, road widths
   classify.py        Protect parcels, Repair candidate sites, built-form class
   ee_layers.py       Earth Engine: heights, S2 shares, roof albedo, WorldCover, LST, clips
   wind.py            Open-Meteo prevailing direction
@@ -75,7 +77,7 @@ api/               FastAPI app
   schemas.py         Pydantic request and response models
   store.py           Firestore and BigQuery clients
 agents/            ADK
-  orchestrator.py    root agent and routing
+  runner.py          code routing by task (no LLM orchestrator)
   spatial.py repair.py scenario.py advisor.py
   tools.py           thin wrappers: tool → engine call → JSON result
   search.py          generic LoopAgent search used by both modes
@@ -99,7 +101,7 @@ infra/             Dockerfile, cloudbuild.yaml, deploy notes, IAM roles
 | Runs | Locally or as a Cloud Run Job; idempotent per city config |
 | Libraries | osmnx, geopandas, shapely 2, pyproj, earthengine-api, pvlib, google-cloud-bigquery |
 | CRS | All geometry in UTM 43N (EPSG:32643) for metres; converted to WGS84 only when loading to BigQuery GEOGRAPHY and for the map |
-| Footpaths | OSM `footway=sidewalk` where present; otherwise both road edges via `offset_curve(±width/2)`, buffered by 1.5 m, split into ~50 m segments; each segment keeps its bearing, side, adjacent block and street H/W |
+| Footpaths | OSM `footway=sidewalk` where present; otherwise both road edges via `offset_curve(±width/2)`, buffered by 1.5 m, split into 10 m chunks; each chunk keeps its bearing, side, adjacent block and street H/W |
 | Repair candidate sites | Tree rows: segments on road classes wide enough for a planting strip. Shade: points within 30 m of waiting points. Depave: `amenity=school` grounds, `amenity=parking` surface lots, medians, traffic islands. Pocket green: vacant or amenity plots. Cool roofs: buildings in dense low-rise blocks. Each site gets a quantity range and a geometry id |
 | Earth Engine | One script per layer, `reduceRegions` over blocks and building footprints, exported as tables; roof albedo from a published Sentinel-2 broadband albedo coefficient set (chosen and cited on day 1) |
 | Baseline shadows | Computed here for the three reference times and saved to GCS as GeoJSON, so the map loads them without computing |
@@ -130,7 +132,7 @@ def rescore(area: AreaModel, changes: list[Change], unit_costs: dict) -> AreaRes
 
 | Concern | Design |
 | --- | --- |
-| Area in memory | `AreaModel` holds one area's buildings, blocks, segments, sites and baselines, loaded from BigQuery at service start (about 15k buildings for a 2.5 km box fits easily in memory) |
+| Area in memory | `AreaModel` holds one area's buildings, blocks, segments, sites and baselines, loaded from the GeoParquet area bundle on GCS at service start (the Deccan box has about 630 buildings) |
 | Shadows | Building shadow = convex hull of the footprint and the footprint translated by `h / tan(altitude)` away from the sun's azimuth; crowns are circles translated by crown height; shade structures are polygons at 3 m. Shapely 2 vectorized operations |
 | Incremental rescoring | A change only touches blocks and segments within a radius (300 m for green terms, the longest shadow for PSS). STRtree finds them; the rest keep their baseline. Target: under 200 ms per portfolio |
 | Interventions | Each `apply_*` returns the attribute deltas and new shadow geometry for its site; `rescore` merges them and recomputes indices only where touched |
@@ -148,10 +150,9 @@ Instant, deterministic routes used directly by the UI, and the agent run routes.
 | `GET /api/areas/{area}/layers/{name}` | GeoJSON layers (blocks, segments, waiting points, sites, buildings); large ones redirect to GCS |
 | `GET /api/areas/{area}/hotspots?top=20` | Priority ranking with drivers |
 | `GET /api/areas/{area}/sites?types=tree_row,shade` | Candidate sites with cost at current unit costs |
-| `POST /api/areas/{area}/rescore` | Body: list of changes and unit costs. Returns `AreaResult`. Used when the planner toggles an intervention by hand |
+| `POST /api/areas/{area}/rescore` | Body: list of changes and unit costs. Returns `AreaResult`. Used for manual Repair edits, Protect previews (a `building` change) and build-out. Full route list: [../api/RULES.md](../api/RULES.md#routes) |
 | `GET /api/areas/{area}/shadows?t=15:00&portfolio={id}` | Shadow polygons, baseline or with a portfolio |
 | `POST /api/areas/{area}/greedy` | Greedy baseline for a budget |
-| `POST /api/parcels/{parcel}/simulate` | Protect preview for one proposal |
 | `POST /api/areas/{area}/buildout` | Build-out for an envelope |
 | `POST /api/agent/runs` | Start an agent run (`mode`, `task`, `session_id`, context); returns `run_id` |
 | `GET /api/agent/runs/{run_id}/events` | Server-sent events: round started, candidate scored, guard result, final answer |
@@ -163,7 +164,7 @@ The same container serves the React build as static files, so there is one URL, 
 
 | Agent | ADK type | Tools | Notes |
 | --- | --- | --- | --- |
-| Orchestrator | `LlmAgent` with sub-agents | — | Routes by mode and task; enforces the output parts |
+| Router | Plain code (`runner.py`) | — | Picks the agent by API route; no LLM hop |
 | Spatial Analyst | `LlmAgent` | get_area_context, get_parcel_context, analyze_imagery | Imagery is multimodal input (image clips from GCS) |
 | Repair Planner | `LlmAgent` + search loop | rank_hotspots, list_candidate_sites, simulate_interventions, greedy_baseline | Runs the portfolio search |
 | Scenario Analyst | `LlmAgent` + search loop | simulate_scenario, compare_scenarios, simulate_buildout | Runs the design search |
@@ -251,7 +252,7 @@ The scorer and judge are plain code, so the loop's control flow is deterministic
 
 1. UI loads the area: layers from GCS, `GET /hotspots`, baseline shadows.
 2. Planner sets budget, quick-win share and unit costs; UI calls `POST /agent/runs` with mode `repair`.
-3. Orchestrator → Spatial Analyst (`get_area_context`) → Repair Planner (`rank_hotspots`, `list_candidate_sites`, `greedy_baseline`).
+3. Router → Spatial Analyst (`get_area_context`) → Repair Planner (`rank_hotspots`, `list_candidate_sites`, `greedy_baseline`).
 4. Search loop: up to 3 rounds of propose (Gemini) → score (engine) → judge. Each scored candidate streams to the UI.
 5. Planning Advisor writes the plan from the best portfolio's `AreaResult`; the guard checks it.
 6. Plan saved to Firestore, run logged to BigQuery; UI shows the plan, the shadows (`GET /shadows?portfolio=`) and the brief.

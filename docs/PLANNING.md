@@ -6,6 +6,21 @@ EcoZone AI helps a city cool the streets people already live and work on, and st
 
 Component-level design: [DESIGN.md](DESIGN.md). Task checklist: [TASKS.md](TASKS.md). Deck plan: [PITCH_DECK_PLAN.md](PITCH_DECK_PLAN.md).
 
+## What changed on Oct 15
+
+Build decisions taken before backend coding started; full list and reasons in [ENGINEERING_RULES.md](ENGINEERING_RULES.md#2-decisions-locked-on-oct-15).
+
+| Decision | Choice |
+| --- | --- |
+| Demo area | Deccan Gymkhana – Fergusson College box, frozen (the area the UI is built on) |
+| Earth Engine | Pending; OSM-only path built first, EE layers added as a new bundle version if approved |
+| Building heights | OSM height, then OSM levels, then Open Buildings (if EE), then labeled typology defaults |
+| Footpaths | 10 m chunks with a shaded flag per reference time |
+| Area load | Versioned GeoParquet bundle on Cloud Storage; BigQuery holds an analytics copy |
+| Agent routing | Plain code by API route; four ADK agents and one shared search loop |
+| Models | Flash tier for the search proposer, Pro tier for explanations and briefs |
+| Protect preview | Live engine `rescore` at discrete slider levels; no precomputed lookup |
+
 ## What changed on Oct 13
 
 The Oct 12 version was a permit-stage preview only. After a design review the team decided:
@@ -137,7 +152,7 @@ Every mode ends in a brief, and every answer passes the output guard before the 
 
 ## System architecture
 
-React app → FastAPI service on Cloud Run → (deterministic API calls go straight to the engine; questions and searches go through the ADK agent layer, whose tools call the engine) → area data loaded from BigQuery into memory → output guard on every Gemini answer. Sessions and plans are stored in Firestore, images and area bundles in Cloud Storage, and Gemini runs on Vertex AI with a service account, so there are no API keys in the code. Full component design: [DESIGN.md](DESIGN.md).
+React app → FastAPI service on Cloud Run → (deterministic API calls go straight to the engine; questions and searches go through the ADK agent layer, whose tools call the engine) → area data loaded into memory from a GeoParquet bundle on Cloud Storage (BigQuery holds an analytics copy) → output guard on every Gemini answer. Sessions and plans are stored in Firestore, images and area bundles in Cloud Storage, and Gemini runs on Vertex AI with a service account, so there are no API keys in the code. Full component design: [DESIGN.md](DESIGN.md).
 
 ## Scoring engine
 
@@ -186,7 +201,7 @@ PSS_s = 100 \cdot \frac{1}{|T|}\sum_{t \in T} \frac{\text{shaded length of segme
 \qquad T = \{13{:}00,\ 15{:}00,\ 16{:}00\}\ \text{IST, 15 April}
 ```
 
-Shadows come from buildings (length = height ÷ tan(sun altitude), cast away from the sun), tree crowns and shade structures. The area PSS is the length-weighted mean of its segments; a block's PSS is the mean of the footpath segments bordering it.
+Shadows come from buildings (length = height ÷ tan(sun altitude), cast away from the sun), tree crowns and shade structures. Footpaths are measured in 10 m chunks: a chunk counts as shaded at time *t* when its midpoint lies in shadow, so the shaded length of a run is the total length of its shaded chunks. The area PSS is the length-weighted mean of its chunks; a block's PSS is the length-weighted mean of the chunks bordering it.
 
 ### Repair priority and Area Cooling Score
 
@@ -245,11 +260,11 @@ Gemini does the jobs the engine cannot: it searches for good portfolios and desi
 
 ### Agents
 
-Four agents sit under one orchestrator, built with the Agent Development Kit (ADK). Each has its own tools.
+Four agents, built with the Agent Development Kit (ADK), each with its own tools. Plain code picks the agent from the API route (decided Oct 15: the UI never sends free-form chat, so an LLM routing hop adds latency without value).
 
 | Agent | Job | Tools |
 | --- | --- | --- |
-| Orchestrator | Routes the request, calls agents in order, enforces the output format | The four agents |
+| Router (code) | Picks the agent by route, calls agents in order, enforces the output format | The four agents |
 | Spatial Analyst | Area and parcel context, imagery observations | get\_area\_context, get\_parcel\_context, analyze\_imagery |
 | Repair Planner | Hotspots, candidate sites, portfolio search | rank\_hotspots, list\_candidate\_sites, simulate\_interventions, greedy\_baseline |
 | Scenario Analyst | Protect preview, design search, build-out | simulate\_scenario, compare\_scenarios, simulate\_buildout |
@@ -339,7 +354,7 @@ Google Maps tiles and Street View are not used: the [Maps Platform terms](https:
 1. **Get access.** Earth Engine noncommercial registration (applied; awaiting approval as of Oct 13).
 2. **Choose the area.** Compare Shivajinagar and Kothrud by the share of buildings with a height and by the count of OSM waiting points. Freeze the better box.
 3. **Extract OSM** for a box of about 2.5 km by 2.5 km.
-4. **Build geometry.** Blocks from the road network; footpath segments from road edges (OSM sidewalks where present, otherwise offset from the centerline by half the road-class width), split into segments of about 50 m.
+4. **Build geometry.** Blocks from the road network; footpath segments from road edges (OSM sidewalks where present, otherwise offset from the centerline by half the road-class width), split into 10 m chunks.
 5. **Classify.** Candidate parcels for Protect (low coverage or tagged vacant); candidate sites for Repair per the site rules; built-form class per block.
 6. **Earth Engine layers.** Heights, Sentinel-2 shares, roof albedo, WorldCover shares, Landsat surface temperature, image clips.
 7. **Wind and sun.** Dominant wind direction for the season; sun altitude and azimuth for the three reference times.
@@ -354,7 +369,7 @@ Google Maps tiles and Street View are not used: the [Maps Platform terms](https:
 | BigQuery | Buildings, blocks, parcels, footpath segments, waiting points, candidate sites, baselines, validation, run logs | Spatial queries with ST\_ functions; one dataset per city; analytics on runs and evals |
 | Firestore | Sessions, scenarios, portfolios and their scores, imagery observations, plans | Fast per-session reads and writes |
 | Cloud Storage | Image clips, precomputed area bundles for the map, exported briefs | Cheap static files |
-| In-memory (engine) | One area's geometry and attributes, loaded from BigQuery at startup | Each portfolio is scored in milliseconds, not one query per candidate |
+| In-memory (engine) | One area's geometry and attributes, loaded from the area bundle at startup | Each portfolio is scored in milliseconds, not one query per candidate |
 
 ### Repeatable for any city
 
