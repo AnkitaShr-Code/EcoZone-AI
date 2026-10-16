@@ -7,6 +7,9 @@ dependencies = [
   "pydantic>=2.9",
 ]
 
+[project.scripts]
+ecozone-contract = "ecozone_contract.export:main"
+
 [build-system]
 requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"

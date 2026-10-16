@@ -1,0 +1,2483 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "EcoZone AI contract",
+    "version": "0.1.0"
+  },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "AreaCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "blocks": {
+            "title": "Blocks",
+            "type": "integer"
+          },
+          "buildings": {
+            "title": "Buildings",
+            "type": "integer"
+          },
+          "segments": {
+            "title": "Segments",
+            "type": "integer"
+          },
+          "waitPoints": {
+            "title": "Waitpoints",
+            "type": "integer"
+          },
+          "sites": {
+            "title": "Sites",
+            "type": "integer"
+          },
+          "parcels": {
+            "title": "Parcels",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "blocks",
+          "buildings",
+          "segments",
+          "waitPoints",
+          "sites",
+          "parcels"
+        ],
+        "title": "AreaCounts",
+        "type": "object"
+      },
+      "AreaResult": {
+        "additionalProperties": false,
+        "description": "Result of rescore: the one scoring path for every change set.",
+        "properties": {
+          "before": {
+            "$ref": "#/components/schemas/AreaScores"
+          },
+          "after": {
+            "$ref": "#/components/schemas/AreaScores"
+          },
+          "blocks": {
+            "description": "Blocks whose scores changed.",
+            "items": {
+              "$ref": "#/components/schemas/BlockResult"
+            },
+            "title": "Blocks",
+            "type": "array"
+          },
+          "segments": {
+            "additionalProperties": {
+              "maxItems": 3,
+              "minItems": 3,
+              "prefixItems": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "type": "array"
+            },
+            "description": "Footpath chunks whose shade changed, with their new state.",
+            "title": "Segments",
+            "type": "object"
+          },
+          "ventilationOk": {
+            "title": "Ventilationok",
+            "type": "boolean"
+          },
+          "worstVciDrop": {
+            "title": "Worstvcidrop",
+            "type": "number"
+          },
+          "waitPointsCovered": {
+            "title": "Waitpointscovered",
+            "type": "integer"
+          },
+          "costInr": {
+            "title": "Costinr",
+            "type": "number"
+          },
+          "quickWinCostInr": {
+            "description": "Cost of interventions that help within weeks or one season.",
+            "title": "Quickwincostinr",
+            "type": "number"
+          },
+          "drivers": {
+            "items": {
+              "enum": [
+                "IMPERVIOUS_HIGH",
+                "LOW_SHADE",
+                "WAIT_POINTS",
+                "DENSE_LOW_RISE",
+                "LOW_GREEN",
+                "SHADE_GAIN",
+                "GREEN_LINK",
+                "IMPERVIOUS_LOSS",
+                "ALBEDO_GAIN",
+                "WAIT_POINT_COVERED",
+                "CANOPY_OBSTRUCTION",
+                "OBSTRUCTION",
+                "ORIENTATION",
+                "BUILT_RUN",
+                "IMPERVIOUS_GAIN",
+                "MASS_GAIN",
+                "GREEN_LOSS",
+                "GREEN_ISOLATED",
+                "SHADE_LOSS"
+              ],
+              "type": "string"
+            },
+            "title": "Drivers",
+            "type": "array"
+          },
+          "blocksWorse": {
+            "description": "Existing blocks whose cooling score falls.",
+            "title": "Blocksworse",
+            "type": "integer"
+          },
+          "risk": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RiskInfo"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Protect: the worst risk across proposed buildings."
+          },
+          "parcelRisk": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/RiskInfo"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Protect: risk per parcel.",
+            "title": "Parcelrisk"
+          }
+        },
+        "required": [
+          "before",
+          "after",
+          "blocks",
+          "segments",
+          "ventilationOk",
+          "worstVciDrop",
+          "waitPointsCovered",
+          "costInr",
+          "quickWinCostInr",
+          "drivers",
+          "blocksWorse"
+        ],
+        "title": "AreaResult",
+        "type": "object"
+      },
+      "AreaScores": {
+        "additionalProperties": false,
+        "properties": {
+          "vci": {
+            "description": "Ventilation Corridor Index; higher is better.",
+            "title": "Vci",
+            "type": "number"
+          },
+          "hei": {
+            "description": "Heat Exposure Index; lower is better.",
+            "title": "Hei",
+            "type": "number"
+          },
+          "gcs": {
+            "description": "Green Connectivity Score; higher is better.",
+            "title": "Gcs",
+            "type": "number"
+          },
+          "pss": {
+            "description": "Pedestrian Shade Score; higher is better.",
+            "title": "Pss",
+            "type": "number"
+          },
+          "acs": {
+            "description": "Area Cooling Score, exposure-weighted; higher is better.",
+            "title": "Acs",
+            "type": "number"
+          }
+        },
+        "required": [
+          "vci",
+          "hei",
+          "gcs",
+          "pss",
+          "acs"
+        ],
+        "title": "AreaScores",
+        "type": "object"
+      },
+      "AreaSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "city": {
+            "title": "City",
+            "type": "string"
+          },
+          "bundleVersion": {
+            "title": "Bundleversion",
+            "type": "string"
+          },
+          "bbox": {
+            "description": "West, south, east, north in WGS84.",
+            "maxItems": 4,
+            "minItems": 4,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Bbox",
+            "type": "array"
+          },
+          "center": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Center",
+            "type": "array"
+          },
+          "referenceDate": {
+            "description": "ISO date of the shade reference day.",
+            "title": "Referencedate",
+            "type": "string"
+          },
+          "shadeTimes": {
+            "items": {
+              "enum": [
+                "13:00",
+                "15:00",
+                "16:00"
+              ],
+              "type": "string"
+            },
+            "title": "Shadetimes",
+            "type": "array"
+          },
+          "baseline": {
+            "$ref": "#/components/schemas/AreaScores"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/AreaCounts"
+          },
+          "dataGaps": {
+            "$ref": "#/components/schemas/DataGaps"
+          },
+          "unitCostDefaults": {
+            "$ref": "#/components/schemas/UnitCosts"
+          },
+          "engine": {
+            "$ref": "#/components/schemas/EngineConstants"
+          },
+          "mock": {
+            "description": "True only when served by the mock adapter (a snapshot or mock rescore).",
+            "title": "Mock",
+            "type": "boolean"
+          },
+          "attribution": {
+            "description": "Data attribution, including the OSM ODbL notice; shown on the map and briefs.",
+            "title": "Attribution",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "city",
+          "bundleVersion",
+          "bbox",
+          "center",
+          "referenceDate",
+          "shadeTimes",
+          "baseline",
+          "counts",
+          "dataGaps",
+          "unitCostDefaults",
+          "engine",
+          "mock",
+          "attribution"
+        ],
+        "title": "AreaSummary",
+        "type": "object"
+      },
+      "BaselineEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "baseline",
+            "title": "Type",
+            "type": "string"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          },
+          "candidate": {
+            "$ref": "#/components/schemas/Candidate"
+          }
+        },
+        "required": [
+          "type",
+          "seq",
+          "candidate"
+        ],
+        "title": "BaselineEvent",
+        "type": "object"
+      },
+      "BlockFeature": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "Feature",
+            "title": "Type",
+            "type": "string"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/PolygonGeometry"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/BlockProps"
+          }
+        },
+        "required": [
+          "type",
+          "geometry",
+          "properties"
+        ],
+        "title": "BlockFeature",
+        "type": "object"
+      },
+      "BlockLayer": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "FeatureCollection",
+            "title": "Type",
+            "type": "string"
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/BlockFeature"
+            },
+            "title": "Features",
+            "type": "array"
+          }
+        },
+        "required": [
+          "type",
+          "features"
+        ],
+        "title": "BlockLayer",
+        "type": "object"
+      },
+      "BlockProps": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "areaM2": {
+            "title": "Aream2",
+            "type": "number"
+          },
+          "scores": {
+            "$ref": "#/components/schemas/Scores"
+          },
+          "priority": {
+            "title": "Priority",
+            "type": "number"
+          },
+          "priorityClass": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "title": "Priorityclass",
+            "type": "string"
+          },
+          "builtForm": {
+            "enum": [
+              "dense_low_rise",
+              "other"
+            ],
+            "title": "Builtform",
+            "type": "string"
+          },
+          "waitWeight": {
+            "title": "Waitweight",
+            "type": "number"
+          },
+          "drivers": {
+            "items": {
+              "enum": [
+                "IMPERVIOUS_HIGH",
+                "LOW_SHADE",
+                "WAIT_POINTS",
+                "DENSE_LOW_RISE",
+                "LOW_GREEN",
+                "SHADE_GAIN",
+                "GREEN_LINK",
+                "IMPERVIOUS_LOSS",
+                "ALBEDO_GAIN",
+                "WAIT_POINT_COVERED",
+                "CANOPY_OBSTRUCTION",
+                "OBSTRUCTION",
+                "ORIENTATION",
+                "BUILT_RUN",
+                "IMPERVIOUS_GAIN",
+                "MASS_GAIN",
+                "GREEN_LOSS",
+                "GREEN_ISOLATED",
+                "SHADE_LOSS"
+              ],
+              "type": "string"
+            },
+            "title": "Drivers",
+            "type": "array"
+          },
+          "centroid": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Centroid",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "areaM2",
+          "scores",
+          "priority",
+          "priorityClass",
+          "builtForm",
+          "waitWeight",
+          "drivers",
+          "centroid"
+        ],
+        "title": "BlockProps",
+        "type": "object"
+      },
+      "BlockResult": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "before": {
+            "$ref": "#/components/schemas/Scores"
+          },
+          "after": {
+            "$ref": "#/components/schemas/Scores"
+          }
+        },
+        "required": [
+          "id",
+          "before",
+          "after"
+        ],
+        "title": "BlockResult",
+        "type": "object"
+      },
+      "BuildingChange": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "building",
+            "title": "Kind",
+            "type": "string"
+          },
+          "siteId": {
+            "description": "The parcel id the building goes on.",
+            "title": "Siteid",
+            "type": "string"
+          },
+          "design": {
+            "$ref": "#/components/schemas/BuildingDesign"
+          }
+        },
+        "required": [
+          "kind",
+          "siteId",
+          "design"
+        ],
+        "title": "BuildingChange",
+        "type": "object"
+      },
+      "BuildingDesign": {
+        "additionalProperties": false,
+        "description": "A proposed building envelope. Floor area proxy = footprint % × floors.",
+        "properties": {
+          "floors": {
+            "minimum": 1,
+            "title": "Floors",
+            "type": "integer"
+          },
+          "footprintPct": {
+            "maximum": 100,
+            "minimum": 0,
+            "title": "Footprintpct",
+            "type": "number"
+          },
+          "greenPct": {
+            "maximum": 100,
+            "minimum": 0,
+            "title": "Greenpct",
+            "type": "number"
+          },
+          "orientationDeg": {
+            "description": "Bearing of the long side, degrees from north.",
+            "exclusiveMaximum": 180,
+            "minimum": 0,
+            "title": "Orientationdeg",
+            "type": "number"
+          }
+        },
+        "required": [
+          "floors",
+          "footprintPct",
+          "greenPct",
+          "orientationDeg"
+        ],
+        "title": "BuildingDesign",
+        "type": "object"
+      },
+      "BuildingFeature": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "Feature",
+            "title": "Type",
+            "type": "string"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/PolygonGeometry"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/BuildingProps"
+          }
+        },
+        "required": [
+          "type",
+          "geometry",
+          "properties"
+        ],
+        "title": "BuildingFeature",
+        "type": "object"
+      },
+      "BuildingLayer": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "FeatureCollection",
+            "title": "Type",
+            "type": "string"
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/BuildingFeature"
+            },
+            "title": "Features",
+            "type": "array"
+          }
+        },
+        "required": [
+          "type",
+          "features"
+        ],
+        "title": "BuildingLayer",
+        "type": "object"
+      },
+      "BuildingProps": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "heightM": {
+            "title": "Heightm",
+            "type": "number"
+          },
+          "heightSource": {
+            "enum": [
+              "osm_height",
+              "osm_levels",
+              "open_buildings",
+              "typology"
+            ],
+            "title": "Heightsource",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "heightM",
+          "heightSource"
+        ],
+        "title": "BuildingProps",
+        "type": "object"
+      },
+      "Candidate": {
+        "additionalProperties": false,
+        "description": "One option scored by the engine during a search.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "round": {
+            "title": "Round",
+            "type": "integer"
+          },
+          "source": {
+            "enum": [
+              "gemini",
+              "greedy",
+              "proposal"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "changes": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "building": "#/components/schemas/BuildingChange",
+                  "cool_roof": "#/components/schemas/InterventionChange",
+                  "depave": "#/components/schemas/InterventionChange",
+                  "pocket_green": "#/components/schemas/InterventionChange",
+                  "shade": "#/components/schemas/InterventionChange",
+                  "tree_row": "#/components/schemas/InterventionChange"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/InterventionChange"
+                },
+                {
+                  "$ref": "#/components/schemas/BuildingChange"
+                }
+              ]
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "score": {
+            "description": "Repair: area cooling score after. Protect: worst change (lower is better).",
+            "title": "Score",
+            "type": "number"
+          },
+          "costInr": {
+            "title": "Costinr",
+            "type": "number"
+          },
+          "floorAreaPct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floorareapct"
+          },
+          "risk": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RiskInfo"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Protect: the engine's risk label for this design."
+          },
+          "valid": {
+            "title": "Valid",
+            "type": "boolean"
+          },
+          "invalidReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Invalidreason"
+          }
+        },
+        "required": [
+          "id",
+          "round",
+          "source",
+          "label",
+          "changes",
+          "score",
+          "costInr",
+          "valid"
+        ],
+        "title": "Candidate",
+        "type": "object"
+      },
+      "CandidateEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "candidate",
+            "title": "Type",
+            "type": "string"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          },
+          "candidate": {
+            "$ref": "#/components/schemas/Candidate"
+          }
+        },
+        "required": [
+          "type",
+          "seq",
+          "candidate"
+        ],
+        "title": "CandidateEvent",
+        "type": "object"
+      },
+      "Change": {
+        "description": "One change to an area: an intervention on a site (Repair) or a building on a parcel (Protect).",
+        "discriminator": {
+          "mapping": {
+            "building": "#/components/schemas/BuildingChange",
+            "cool_roof": "#/components/schemas/InterventionChange",
+            "depave": "#/components/schemas/InterventionChange",
+            "pocket_green": "#/components/schemas/InterventionChange",
+            "shade": "#/components/schemas/InterventionChange",
+            "tree_row": "#/components/schemas/InterventionChange"
+          },
+          "propertyName": "kind"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/InterventionChange"
+          },
+          {
+            "$ref": "#/components/schemas/BuildingChange"
+          }
+        ],
+        "title": "Change"
+      },
+      "DataGaps": {
+        "additionalProperties": false,
+        "description": "Where values came from fallbacks; the data-caveat line in briefs is generated from this.",
+        "properties": {
+          "buildingsByHeightSource": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "enum": [
+                "osm_height",
+                "osm_levels",
+                "open_buildings",
+                "typology"
+              ]
+            },
+            "title": "Buildingsbyheightsource",
+            "type": "object"
+          },
+          "derivedFootpathSegments": {
+            "description": "Footpath chunks derived from road edges, not OSM sidewalks.",
+            "title": "Derivedfootpathsegments",
+            "type": "integer"
+          },
+          "skippedSteps": {
+            "description": "Optional pipeline steps not run, for example 'earth_engine'.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Skippedsteps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "buildingsByHeightSource",
+          "derivedFootpathSegments",
+          "skippedSteps"
+        ],
+        "title": "DataGaps",
+        "type": "object"
+      },
+      "DesignOption": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "title": "Key",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "candidate": {
+            "$ref": "#/components/schemas/Candidate"
+          },
+          "design": {
+            "$ref": "#/components/schemas/BuildingDesign"
+          },
+          "tradeOff": {
+            "title": "Tradeoff",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "candidate",
+          "design",
+          "tradeOff"
+        ],
+        "title": "DesignOption",
+        "type": "object"
+      },
+      "DoneEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "done",
+            "title": "Type",
+            "type": "string"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          },
+          "result": {
+            "$ref": "#/components/schemas/SearchResult"
+          }
+        },
+        "required": [
+          "type",
+          "seq",
+          "result"
+        ],
+        "title": "DoneEvent",
+        "type": "object"
+      },
+      "EmptyProps": {
+        "additionalProperties": false,
+        "properties": {},
+        "title": "EmptyProps",
+        "type": "object"
+      },
+      "EngineConstants": {
+        "additionalProperties": false,
+        "description": "Engine values the UI displays or passes back; the UI never computes scores from them.",
+        "properties": {
+          "windFromDeg": {
+            "title": "Windfromdeg",
+            "type": "number"
+          },
+          "metresPerFloor": {
+            "title": "Metresperfloor",
+            "type": "number"
+          }
+        },
+        "required": [
+          "windFromDeg",
+          "metresPerFloor"
+        ],
+        "title": "EngineConstants",
+        "type": "object"
+      },
+      "ErrorBody": {
+        "additionalProperties": false,
+        "description": "The one error shape for every route (ENGINEERING_RULES.md §6).",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ErrorBody",
+        "type": "object"
+      },
+      "ErrorDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "enum": [
+              "AREA_NOT_FOUND",
+              "SITE_NOT_FOUND",
+              "PARCEL_NOT_FOUND",
+              "RUN_NOT_FOUND",
+              "QUANTITY_OUT_OF_RANGE",
+              "INVALID_CHANGE",
+              "NOT_IMPLEMENTED",
+              "INTERNAL"
+            ],
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "description": "Says what happened and what to do; shown to the planner.",
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorDetail",
+        "type": "object"
+      },
+      "ErrorEvent": {
+        "additionalProperties": false,
+        "description": "The run ended early; the best scored result so far follows in a done event when one exists.",
+        "properties": {
+          "type": {
+            "const": "error",
+            "title": "Type",
+            "type": "string"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          },
+          "code": {
+            "enum": [
+              "AREA_NOT_FOUND",
+              "SITE_NOT_FOUND",
+              "PARCEL_NOT_FOUND",
+              "RUN_NOT_FOUND",
+              "QUANTITY_OUT_OF_RANGE",
+              "INVALID_CHANGE",
+              "NOT_IMPLEMENTED",
+              "INTERNAL"
+            ],
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "seq",
+          "code",
+          "message"
+        ],
+        "title": "ErrorEvent",
+        "type": "object"
+      },
+      "ExplainRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "changes": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "building": "#/components/schemas/BuildingChange",
+                  "cool_roof": "#/components/schemas/InterventionChange",
+                  "depave": "#/components/schemas/InterventionChange",
+                  "pocket_green": "#/components/schemas/InterventionChange",
+                  "shade": "#/components/schemas/InterventionChange",
+                  "tree_row": "#/components/schemas/InterventionChange"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/InterventionChange"
+                },
+                {
+                  "$ref": "#/components/schemas/BuildingChange"
+                }
+              ]
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "unitCosts": {
+            "$ref": "#/components/schemas/UnitCosts"
+          }
+        },
+        "required": [
+          "changes",
+          "unitCosts"
+        ],
+        "title": "ExplainRequest",
+        "type": "object"
+      },
+      "Explanation": {
+        "additionalProperties": false,
+        "description": "Written by the agent from engine values; every number appears in a tool result or planner input.",
+        "properties": {
+          "paragraphs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Paragraphs",
+            "type": "array"
+          },
+          "drivers": {
+            "items": {
+              "enum": [
+                "IMPERVIOUS_HIGH",
+                "LOW_SHADE",
+                "WAIT_POINTS",
+                "DENSE_LOW_RISE",
+                "LOW_GREEN",
+                "SHADE_GAIN",
+                "GREEN_LINK",
+                "IMPERVIOUS_LOSS",
+                "ALBEDO_GAIN",
+                "WAIT_POINT_COVERED",
+                "CANOPY_OBSTRUCTION",
+                "OBSTRUCTION",
+                "ORIENTATION",
+                "BUILT_RUN",
+                "IMPERVIOUS_GAIN",
+                "MASS_GAIN",
+                "GREEN_LOSS",
+                "GREEN_ISOLATED",
+                "SHADE_LOSS"
+              ],
+              "type": "string"
+            },
+            "title": "Drivers",
+            "type": "array"
+          },
+          "source": {
+            "description": "'template' when the output guard rejected the model twice and fell back.",
+            "enum": [
+              "gemini",
+              "template"
+            ],
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "paragraphs",
+          "drivers",
+          "source"
+        ],
+        "title": "Explanation",
+        "type": "object"
+      },
+      "GuardEvent": {
+        "additionalProperties": false,
+        "description": "The output guard rejected model text; `fallback` is true when a template replaced it.",
+        "properties": {
+          "type": {
+            "const": "guard",
+            "title": "Type",
+            "type": "string"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          },
+          "violations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Violations",
+            "type": "array"
+          },
+          "fallback": {
+            "title": "Fallback",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "type",
+          "seq",
+          "violations",
+          "fallback"
+        ],
+        "title": "GuardEvent",
+        "type": "object"
+      },
+      "Hotspot": {
+        "additionalProperties": false,
+        "properties": {
+          "rank": {
+            "title": "Rank",
+            "type": "integer"
+          },
+          "blockId": {
+            "title": "Blockid",
+            "type": "string"
+          },
+          "priority": {
+            "title": "Priority",
+            "type": "number"
+          },
+          "priorityClass": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "title": "Priorityclass",
+            "type": "string"
+          },
+          "scores": {
+            "$ref": "#/components/schemas/Scores"
+          },
+          "drivers": {
+            "items": {
+              "enum": [
+                "IMPERVIOUS_HIGH",
+                "LOW_SHADE",
+                "WAIT_POINTS",
+                "DENSE_LOW_RISE",
+                "LOW_GREEN",
+                "SHADE_GAIN",
+                "GREEN_LINK",
+                "IMPERVIOUS_LOSS",
+                "ALBEDO_GAIN",
+                "WAIT_POINT_COVERED",
+                "CANOPY_OBSTRUCTION",
+                "OBSTRUCTION",
+                "ORIENTATION",
+                "BUILT_RUN",
+                "IMPERVIOUS_GAIN",
+                "MASS_GAIN",
+                "GREEN_LOSS",
+                "GREEN_ISOLATED",
+                "SHADE_LOSS"
+              ],
+              "type": "string"
+            },
+            "title": "Drivers",
+            "type": "array"
+          },
+          "centroid": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Centroid",
+            "type": "array"
+          }
+        },
+        "required": [
+          "rank",
+          "blockId",
+          "priority",
+          "priorityClass",
+          "scores",
+          "drivers",
+          "centroid"
+        ],
+        "title": "Hotspot",
+        "type": "object"
+      },
+      "InterventionChange": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "tree_row",
+              "shade",
+              "depave",
+              "pocket_green",
+              "cool_roof"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "siteId": {
+            "title": "Siteid",
+            "type": "string"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "siteId",
+          "quantity"
+        ],
+        "title": "InterventionChange",
+        "type": "object"
+      },
+      "LineStringGeometry": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "LineString",
+            "title": "Type",
+            "type": "string"
+          },
+          "coordinates": {
+            "items": {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            "title": "Coordinates",
+            "type": "array"
+          }
+        },
+        "required": [
+          "type",
+          "coordinates"
+        ],
+        "title": "LineStringGeometry",
+        "type": "object"
+      },
+      "MultiPolygonGeometry": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "MultiPolygon",
+            "title": "Type",
+            "type": "string"
+          },
+          "coordinates": {
+            "items": {
+              "items": {
+                "items": {
+                  "maxItems": 2,
+                  "minItems": 2,
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              "type": "array"
+            },
+            "title": "Coordinates",
+            "type": "array"
+          }
+        },
+        "required": [
+          "type",
+          "coordinates"
+        ],
+        "title": "MultiPolygonGeometry",
+        "type": "object"
+      },
+      "ParcelFeature": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "Feature",
+            "title": "Type",
+            "type": "string"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/PolygonGeometry"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/ParcelProps"
+          }
+        },
+        "required": [
+          "type",
+          "geometry",
+          "properties"
+        ],
+        "title": "ParcelFeature",
+        "type": "object"
+      },
+      "ParcelLayer": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "FeatureCollection",
+            "title": "Type",
+            "type": "string"
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/ParcelFeature"
+            },
+            "title": "Features",
+            "type": "array"
+          }
+        },
+        "required": [
+          "type",
+          "features"
+        ],
+        "title": "ParcelLayer",
+        "type": "object"
+      },
+      "ParcelProps": {
+        "additionalProperties": false,
+        "description": "A vacant plot that Protect can test a proposed building on.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "blockId": {
+            "title": "Blockid",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "areaM2": {
+            "title": "Aream2",
+            "type": "number"
+          },
+          "center": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Center",
+            "type": "array"
+          },
+          "roadName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roadname"
+          },
+          "roadWidthM": {
+            "title": "Roadwidthm",
+            "type": "number"
+          },
+          "streetBearingDeg": {
+            "title": "Streetbearingdeg",
+            "type": "number"
+          },
+          "neighbourHeightM": {
+            "title": "Neighbourheightm",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "blockId",
+          "name",
+          "areaM2",
+          "center",
+          "roadName",
+          "roadWidthM",
+          "streetBearingDeg",
+          "neighbourHeightM"
+        ],
+        "title": "ParcelProps",
+        "type": "object"
+      },
+      "PointGeometry": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "Point",
+            "title": "Type",
+            "type": "string"
+          },
+          "coordinates": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Coordinates",
+            "type": "array"
+          }
+        },
+        "required": [
+          "type",
+          "coordinates"
+        ],
+        "title": "PointGeometry",
+        "type": "object"
+      },
+      "PolygonGeometry": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "Polygon",
+            "title": "Type",
+            "type": "string"
+          },
+          "coordinates": {
+            "items": {
+              "items": {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              "type": "array"
+            },
+            "title": "Coordinates",
+            "type": "array"
+          }
+        },
+        "required": [
+          "type",
+          "coordinates"
+        ],
+        "title": "PolygonGeometry",
+        "type": "object"
+      },
+      "ProtectSearchRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "const": "protect",
+            "title": "Mode",
+            "type": "string"
+          },
+          "parcelId": {
+            "title": "Parcelid",
+            "type": "string"
+          },
+          "proposal": {
+            "$ref": "#/components/schemas/BuildingDesign"
+          },
+          "keepFloorAreaPct": {
+            "description": "Option B keeps at least this share of A's floor area.",
+            "maximum": 100,
+            "minimum": 0,
+            "title": "Keepfloorareapct",
+            "type": "number"
+          },
+          "minFloorAreaPct": {
+            "description": "Option C keeps at least this share.",
+            "maximum": 100,
+            "minimum": 0,
+            "title": "Minfloorareapct",
+            "type": "number"
+          }
+        },
+        "required": [
+          "mode",
+          "parcelId",
+          "proposal",
+          "keepFloorAreaPct",
+          "minFloorAreaPct"
+        ],
+        "title": "ProtectSearchRequest",
+        "type": "object"
+      },
+      "RejectedOption": {
+        "additionalProperties": false,
+        "properties": {
+          "siteId": {
+            "title": "Siteid",
+            "type": "string"
+          },
+          "driver": {
+            "enum": [
+              "IMPERVIOUS_HIGH",
+              "LOW_SHADE",
+              "WAIT_POINTS",
+              "DENSE_LOW_RISE",
+              "LOW_GREEN",
+              "SHADE_GAIN",
+              "GREEN_LINK",
+              "IMPERVIOUS_LOSS",
+              "ALBEDO_GAIN",
+              "WAIT_POINT_COVERED",
+              "CANOPY_OBSTRUCTION",
+              "OBSTRUCTION",
+              "ORIENTATION",
+              "BUILT_RUN",
+              "IMPERVIOUS_GAIN",
+              "MASS_GAIN",
+              "GREEN_LOSS",
+              "GREEN_ISOLATED",
+              "SHADE_LOSS"
+            ],
+            "title": "Driver",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "siteId",
+          "driver",
+          "reason"
+        ],
+        "title": "RejectedOption",
+        "type": "object"
+      },
+      "RepairSearchRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "const": "repair",
+            "title": "Mode",
+            "type": "string"
+          },
+          "budgetInr": {
+            "exclusiveMinimum": 0,
+            "title": "Budgetinr",
+            "type": "number"
+          },
+          "unitCosts": {
+            "$ref": "#/components/schemas/UnitCosts"
+          },
+          "quickWinSharePct": {
+            "description": "Share of the budget that must help this summer.",
+            "maximum": 100,
+            "minimum": 0,
+            "title": "Quickwinsharepct",
+            "type": "number"
+          }
+        },
+        "required": [
+          "mode",
+          "budgetInr",
+          "unitCosts",
+          "quickWinSharePct"
+        ],
+        "title": "RepairSearchRequest",
+        "type": "object"
+      },
+      "RescoreRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "changes": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "building": "#/components/schemas/BuildingChange",
+                  "cool_roof": "#/components/schemas/InterventionChange",
+                  "depave": "#/components/schemas/InterventionChange",
+                  "pocket_green": "#/components/schemas/InterventionChange",
+                  "shade": "#/components/schemas/InterventionChange",
+                  "tree_row": "#/components/schemas/InterventionChange"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/InterventionChange"
+                },
+                {
+                  "$ref": "#/components/schemas/BuildingChange"
+                }
+              ]
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "unitCosts": {
+            "$ref": "#/components/schemas/UnitCosts"
+          }
+        },
+        "required": [
+          "changes",
+          "unitCosts"
+        ],
+        "title": "RescoreRequest",
+        "type": "object"
+      },
+      "RiskInfo": {
+        "additionalProperties": false,
+        "description": "Worst change on a parcel's block: the largest of VCI drop, HEI rise, GCS drop, PSS drop.",
+        "properties": {
+          "label": {
+            "enum": [
+              "LOW",
+              "MODERATE",
+              "HIGH"
+            ],
+            "title": "Label",
+            "type": "string"
+          },
+          "index": {
+            "enum": [
+              "vci",
+              "hei",
+              "gcs",
+              "pss"
+            ],
+            "title": "Index",
+            "type": "string"
+          },
+          "change": {
+            "title": "Change",
+            "type": "number"
+          }
+        },
+        "required": [
+          "label",
+          "index",
+          "change"
+        ],
+        "title": "RiskInfo",
+        "type": "object"
+      },
+      "RoundEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "round",
+            "title": "Type",
+            "type": "string"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          },
+          "round": {
+            "title": "Round",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "type",
+          "seq",
+          "round"
+        ],
+        "title": "RoundEvent",
+        "type": "object"
+      },
+      "Scores": {
+        "additionalProperties": false,
+        "description": "Index scores, 0–100, rounded to 1 decimal.",
+        "properties": {
+          "vci": {
+            "description": "Ventilation Corridor Index; higher is better.",
+            "title": "Vci",
+            "type": "number"
+          },
+          "hei": {
+            "description": "Heat Exposure Index; lower is better.",
+            "title": "Hei",
+            "type": "number"
+          },
+          "gcs": {
+            "description": "Green Connectivity Score; higher is better.",
+            "title": "Gcs",
+            "type": "number"
+          },
+          "pss": {
+            "description": "Pedestrian Shade Score; higher is better.",
+            "title": "Pss",
+            "type": "number"
+          }
+        },
+        "required": [
+          "vci",
+          "hei",
+          "gcs",
+          "pss"
+        ],
+        "title": "Scores",
+        "type": "object"
+      },
+      "SearchEvent": {
+        "description": "One server-sent event of an agent run; `seq` is also the SSE id.",
+        "discriminator": {
+          "mapping": {
+            "baseline": "#/components/schemas/BaselineEvent",
+            "candidate": "#/components/schemas/CandidateEvent",
+            "done": "#/components/schemas/DoneEvent",
+            "error": "#/components/schemas/ErrorEvent",
+            "guard": "#/components/schemas/GuardEvent",
+            "round": "#/components/schemas/RoundEvent"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/BaselineEvent"
+          },
+          {
+            "$ref": "#/components/schemas/RoundEvent"
+          },
+          {
+            "$ref": "#/components/schemas/CandidateEvent"
+          },
+          {
+            "$ref": "#/components/schemas/GuardEvent"
+          },
+          {
+            "$ref": "#/components/schemas/ErrorEvent"
+          },
+          {
+            "$ref": "#/components/schemas/DoneEvent"
+          }
+        ],
+        "title": "SearchEvent"
+      },
+      "SearchRequest": {
+        "description": "Body of POST /api/areas/{area}/runs.",
+        "discriminator": {
+          "mapping": {
+            "protect": "#/components/schemas/ProtectSearchRequest",
+            "repair": "#/components/schemas/RepairSearchRequest"
+          },
+          "propertyName": "mode"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/RepairSearchRequest"
+          },
+          {
+            "$ref": "#/components/schemas/ProtectSearchRequest"
+          }
+        ],
+        "title": "SearchRequest"
+      },
+      "SearchResult": {
+        "additionalProperties": false,
+        "properties": {
+          "best": {
+            "$ref": "#/components/schemas/Candidate"
+          },
+          "geminiBeatGreedy": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Repair: if false, best is the greedy plan.",
+            "title": "Geminibeatgreedy"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DesignOption"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Protect: options A, B and C.",
+            "title": "Options"
+          },
+          "rejected": {
+            "items": {
+              "$ref": "#/components/schemas/RejectedOption"
+            },
+            "title": "Rejected",
+            "type": "array"
+          },
+          "rounds": {
+            "title": "Rounds",
+            "type": "integer"
+          },
+          "explanation": {
+            "$ref": "#/components/schemas/Explanation"
+          }
+        },
+        "required": [
+          "best",
+          "rejected",
+          "rounds",
+          "explanation"
+        ],
+        "title": "SearchResult",
+        "type": "object"
+      },
+      "SegmentFeature": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "Feature",
+            "title": "Type",
+            "type": "string"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/LineStringGeometry"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/SegmentProps"
+          }
+        },
+        "required": [
+          "type",
+          "geometry",
+          "properties"
+        ],
+        "title": "SegmentFeature",
+        "type": "object"
+      },
+      "SegmentLayer": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "FeatureCollection",
+            "title": "Type",
+            "type": "string"
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/SegmentFeature"
+            },
+            "title": "Features",
+            "type": "array"
+          }
+        },
+        "required": [
+          "type",
+          "features"
+        ],
+        "title": "SegmentLayer",
+        "type": "object"
+      },
+      "SegmentProps": {
+        "additionalProperties": false,
+        "description": "A 10 m footpath chunk (engine/RULES.md, chunks).",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "road": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Road"
+          },
+          "roadClass": {
+            "title": "Roadclass",
+            "type": "string"
+          },
+          "lengthM": {
+            "title": "Lengthm",
+            "type": "number"
+          },
+          "block": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Block"
+          },
+          "nearWait": {
+            "title": "Nearwait",
+            "type": "boolean"
+          },
+          "shaded": {
+            "maxItems": 3,
+            "minItems": 3,
+            "prefixItems": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "boolean"
+              }
+            ],
+            "title": "Shaded",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "road",
+          "roadClass",
+          "lengthM",
+          "block",
+          "nearWait",
+          "shaded"
+        ],
+        "title": "SegmentProps",
+        "type": "object"
+      },
+      "ShadowFeature": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "Feature",
+            "title": "Type",
+            "type": "string"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/PolygonGeometry"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/EmptyProps"
+          }
+        },
+        "required": [
+          "type",
+          "geometry",
+          "properties"
+        ],
+        "title": "ShadowFeature",
+        "type": "object"
+      },
+      "ShadowLayer": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "FeatureCollection",
+            "title": "Type",
+            "type": "string"
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/ShadowFeature"
+            },
+            "title": "Features",
+            "type": "array"
+          }
+        },
+        "required": [
+          "type",
+          "features"
+        ],
+        "title": "ShadowLayer",
+        "type": "object"
+      },
+      "SingleSiteResult": {
+        "additionalProperties": false,
+        "description": "The engine's result for this site on its own. Combined effects always come from rescore.",
+        "properties": {
+          "acsGain": {
+            "title": "Acsgain",
+            "type": "number"
+          },
+          "drivers": {
+            "items": {
+              "enum": [
+                "IMPERVIOUS_HIGH",
+                "LOW_SHADE",
+                "WAIT_POINTS",
+                "DENSE_LOW_RISE",
+                "LOW_GREEN",
+                "SHADE_GAIN",
+                "GREEN_LINK",
+                "IMPERVIOUS_LOSS",
+                "ALBEDO_GAIN",
+                "WAIT_POINT_COVERED",
+                "CANOPY_OBSTRUCTION",
+                "OBSTRUCTION",
+                "ORIENTATION",
+                "BUILT_RUN",
+                "IMPERVIOUS_GAIN",
+                "MASS_GAIN",
+                "GREEN_LOSS",
+                "GREEN_ISOLATED",
+                "SHADE_LOSS"
+              ],
+              "type": "string"
+            },
+            "title": "Drivers",
+            "type": "array"
+          },
+          "ventilation": {
+            "$ref": "#/components/schemas/VentilationCheck"
+          }
+        },
+        "required": [
+          "acsGain",
+          "drivers",
+          "ventilation"
+        ],
+        "title": "SingleSiteResult",
+        "type": "object"
+      },
+      "Site": {
+        "additionalProperties": false,
+        "description": "A candidate site for one intervention type.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "tree_row",
+              "shade",
+              "depave",
+              "pocket_green",
+              "cool_roof"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "geometry": {
+            "discriminator": {
+              "mapping": {
+                "LineString": "#/components/schemas/LineStringGeometry",
+                "MultiPolygon": "#/components/schemas/MultiPolygonGeometry",
+                "Polygon": "#/components/schemas/PolygonGeometry"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LineStringGeometry"
+              },
+              {
+                "$ref": "#/components/schemas/PolygonGeometry"
+              },
+              {
+                "$ref": "#/components/schemas/MultiPolygonGeometry"
+              }
+            ],
+            "title": "Geometry"
+          },
+          "points": {
+            "anyOf": [
+              {
+                "items": {
+                  "maxItems": 2,
+                  "minItems": 2,
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Tree positions, for tree rows only.",
+            "title": "Points"
+          },
+          "quantity": {
+            "description": "Units at this site (trees, or m²), in the unit of the type's UnitCost.",
+            "title": "Quantity",
+            "type": "number"
+          },
+          "timeToBenefit": {
+            "enum": [
+              "weeks",
+              "season",
+              "years"
+            ],
+            "title": "Timetobenefit",
+            "type": "string"
+          },
+          "waitPoint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "The waiting point this site serves, if any.",
+            "title": "Waitpoint"
+          },
+          "hw": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Street height-to-width ratio, for tree rows.",
+            "title": "Hw"
+          },
+          "singleSite": {
+            "$ref": "#/components/schemas/SingleSiteResult"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "name",
+          "geometry",
+          "quantity",
+          "timeToBenefit",
+          "singleSite"
+        ],
+        "title": "Site",
+        "type": "object"
+      },
+      "StartRunResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "runId": {
+            "title": "Runid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "runId"
+        ],
+        "title": "StartRunResponse",
+        "type": "object"
+      },
+      "UnitCost": {
+        "additionalProperties": false,
+        "description": "Planner unit cost for one intervention type. Defaults are always labelled planner input.",
+        "properties": {
+          "unit": {
+            "description": "What one unit is, for example 'tree' or 'm²'.",
+            "title": "Unit",
+            "type": "string"
+          },
+          "inr": {
+            "description": "Rupees per unit.",
+            "title": "Inr",
+            "type": "number"
+          },
+          "source": {
+            "description": "Citation for the default; 'planner' once the planner edits it.",
+            "title": "Source",
+            "type": "string"
+          },
+          "sourceUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Sourceurl"
+          }
+        },
+        "required": [
+          "unit",
+          "inr",
+          "source"
+        ],
+        "title": "UnitCost",
+        "type": "object"
+      },
+      "UnitCosts": {
+        "additionalProperties": false,
+        "description": "Keyed by intervention type, spelled exactly as InterventionType so `unitCosts[site.type]` works.",
+        "properties": {
+          "tree_row": {
+            "$ref": "#/components/schemas/UnitCost"
+          },
+          "shade": {
+            "$ref": "#/components/schemas/UnitCost"
+          },
+          "depave": {
+            "$ref": "#/components/schemas/UnitCost"
+          },
+          "pocket_green": {
+            "$ref": "#/components/schemas/UnitCost"
+          },
+          "cool_roof": {
+            "$ref": "#/components/schemas/UnitCost"
+          }
+        },
+        "required": [
+          "tree_row",
+          "shade",
+          "depave",
+          "pocket_green",
+          "cool_roof"
+        ],
+        "title": "UnitCosts",
+        "type": "object"
+      },
+      "VentilationCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "driver": {
+            "anyOf": [
+              {
+                "enum": [
+                  "IMPERVIOUS_HIGH",
+                  "LOW_SHADE",
+                  "WAIT_POINTS",
+                  "DENSE_LOW_RISE",
+                  "LOW_GREEN",
+                  "SHADE_GAIN",
+                  "GREEN_LINK",
+                  "IMPERVIOUS_LOSS",
+                  "ALBEDO_GAIN",
+                  "WAIT_POINT_COVERED",
+                  "CANOPY_OBSTRUCTION",
+                  "OBSTRUCTION",
+                  "ORIENTATION",
+                  "BUILT_RUN",
+                  "IMPERVIOUS_GAIN",
+                  "MASS_GAIN",
+                  "GREEN_LOSS",
+                  "GREEN_ISOLATED",
+                  "SHADE_LOSS"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Set when ok is false, for example CANOPY_OBSTRUCTION.",
+            "title": "Driver"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Plain-language reason, shown to the planner when ok is false.",
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "VentilationCheck",
+        "type": "object"
+      },
+      "WaitPointFeature": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "Feature",
+            "title": "Type",
+            "type": "string"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/PointGeometry"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/WaitPointProps"
+          }
+        },
+        "required": [
+          "type",
+          "geometry",
+          "properties"
+        ],
+        "title": "WaitPointFeature",
+        "type": "object"
+      },
+      "WaitPointLayer": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "FeatureCollection",
+            "title": "Type",
+            "type": "string"
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/WaitPointFeature"
+            },
+            "title": "Features",
+            "type": "array"
+          }
+        },
+        "required": [
+          "type",
+          "features"
+        ],
+        "title": "WaitPointLayer",
+        "type": "object"
+      },
+      "WaitPointProps": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "school",
+              "college",
+              "hospital",
+              "clinic",
+              "marketplace",
+              "bus_stop"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "weight": {
+            "title": "Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "name",
+          "weight"
+        ],
+        "title": "WaitPointProps",
+        "type": "object"
+      }
+    }
+  }
+}

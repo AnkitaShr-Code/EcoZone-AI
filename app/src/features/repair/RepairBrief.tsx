@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { isInterventionChange } from '@/api/changes'
 import { useArea, useSites } from '@/api/hooks'
 import type { InterventionType, Site } from '@/api/types'
 import { BriefSection, BriefSheet } from '@/components/BriefSheet'
@@ -12,7 +13,8 @@ const LAKH = 1e5
 
 /** The printable cooling plan: outcome, phased interventions, field checks, rejected options. */
 export function RepairBrief({ plan }: { plan: RepairPlan }) {
-  const { areaId, changes, rejected, result } = useScenario()
+  const { areaId, changes: allChanges, rejected, result, unitCosts } = useScenario()
+  const changes = allChanges.filter(isInterventionChange)
   const budgetLakh = useRepairStore((s) => s.budgetLakh)
   const { data: area } = useArea(areaId)
   const { data: siteList } = useSites(areaId)
@@ -47,7 +49,7 @@ export function RepairBrief({ plan }: { plan: RepairPlan }) {
           <ul className="list-disc space-y-1 pl-5">
             {chosen.filter((x) => x.site.timeToBenefit === phase).map(({ change, site }) => (
               <li key={site.id}>
-                {site.name}: {formatInr(change.quantity * site.unitCost.inr)}. {site.drivers.map(driverLabel).join(', ')}.
+                {site.name}: {formatInr(change.quantity * (unitCosts?.[site.type].inr ?? 0))}. {site.singleSite.drivers.map(driverLabel).join(', ')}.
               </li>
             ))}
           </ul>

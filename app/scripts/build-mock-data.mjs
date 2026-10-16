@@ -29,13 +29,15 @@ const DEEP_CANYON_HW = 1
 const MOCK_WIND_FROM_DEG = 290 // mock prevailing wind; real value comes from Open-Meteo
 const GRID = 0.0005
 
-// Default unit costs: MOCK planner inputs for the demo, not market prices.
+// Default unit costs: MOCK planner inputs for the demo, not market prices. Cited defaults arrive
+// with WP8 (pipeline/config/unit_costs.yaml).
+const MOCK_COST_SOURCE = 'Mock default; cited defaults arrive with WP8'
 const UNIT_COSTS = {
-  tree_row: { unit: 'tree', inr: 4500 },
-  shade: { unit: 'm²', inr: 6500 },
-  depave: { unit: 'm²', inr: 2200 },
-  pocket_green: { unit: 'm²', inr: 1800 },
-  cool_roof: { unit: 'm²', inr: 250 },
+  tree_row: { unit: 'tree', inr: 4500, source: MOCK_COST_SOURCE, sourceUrl: null },
+  shade: { unit: 'm²', inr: 6500, source: MOCK_COST_SOURCE, sourceUrl: null },
+  depave: { unit: 'm²', inr: 2200, source: MOCK_COST_SOURCE, sourceUrl: null },
+  pocket_green: { unit: 'm²', inr: 1800, source: MOCK_COST_SOURCE, sourceUrl: null },
+  cool_roof: { unit: 'm²', inr: 250, source: MOCK_COST_SOURCE, sourceUrl: null },
 }
 const TIME_TO_BENEFIT = { tree_row: 'years', shade: 'weeks', depave: 'season', pocket_green: 'years', cool_roof: 'weeks' }
 
@@ -64,7 +66,7 @@ for (const f of src.features) {
   if (p.kind === 'building') {
     const ring = f.geometry.coordinates[0].map(rc)
     buildings.push({
-      id: `bd${p.id}`, ring, h: p.height_m ?? DEFAULT_HEIGHT_M, source: p.height_m != null ? 'osm' : 'default',
+      id: `bd${p.id}`, ring, h: p.height_m ?? DEFAULT_HEIGHT_M, source: p.height_m != null ? 'osm_height' : 'typology',
       area: turf.area(f), centroid: turf.centroid(f).geometry.coordinates,
     })
   } else if (p.kind === 'road') {
@@ -275,7 +277,7 @@ function rectRing(center, w, d) {
   return [...corners, corners[0]]
 }
 const sites = []
-const addSite = (s) => sites.push({ ...s, unitCost: UNIT_COSTS[s.type], timeToBenefit: TIME_TO_BENEFIT[s.type] })
+const addSite = (s) => sites.push({ ...s, timeToBenefit: TIME_TO_BENEFIT[s.type] })
 
 // Street tree rows: one candidate per footpath on roads wide enough for a planting strip.
 for (const fp of footpaths) {
@@ -415,18 +417,53 @@ function areaScores() {
   return Object.fromEntries(Object.entries(acc).map(([k, v]) => [k, r1(v / w)]))
 }
 
+// ACS with one site's mock effects applied, using the formula from docs/PLANNING.md. The mock
+// stand-in for the engine's single-site result (contract Site.singleSite).
+const segsByBlock = new Map()
+for (const sg of segments) if (sg.block) (segsByBlock.get(sg.block) ?? segsByBlock.set(sg.block, []).get(sg.block)).push(sg)
+function acsWith(effects) {
+  let w = 0
+  let acc = 0
+  for (const [id, s] of blockScores) {
+    const d = effects.blocks[id]
+    const segs = segsByBlock.get(id) ?? []
+    let pss = s.scores.pss
+    if (segs.some((sg) => effects.segments[sg.id])) {
+      const len = segs.reduce((a, sg) => a + sg.len, 0)
+      const share = (sg) => {
+        const add = effects.segments[sg.id]
+        return sg.shaded.filter((v, i) => v || (add && add[i])).length / SHADE_TIMES.length
+      }
+      pss = len ? (100 * segs.reduce((a, sg) => a + sg.len * share(sg), 0)) / len : pss
+    }
+    const hei = clamp(s.scores.hei + (d?.hei ?? 0))
+    const gcs = clamp(s.scores.gcs + (d?.gcs ?? 0))
+    const wb = s.E * s.V
+    w += wb
+    acc += wb * (0.45 * (100 - hei) + 0.35 * pss + 0.2 * gcs)
+  }
+  return acc / w
+}
+const BASE_ACS = acsWith({ segments: {}, blocks: {} })
+
 // ---------- write ----------
 mkdirSync(OUT, { recursive: true })
 const fc = (features) => ({ type: 'FeatureCollection', features })
 const feat = (geometry, properties) => ({ type: 'Feature', geometry, properties })
 
+const heightCount = (src) => buildings.filter((b) => b.source === src).length
 write('area.json', {
-  id: AREA_ID, name: 'Deccan Gymkhana – Fergusson College', city: 'Pune', bbox, center: rc(center),
+  id: AREA_ID, name: 'Deccan Gymkhana – Fergusson College', city: 'Pune', bundleVersion: 'mock-1', bbox, center: rc(center),
   referenceDate: REFERENCE_DATE, shadeTimes: SHADE_TIMES, baseline: areaScores(),
-  counts: { blocks: blocks.length, buildings: buildings.length, segments: segments.length, waitPoints: waits.length, sites: sites.length },
-  dataGaps: { buildingsDefaultHeight: buildings.filter((b) => b.source === 'default').length, defaultHeightM: DEFAULT_HEIGHT_M },
-  unitCostDefaults: UNIT_COSTS, mock: true,
-  engine: { windFromDeg: MOCK_WIND_FROM_DEG, vRefM3: Math.round(V_REF), metresPerFloor: 3, footprintLevels: FOOTPRINT_LEVELS, heightLevelsM: HEIGHT_LEVELS },
+  counts: { blocks: blocks.length, buildings: buildings.length, segments: segments.length, waitPoints: waits.length, sites: sites.length, parcels: parcels.length },
+  dataGaps: {
+    buildingsByHeightSource: { osm_height: heightCount('osm_height'), osm_levels: 0, open_buildings: 0, typology: heightCount('typology') },
+    derivedFootpathSegments: segments.length,
+    skippedSteps: ['earth_engine'],
+  },
+  unitCostDefaults: UNIT_COSTS,
+  engine: { windFromDeg: MOCK_WIND_FROM_DEG, metresPerFloor: 3 },
+  mock: true,
   attribution: 'Geometry © OpenStreetMap contributors (ODbL). Scores, costs and effects are mock values.',
 })
 write('blocks.json', fc(blocks.map((b) => {
@@ -444,8 +481,25 @@ write('wait-points.json', fc(waits.map((w) => feat({ type: 'Point', coordinates:
 for (const t of SHADE_TIMES) {
   write(`shadows-${t.replace(':', '')}.json`, fc(buildingShadows[t].map((r) => feat({ type: 'Polygon', coordinates: [r] }, {}))))
 }
-write('sites.json', sites)
-write('parcels.json', fc(parcels.map(({ plot, ...p }) => feat({ type: 'Polygon', coordinates: [plot] }, p))))
+// Contract shapes (contract/ecozone_contract): sites carry the single-site result; parcels drop the
+// mock shade lookup. Optional fields are explicit nulls, as the API serializes them.
+write('sites.json', sites.map((s) => ({
+  id: s.id, type: s.type, name: s.name, geometry: s.geometry, points: s.points ?? null, quantity: s.quantity,
+  timeToBenefit: s.timeToBenefit, waitPoint: s.waitPoint ?? null, hw: s.hw ?? null,
+  singleSite: {
+    acsGain: r1(acsWith(s.effects) - BASE_ACS),
+    drivers: s.drivers,
+    ventilation: s.ventilation.ok ? { ok: true, driver: null, reason: null } : s.ventilation,
+  },
+})))
+write('parcels.json', fc(parcels.map(({ plot, shade: _shade, nearbyBlocks: _nearby, ...p }) => feat({ type: 'Polygon', coordinates: [plot] }, p))))
+// Mock-only engine data for the app's mock rescore (UI_RULES.md §8). Not part of the contract;
+// it goes away when the app runs on the real API.
+write('_mock-engine.json', {
+  engine: { vRefM3: Math.round(V_REF), footprintLevels: FOOTPRINT_LEVELS, heightLevelsM: HEIGHT_LEVELS },
+  sites: Object.fromEntries(sites.map((s) => [s.id, s.effects])),
+  parcels: Object.fromEntries(parcels.map((p) => [p.id, { nearbyBlocks: p.nearbyBlocks, shade: p.shade }])),
+})
 write('hotspots.json', [...blockScores.entries()].sort((a, b) => b[1].priority - a[1].priority).slice(0, 10)
   .map(([id, s], i) => ({ rank: i + 1, blockId: id, priority: s.priority, priorityClass: priorityClass(s.priority), scores: s.scores, drivers: s.drivers, centroid: s.centroid })))
 

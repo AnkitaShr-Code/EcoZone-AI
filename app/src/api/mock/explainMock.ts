@@ -4,9 +4,8 @@
 
 import { formatInr, formatScore } from '@/lib/format'
 import { INTERVENTION_META, driverLabel } from '@/lib/meta'
-import type { AreaResult, Candidate, Change, DesignOption, Explanation, IndexKey, InterventionType, ParcelProps, RiskInfo, UnitCosts } from '../types'
+import type { AreaResult, BuildingChange, Candidate, Change, DesignOption, Explanation, IndexKey, InterventionType, ParcelProps, RiskInfo, UnitCosts } from '../types'
 import type { AreaIndex } from './areaIndex'
-import { designOf } from './buildingEffects'
 import { rescoreMock } from './rescoreMock'
 
 const INDEX_WORDS: Record<IndexKey, { name: string; worse: string }> = {
@@ -52,10 +51,10 @@ export function explainDesigns(index: AreaIndex, parcel: ParcelProps, options: D
 /** Explanation for any change set: a proposal (Protect) or a plan (Repair). */
 export function explainChanges(index: AreaIndex, changes: Change[], unitCosts: UnitCosts): Explanation {
   const result = rescoreMock(index, changes, unitCosts)
-  const building = changes.find((c) => c.kind === 'building')
+  const building = changes.find((c): c is BuildingChange => c.kind === 'building')
   if (building && result.risk) {
     const parcel = index.parcelById.get(building.siteId) as ParcelProps
-    const design = designOf(building.params, building.quantity)
+    const design = building.design
     const paragraphs = [riskSentence(result.risk, design.floors, parcel)]
     const main = result.drivers.filter((d) => d !== 'SHADE_GAIN').map(driverLabel)
     if (main.length) paragraphs.push(`Main drivers: ${listWords(main.map((d) => d.toLowerCase()))}.`)

@@ -30,7 +30,7 @@ contract/
 
 ## Changes from the UI baseline
 
-The UI's hand-written `app/src/api/types.ts` is the starting point. These changes are proposed by the engine side and need the U lane's agreement before the contract PR merges:
+The UI's hand-written `app/src/api/types.ts` was the starting point. **Agreed by the U lane (Abhishek, Oct 16) and implemented in WP2.** The engine side proposed:
 
 | Today in `types.ts` | Change | Reason |
 | --- | --- | --- |
@@ -44,3 +44,17 @@ The UI's hand-written `app/src/api/types.ts` is the starting point. These change
 | `AreaSummary.mock` | Kept; true only when served by the mock adapter (snapshot) | Snapshot numbers are real but frozen |
 
 Segments stay named `segments` on the wire, and each one is a 10 m chunk with `shaded: [bool, bool, bool]`.
+
+Also changed in WP2, from the U side:
+
+| Change | Reason |
+| --- | --- |
+| `Change` is a tagged union: `{ kind: <intervention>, siteId, quantity }` or `{ kind: 'building', siteId, design: BuildingDesign }` | Replaces the loose `quantity` + `params` for buildings; TS narrows on `kind` |
+| `Site.unitCost` removed; `Site.drivers` and `Site.ventilation` move under `singleSite` | Costs come from planner unit costs; single-site results are one engine object |
+| `UnitCosts` keys are the intervention types (`tree_row`, `pocket_green`, `cool_roof`), not camelCase | So `unitCosts[site.type]` works on both sides |
+| Optional fields are always present, as `null` when absent | Matches what the API serializes; the generated TS marks them required and nullable |
+| `ParcelProps.nearbyBlocks` and `AreaSummary.engine.vRefM3`/levels removed | Engine-internal; the app never needs them |
+
+**Mock mode (decided Oct 16):** until WP6 serves real routes, the app's mock adapter keeps a client-side mock rescore, labelled mock. Its engine-only inputs (per-site effects, the parcel shade lookup, mock constants) live in `app/public/mock/<area>/_mock-engine.json`, which is not part of the contract and is skipped by fixture validation. After WP6, interactive work runs against a local API on the tiny fixture, and the mock becomes an engine snapshot.
+
+**Tooling note:** `openapi-typescript` 7 supports TypeScript 5 only and the app uses TypeScript 6, so `npm run gen:api` runs it through `npx` pinned to `openapi-typescript@7.13.0` with `typescript@5.9.3` instead of a dev dependency.

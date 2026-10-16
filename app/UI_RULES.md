@@ -153,7 +153,7 @@ app/
     features/repair/     Repair steps, plan table, brief, useRepairPlan
     features/protect/    Protect steps, sliders, options, build-out, brief, useProtectSearch
     map/                 MapView, layerRegistry, LayersControl, Legend, TimeControl, layers/ (one render function per layer)
-    api/                 types.ts (mirrors the Pydantic schemas), client.ts (one interface), mock/, http/
+    api/                 generated.ts (from contract/openapi.json), types.ts (names and narrows it), client.ts (one interface), mock/, http/
     state/               Zustand stores for UI state only
     lib/                 format.ts, colors.ts, utils.ts
     styles/              globals.css (tokens)
@@ -163,13 +163,13 @@ Rules:
 
 - **Data access.** Only `src/api/` talks to data. Components call hooks (TanStack Query) that call `api`. No `fetch` anywhere else, and no component imports from `api/mock` directly.
 - **Swappable adapter.** `api/client.ts` defines the `EcoZoneApi` interface. `VITE_API_MODE=mock|http` picks the adapter. Switching to the real backend is a change to that one variable.
-- **Mock adapter.** `api/mock` is the only front-end code allowed to calculate values, because it stands in for the engine. It returns exactly the shapes in `api/types.ts`, with realistic latency.
+- **Mock adapter.** `api/mock` is the only front-end code allowed to calculate values, because it stands in for the engine. It returns exactly the contract shapes, with realistic latency. Its engine-only inputs come from `_mock-engine.json`, never from contract fields.
 - **State.** Server data lives in TanStack Query. UI state (mode, open step, visible layers, selection, shade time) lives in Zustand. Never copy server data into Zustand, with one deliberate exception: the **working scenario** (`state/scenarioStore.ts`), the change set the planner is reviewing. It starts from a search result and the planner then edits it, so it is planner state. Its scores always come from the rescore query (`state/useScenario.ts`), never from the store.
 - **Agent runs.** A search is one streamed query (`useSearchRun`, built on TanStack's `streamedQuery`) reduced into `SearchState`. Repair and Protect use the same hook, the same `SearchProgress` component and the same `runSearch` contract, mirroring the single `LoopAgent` on the backend. Keep the hook in the workflow component, not a step, so a running search survives step changes.
 - **Formatting.** Every displayed number goes through `lib/format.ts` (`formatScore`, `formatDelta`, `formatInr`, `formatPercent`, `formatCount`). No `toFixed` in components.
 - **Naming.** Components are `PascalCase.tsx`; hooks are `useThing.ts`; everything else is `camelCase.ts`. One component per file. Feature components live in their feature folder until a second feature needs them; then they move to `components/`.
 - **Size.** If a component file passes about 200 lines, split it.
-- **Types.** TypeScript strict mode; no `any`. API types are written once in `api/types.ts`.
+- **Types.** TypeScript strict mode; no `any`. Wire types are generated from the contract (`npm run gen:api` writes `api/generated.ts`); `api/types.ts` only re-exports and narrows them. To change a wire shape, change the Pydantic model in `contract/` (ENGINEERING_RULES.md §6).
 
 **Pitfalls already hit (don't repeat them):**
 

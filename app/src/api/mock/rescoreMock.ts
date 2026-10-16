@@ -3,9 +3,9 @@
 // change's effects, recomputes block PSS from footpath shade and the area scores
 // with the ACS formula from docs/PLANNING.md. Mock values only.
 
-import type { AreaResult, AreaScores, BlockResult, Change, IndexDelta, IndexKey, RiskLabel, Scores, ShadeByTime, TimeToBenefit, UnitCosts } from '../types'
-import type { AreaIndex } from './areaIndex'
-import { buildingEffects, designOf } from './buildingEffects'
+import type { AreaResult, AreaScores, BlockResult, Change, DriverTag, IndexKey, RiskLabel, Scores, ShadeByTime, TimeToBenefit, UnitCosts } from '../types'
+import type { AreaIndex, IndexDelta } from './areaIndex'
+import { buildingEffects } from './buildingEffects'
 
 const VENTILATION_LIMIT = 10
 const RISK = { moderate: 10, high: 25 }
@@ -32,7 +32,7 @@ function harms(before: Scores, after: Scores): Record<IndexKey, number> {
 export function rescoreMock(index: AreaIndex, changes: Change[], unitCosts: UnitCosts): AreaResult {
   const newShade: Record<string, ShadeByTime> = {}
   const blockDelta = new Map<string, IndexDelta>()
-  const drivers = new Set<string>()
+  const drivers = new Set<DriverTag>()
   const buildingBlocks: { parcelId: string; blockId: string }[] = []
   let costInr = 0
   let quickWinCostInr = 0
@@ -56,7 +56,7 @@ export function rescoreMock(index: AreaIndex, changes: Change[], unitCosts: Unit
     if (change.kind === 'building') {
       const parcel = index.parcelById.get(change.siteId)
       if (!parcel) continue
-      const effect = buildingEffects(index, parcel, designOf(change.params, change.quantity))
+      const effect = buildingEffects(index, parcel, change.design)
       addShade(effect.segments)
       addBlocks(effect.blocks)
       effect.drivers.forEach((d) => drivers.add(d))
@@ -65,10 +65,13 @@ export function rescoreMock(index: AreaIndex, changes: Change[], unitCosts: Unit
     }
     const site = index.siteById.get(change.siteId)
     if (!site) continue
-    addShade(site.effects.segments)
-    addBlocks(site.effects.blocks)
-    site.drivers.forEach((d) => drivers.add(d))
-    if (!site.ventilation.ok) ventilationFlagged = true
+    const effects = index.mock.sites[site.id]
+    if (effects) {
+      addShade(effects.segments)
+      addBlocks(effects.blocks)
+    }
+    site.singleSite.drivers.forEach((d) => drivers.add(d))
+    if (!site.singleSite.ventilation.ok) ventilationFlagged = true
     if (site.waitPoint) waitPoints.add(site.waitPoint)
     const cost = change.quantity * unitCosts[site.type].inr
     costInr += cost
@@ -119,9 +122,11 @@ export function rescoreMock(index: AreaIndex, changes: Change[], unitCosts: Unit
     quickWinCostInr,
     drivers: [...drivers],
     blocksWorse,
+    risk: null,
+    parcelRisk: null,
   }
   if (buildingBlocks.length) {
-    const parcelRisk: NonNullable<AreaResult['parcelRisk']> = {}
+    const parcelRisk: Record<string, NonNullable<AreaResult['risk']>> = {}
     for (const { parcelId, blockId } of buildingBlocks) {
       const b = index.blockById.get(blockId)
       const a = afterById.get(blockId)

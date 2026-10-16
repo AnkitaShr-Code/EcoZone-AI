@@ -2,7 +2,8 @@
 // judge loop for both modes. The "proposer" here is a set of heuristics standing
 // in for Gemini; every candidate is scored by rescoreMock, the engine stand-in.
 
-import type { BuildingDesign, Candidate, Change, DesignOption, SearchEvent, SearchRequest, Site } from '../types'
+import { buildingChange } from '../changes'
+import type { BuildingDesign, Candidate, Change, DesignOption, RejectedOption, SearchEvent, SearchRequest, Site } from '../types'
 import type { AreaIndex } from './areaIndex'
 import { explainDesigns, explainPlan } from './explainMock'
 import { isQuickWin, rescoreMock } from './rescoreMock'
@@ -25,13 +26,18 @@ export function sleep(ms: number, signal: AbortSignal) {
 }
 const thinking = () => 260 + Math.random() * 260
 
-export function searchMock(index: AreaIndex, request: SearchRequest, signal: AbortSignal): AsyncGenerator<SearchEvent> {
-  return request.mode === 'repair' ? repairSearch(index, request, signal) : protectSearch(index, request, signal)
+/** A search event before the stream assigns its `seq` (the SSE id). */
+type EventBody = SearchEvent extends infer E ? (E extends unknown ? Omit<E, 'seq'> : never) : never
+
+export async function* searchMock(index: AreaIndex, request: SearchRequest, signal: AbortSignal): AsyncGenerator<SearchEvent> {
+  let seq = 0
+  const events = request.mode === 'repair' ? repairSearch(index, request, signal) : protectSearch(index, request, signal)
+  for await (const event of events) yield { ...event, seq: ++seq } as SearchEvent
 }
 
 // ---------------- Repair: portfolio search against a greedy baseline ----------------
 
-async function* repairSearch(index: AreaIndex, req: Extract<SearchRequest, { mode: 'repair' }>, signal: AbortSignal): AsyncGenerator<SearchEvent> {
+async function* repairSearch(index: AreaIndex, req: Extract<SearchRequest, { mode: 'repair' }>, signal: AbortSignal): AsyncGenerator<EventBody> {
   const { budgetInr, unitCosts } = req
   const quickWinTarget = (budgetInr * req.quickWinSharePct) / 100
   const base = index.area.baseline.acs
@@ -40,7 +46,7 @@ async function* repairSearch(index: AreaIndex, req: Extract<SearchRequest, { mod
   const evaluate = (sites: Site[]) => rescoreMock(index, sites.map(changeOf), unitCosts)
 
   const affordable = index.sites.filter((s) => cost(s) <= budgetInr)
-  const eligible = affordable.filter((s) => s.ventilation.ok)
+  const eligible = affordable.filter((s) => s.singleSite.ventilation.ok)
   const gain = new Map(eligible.map((s) => [s.id, evaluate([s]).after.acs - base]))
   const ratio = (s: Site) => (gain.get(s.id) ?? 0) / Math.max(1, cost(s))
   const byRatio = [...eligible].sort((a, b) => ratio(b) - ratio(a))
@@ -69,8 +75,8 @@ async function* repairSearch(index: AreaIndex, req: Extract<SearchRequest, { mod
     const r = evaluate(sites)
     const invalidReason = r.costInr > budgetInr ? 'Over budget'
       : r.quickWinCostInr < quickWinTarget ? 'Below the quick-win share'
-        : !r.ventilationOk ? 'Fails the ventilation check' : undefined
-    return { id: `c${++n}`, round, source, label, changes: sites.map(changeOf), score: r.after.acs, costInr: r.costInr, valid: !invalidReason, invalidReason }
+        : !r.ventilationOk ? 'Fails the ventilation check' : null
+    return { id: `c${++n}`, round, source, label, changes: sites.map(changeOf), score: r.after.acs, costInr: r.costInr, floorAreaPct: null, risk: null, valid: !invalidReason, invalidReason }
   }
 
   await sleep(500, signal)
@@ -78,8 +84,11 @@ async function* repairSearch(index: AreaIndex, req: Extract<SearchRequest, { mod
   yield { type: 'baseline', candidate: greedy }
 
   const hot = new Set([...index.blocks].sort((a, b) => b.priority - a.priority).slice(0, 5).map((b) => b.id))
-  const touchesHot = (s: Site) => Object.keys(s.effects.blocks).some((b) => hot.has(b))
-    || Object.keys(s.effects.segments).some((id) => hot.has(index.segmentById.get(id)?.block ?? ''))
+  const touchesHot = (s: Site) => {
+    const effects = index.mock.sites[s.id]
+    return !!effects && (Object.keys(effects.blocks).some((b) => hot.has(b))
+      || Object.keys(effects.segments).some((id) => hot.has(index.segmentById.get(id)?.block ?? '')))
+  }
   const roundRobin = () => {
     const queues = (['shade', 'tree_row', 'depave', 'pocket_green', 'cool_roof'] as const).map((t) => byRatio.filter((s) => s.type === t))
     const out: Site[] = []
@@ -123,10 +132,10 @@ async function* repairSearch(index: AreaIndex, req: Extract<SearchRequest, { mod
     })
   }
 
-  const rejected = affordable.filter((s) => !s.ventilation.ok)
+  const rejected: RejectedOption[] = affordable.filter((s) => !s.singleSite.ventilation.ok)
     .map((s) => ({ s, g: evaluate([s]).after.acs - base }))
     .sort((a, b) => b.g - a.g).slice(0, 3)
-    .map(({ s }) => ({ siteId: s.id, driver: s.ventilation.ok ? '' : s.ventilation.driver, reason: s.ventilation.ok ? '' : s.ventilation.reason }))
+    .map(({ s }) => ({ siteId: s.id, driver: s.singleSite.ventilation.driver ?? 'CANOPY_OBSTRUCTION', reason: s.singleSite.ventilation.reason ?? '' }))
 
   const gemini = best ?? greedy
   const geminiBeatGreedy = gemini.score >= greedy.score
@@ -136,7 +145,7 @@ async function* repairSearch(index: AreaIndex, req: Extract<SearchRequest, { mod
   yield {
     type: 'done',
     result: {
-      best: chosen, geminiBeatGreedy, rejected, rounds,
+      best: chosen, geminiBeatGreedy, options: null, rejected, rounds,
       explanation: explainPlan(index, chosen, result, greedy, rejected.length, budgetInr, req.quickWinSharePct),
     },
   }
@@ -148,16 +157,13 @@ function typeLabel(s: Site) {
 
 // ---------------- Protect: design search for options A, B and C ----------------
 
-async function* protectSearch(index: AreaIndex, req: Extract<SearchRequest, { mode: 'protect' }>, signal: AbortSignal): AsyncGenerator<SearchEvent> {
+async function* protectSearch(index: AreaIndex, req: Extract<SearchRequest, { mode: 'protect' }>, signal: AbortSignal): AsyncGenerator<EventBody> {
   const parcel = index.parcelById.get(req.parcelId)
   if (!parcel) throw new Error(`Unknown parcel ${req.parcelId}`)
   const A = req.proposal
   const floorArea = (d: BuildingDesign) => (d.footprintPct / 100) * d.floors
   const windAxis = Math.round((index.area.engine.windFromDeg % 180) / ORIENTATION_STEP) * ORIENTATION_STEP
-  const changeOf = (d: BuildingDesign): Change => ({
-    kind: 'building', siteId: parcel.id, quantity: d.floors,
-    params: { footprintPct: d.footprintPct, greenPct: d.greenPct, orientationDeg: d.orientationDeg },
-  })
+  const changeOf = (d: BuildingDesign): Change => buildingChange(parcel.id, d)
   const allowed = (d: BuildingDesign) => d.floors >= 1 && d.floors <= A.floors && d.footprintPct <= A.footprintPct
     && d.greenPct >= A.greenPct && d.footprintPct + d.greenPct <= 100 && d.orientationDeg % ORIENTATION_STEP === 0
   const designs = new Map<string, BuildingDesign>()
@@ -167,7 +173,7 @@ async function* protectSearch(index: AreaIndex, req: Extract<SearchRequest, { mo
     const c: Candidate = {
       id: `d${++n}`, round, source, label, changes: [changeOf(d)], score: r.risk?.change ?? 0, costInr: 0,
       floorAreaPct: Math.round((100 * floorArea(d)) / floorArea(A)), risk: r.risk, valid: allowed(d),
-      invalidReason: allowed(d) ? undefined : 'Outside the allowed ranges',
+      invalidReason: allowed(d) ? null : 'Outside the allowed ranges',
     }
     designs.set(c.id, d)
     return c
@@ -236,6 +242,6 @@ async function* protectSearch(index: AreaIndex, req: Extract<SearchRequest, { mo
   await sleep(400, signal)
   yield {
     type: 'done',
-    result: { best: optionB, options, rejected: [], rounds, explanation: explainDesigns(index, parcel, options, req.keepFloorAreaPct) },
+    result: { best: optionB, geminiBeatGreedy: null, options, rejected: [], rounds, explanation: explainDesigns(index, parcel, options, req.keepFloorAreaPct) },
   }
 }
