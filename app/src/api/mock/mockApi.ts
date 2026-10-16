@@ -4,7 +4,7 @@
 
 import type { EcoZoneApi } from '../client'
 import type { AreaSummary, LayerData, LayerName, ShadeTime, Site } from '../types'
-import { buildAreaIndex, type AreaIndex } from './areaIndex'
+import { buildAreaIndex, type AreaIndex, type MockEngine } from './areaIndex'
 import { explainChanges } from './explainMock'
 import { rescoreMock } from './rescoreMock'
 import { searchMock, sleep } from './searchMock'
@@ -49,6 +49,7 @@ function areaIndex(areaId: string): Promise<AreaIndex> {
       file<LayerData['segments']>(areaId, LAYER_FILES.segments),
       file<Site[]>(areaId, 'sites.json'),
       file<LayerData['parcels']>(areaId, LAYER_FILES.parcels),
+      file<MockEngine>(areaId, '_mock-engine.json'),
     ]).then((parts) => buildAreaIndex(...parts)))
   }
   return indexes.get(areaId) as Promise<AreaIndex>

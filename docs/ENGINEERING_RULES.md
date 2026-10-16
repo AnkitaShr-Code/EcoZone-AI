@@ -59,7 +59,7 @@ Pinned in `uv.lock`; upgrade only in a PR that does nothing else.
 | Lint and format | `ruff` (lint + format) | all |
 | Types | `pyright`: strict for `engine` and `contract`, standard elsewhere | all |
 | Boundaries | `import-linter` | all |
-| TS generation | `openapi-typescript` (dev dependency in `app/`) | app |
+| TS generation | `openapi-typescript` 7.13, run through pinned `npx` because it requires TypeScript 5 (see contract/RULES.md) | app |
 | CLI | `typer` | pipeline, api |
 
 Adding a runtime dependency to `engine` or `contract` needs a line in that folder's RULES.md saying why.

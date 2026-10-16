@@ -9,7 +9,8 @@
     "typecheck": "tsc -b --noEmit",
     "lint": "oxlint",
     "preview": "vite preview",
-    "mock:build": "node scripts/build-mock-data.mjs"
+    "mock:build": "node scripts/build-mock-data.mjs",
+    "gen:api": "npx --yes -p openapi-typescript@7.13.0 -p typescript@5.9.3 openapi-typescript ../contract/openapi.json -o src/api/generated.ts"
   },
   "dependencies": {
     "@deck.gl/core": "^9.4.0",

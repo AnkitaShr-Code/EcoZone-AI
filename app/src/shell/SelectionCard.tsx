@@ -128,9 +128,9 @@ function SiteDetails({ id }: { id: string }) {
         {meta.label} · {inPlan ? 'In the plan' : 'Not in the plan'}
         {unitCosts && ` · ${formatInr(site.quantity * unitCosts[site.type].inr)}`} · {TIME_TO_BENEFIT_LABEL[site.timeToBenefit]} to benefit
       </p>
-      {site.ventilation.ok
-        ? <p className="text-xs text-muted-foreground">Why: {site.drivers.map(driverLabel).join(' · ')}</p>
-        : <p className="text-xs text-status-rejected">Rejected: {site.ventilation.reason}</p>}
+      {site.singleSite.ventilation.ok
+        ? <p className="text-xs text-muted-foreground">Why: {site.singleSite.drivers.map(driverLabel).join(' · ')}</p>
+        : <p className="text-xs text-status-rejected">Rejected: {site.singleSite.ventilation.reason}</p>}
     </div>
   )
 }

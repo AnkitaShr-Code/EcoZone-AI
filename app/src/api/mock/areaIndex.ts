@@ -2,7 +2,20 @@
 // takes milliseconds (the real engine does the same with STRtree indexes).
 
 import type { FeatureCollection, LineString, Polygon } from 'geojson'
-import type { AreaSummary, BlockProps, ParcelProps, SegmentProps, Site } from '../types'
+import type { AreaSummary, BlockProps, ParcelProps, SegmentProps, ShadeByTime, Site } from '../types'
+
+export interface IndexDelta {
+  hei: number
+  gcs: number
+  vci: number
+}
+
+/** Mock-only engine data from `_mock-engine.json`. Not part of the contract (UI_RULES.md §8). */
+export interface MockEngine {
+  engine: { vRefM3: number; footprintLevels: number[]; heightLevelsM: number[] }
+  sites: Record<string, { segments: Record<string, ShadeByTime>; blocks: Record<string, IndexDelta> }>
+  parcels: Record<string, { nearbyBlocks: string[]; shade: Record<string, Record<string, ShadeByTime>> }>
+}
 
 export interface AreaIndex {
   area: AreaSummary
@@ -15,6 +28,7 @@ export interface AreaIndex {
   siteById: Map<string, Site>
   parcels: ParcelProps[]
   parcelById: Map<string, ParcelProps>
+  mock: MockEngine
 }
 
 export function buildAreaIndex(
@@ -23,6 +37,7 @@ export function buildAreaIndex(
   segments: FeatureCollection<LineString, SegmentProps>,
   sites: Site[],
   parcels: FeatureCollection<Polygon, ParcelProps>,
+  mock: MockEngine,
 ): AreaIndex {
   const blockProps = blocks.features.map((f) => f.properties)
   const segmentProps = segments.features.map((f) => f.properties)
@@ -45,5 +60,6 @@ export function buildAreaIndex(
     siteById: new Map(sites.map((s) => [s.id, s])),
     parcels: parcelProps,
     parcelById: new Map(parcelProps.map((p) => [p.id, p])),
+    mock,
   }
 }

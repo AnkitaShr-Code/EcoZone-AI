@@ -1,5 +1,6 @@
 import { ChevronDown } from 'lucide-react'
-import type { Change, InterventionType, Site, UnitCosts } from '@/api/types'
+import { isInterventionChange } from '@/api/changes'
+import type { Change, InterventionChange, InterventionType, Site, UnitCosts } from '@/api/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { formatInr } from '@/lib/format'
 import { centerOf } from '@/lib/geo'
@@ -25,7 +26,8 @@ interface PlanTableProps {
  */
 export function PlanTable({ drafted, included, sites, unitCosts }: PlanTableProps) {
   const isIncluded = new Set(included.map((c) => c.siteId))
-  const rows = drafted.map((change) => ({ change, site: sites.get(change.siteId) })).filter((r): r is { change: Change; site: Site } => !!r.site)
+  const rows = drafted.filter(isInterventionChange).map((change) => ({ change, site: sites.get(change.siteId) }))
+    .filter((r): r is { change: InterventionChange; site: Site } => !!r.site)
   const groups = TYPE_ORDER.map((type) => ({ type, rows: rows.filter((r) => r.site.type === type) })).filter((g) => g.rows.length)
 
   return (
@@ -53,7 +55,7 @@ export function PlanTable({ drafted, included, sites, unitCosts }: PlanTableProp
   )
 }
 
-function PlanRow({ change, site, included, unitCosts }: { change: Change; site: Site; included: boolean; unitCosts: UnitCosts }) {
+function PlanRow({ change, site, included, unitCosts }: { change: InterventionChange; site: Site; included: boolean; unitCosts: UnitCosts }) {
   const toggleChange = useScenarioStore((s) => s.toggleChange)
   const select = useUiStore((s) => s.select)
   return (
@@ -76,7 +78,7 @@ function PlanRow({ change, site, included, unitCosts }: { change: Change; site: 
           {site.name.replace(/^[^,]+, /, '')}
         </button>
         <p className="text-xs text-muted-foreground">
-          {formatInr(change.quantity * unitCosts[site.type].inr)} · {TIME_TO_BENEFIT_LABEL[site.timeToBenefit]} · {site.drivers.map(driverLabel).join(', ')}
+          {formatInr(change.quantity * unitCosts[site.type].inr)} · {TIME_TO_BENEFIT_LABEL[site.timeToBenefit]} · {site.singleSite.drivers.map(driverLabel).join(', ')}
         </p>
       </div>
     </li>

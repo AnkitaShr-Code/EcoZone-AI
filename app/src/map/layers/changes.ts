@@ -1,7 +1,7 @@
 import type { Layer } from '@deck.gl/core'
 import { GeoJsonLayer, PolygonLayer, ScatterplotLayer } from '@deck.gl/layers'
 import type { Feature, Geometry } from 'geojson'
-import type { InterventionType, Site } from '@/api/types'
+import type { BuildingChange, InterventionType, Site } from '@/api/types'
 import { rgba } from '@/lib/colors'
 import { scaleRing } from '@/lib/geo'
 import { INTERVENTION_META } from '@/lib/meta'
@@ -62,16 +62,16 @@ function proposedBuildings({ scenario, data, metresPerFloor }: LayerContext): La
   const parcels = data.parcels
   if (!parcels) return []
   const byId = new Map(parcels.features.map((f) => [f.properties.id, f]))
-  const buildings = scenario.changes.filter((c) => c.kind === 'building').flatMap((c) => {
+  const buildings = scenario.changes.filter((c): c is BuildingChange => c.kind === 'building').flatMap((c) => {
     const parcel = byId.get(c.siteId)
     if (!parcel) return []
-    const k = Math.sqrt(Number(c.params?.footprintPct ?? 50) / 100)
+    const k = Math.sqrt(c.design.footprintPct / 100)
     return [{
       id: parcel.properties.id,
       name: parcel.properties.name,
       selectKind: 'parcel' as const,
       ring: scaleRing(parcel.geometry.coordinates[0], parcel.properties.center, k),
-      height: c.quantity * metresPerFloor,
+      height: c.design.floors * metresPerFloor,
     }]
   })
   return [

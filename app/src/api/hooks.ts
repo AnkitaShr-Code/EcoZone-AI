@@ -39,9 +39,12 @@ export interface SearchState {
   baseline: Candidate | null
   rounds: { round: number; candidates: Candidate[] }[]
   result: SearchResult | null
+  /** The output guard replaced model text with a template (shown honestly in the UI). */
+  usedTemplate: boolean
+  error: { code: string; message: string } | null
 }
 
-const EMPTY_SEARCH: SearchState = { baseline: null, rounds: [], result: null }
+const EMPTY_SEARCH: SearchState = { baseline: null, rounds: [], result: null, usedTemplate: false, error: null }
 
 function reduceSearch(state: SearchState, event: SearchEvent): SearchState {
   switch (event.type) {
@@ -54,6 +57,10 @@ function reduceSearch(state: SearchState, event: SearchEvent): SearchState {
         ...state,
         rounds: state.rounds.map((r) => (r.round === event.candidate.round ? { ...r, candidates: [...r.candidates, event.candidate] } : r)),
       }
+    case 'guard':
+      return { ...state, usedTemplate: state.usedTemplate || event.fallback }
+    case 'error':
+      return { ...state, error: { code: event.code, message: event.message } }
     case 'done':
       return { ...state, result: event.result }
   }

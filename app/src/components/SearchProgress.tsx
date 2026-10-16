@@ -41,6 +41,8 @@ export function SearchProgress({ state, running, failed, scoreLabel, formatScore
         )}
       </div>
       <p className="text-xs text-muted-foreground">Gemini proposes options; the engine scores every one. {scoreLabel} shown.</p>
+      {state?.error && <p className="text-xs text-delta-worse">{state.error.message} The best option scored so far is kept.</p>}
+      {state?.usedTemplate && <p className="text-xs text-muted-foreground">The explanation failed the number check, so it was written from engine values instead.</p>}
 
       <ol className="space-y-2 text-xs">
         {state?.baseline && (

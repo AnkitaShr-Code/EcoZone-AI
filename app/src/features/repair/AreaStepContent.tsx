@@ -17,6 +17,7 @@ export function AreaStepContent() {
   const { data: hotspots } = useHotspots(areaId)
 
   if (!area) return <Skeleton className="h-40 w-full" />
+  const defaultHeights = area.dataGaps.buildingsByHeightSource.typology ?? 0
 
   return (
     <div className="space-y-4">
@@ -37,10 +38,10 @@ export function AreaStepContent() {
         <Stat index="gcs" value={area.baseline.gcs} />
       </div>
 
-      {area.dataGaps.buildingsDefaultHeight > 0 && (
+      {defaultHeights > 0 && (
         <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
           <Provenance kind="default" />
-          {area.dataGaps.buildingsDefaultHeight} of {area.counts.buildings} buildings use a {area.dataGaps.defaultHeightM} m height.
+          {defaultHeights} of {area.counts.buildings} buildings use a default height for their building type.
         </p>
       )}
 

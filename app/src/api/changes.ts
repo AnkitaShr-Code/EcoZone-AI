@@ -1,11 +1,10 @@
-import type { BuildingDesign, Change } from './types'
+import type { BuildingChange, BuildingDesign, Change, InterventionChange } from './types'
 
-/** A proposed building on a parcel, as an engine change (docs/DESIGN.md, Change). */
-export function buildingChange(parcelId: string, design: BuildingDesign): Change {
-  return {
-    kind: 'building',
-    siteId: parcelId,
-    quantity: design.floors,
-    params: { footprintPct: design.footprintPct, greenPct: design.greenPct, orientationDeg: design.orientationDeg },
-  }
+/** A proposed building on a parcel, as an engine change (contract BuildingChange). */
+export function buildingChange(parcelId: string, design: BuildingDesign): BuildingChange {
+  return { kind: 'building', siteId: parcelId, design }
+}
+
+export function isInterventionChange(change: Change): change is InterventionChange {
+  return change.kind !== 'building'
 }
