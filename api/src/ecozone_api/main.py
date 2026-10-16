@@ -1,19 +1,57 @@
 """App factory: API routes under /api, the built React app at / (api/RULES.md)."""
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from .routes import health
+import ecozone_engine
+
+from . import errors
+from .deps import EnginePort, Services, load_areas, load_unit_costs
+from .routes import areas, health, rescore, runs
+from .run_manager import RunManager, SearchRunner, UnavailableRunner
 from .settings import Settings
+from .store import MemoryStore, Store
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    *,
+    engine: EnginePort | None = None,
+    runner: SearchRunner | None = None,
+    store: Store | None = None,
+) -> FastAPI:
+    """`engine`, `runner` and `store` default to the real engine, the agents runner and the memory store."""
     settings = settings or Settings()
-    app = FastAPI(title="EcoZone AI", version="0.1.0", docs_url="/api/docs", openapi_url="/api/openapi.json")
-    app.include_router(health.router, prefix="/api")
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        port: EnginePort = engine or ecozone_engine  # pyright: ignore[reportAssignmentType]
+        bundle_root = Path(settings.bundle_uri) if settings.bundle_uri else None
+        app.state.services = Services(
+            engine=port,
+            areas=load_areas(port, bundle_root),
+            unit_cost_defaults=load_unit_costs(settings.unit_costs),
+            runs=RunManager(runner or UnavailableRunner(), store or MemoryStore()),
+        )
+        yield
+
+    app = FastAPI(
+        title="EcoZone AI",
+        version="0.1.0",
+        docs_url="/api/docs",
+        openapi_url="/api/openapi.json",
+        lifespan=lifespan,
+    )
+    errors.install(app)
+    app.add_middleware(GZipMiddleware, minimum_size=1024)
+    for router in (health.router, areas.router, rescore.router, runs.router):
+        app.include_router(router, prefix="/api")
     _serve_app(app, settings.app_dist)
     return app
 

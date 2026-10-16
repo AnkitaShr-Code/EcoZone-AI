@@ -10,7 +10,14 @@ dependencies = [
   "fastapi>=0.115",
   "uvicorn[standard]>=0.32",
   "pydantic-settings>=2.6",
+  "shapely>=2.0",
+  "pyproj>=3.6",
+  "numpy>=2.0",
+  "pyyaml>=6.0",
 ]
+
+[project.scripts]
+ecozone = "ecozone_api.snapshot:main"
 
 [build-system]
 requires = ["hatchling>=1.25"]

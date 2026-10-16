@@ -3,7 +3,7 @@ import { X } from 'lucide-react'
 import { useArea, useLayer, useSites } from '@/api/hooks'
 import { Stat } from '@/components/Stat'
 import { Button } from '@/components/ui/button'
-import { formatInr, formatShadeTime } from '@/lib/format'
+import { formatBlock, formatInr, formatShadeTime } from '@/lib/format'
 import { INTERVENTION_META, PRIORITY_META, TIME_TO_BENEFIT_LABEL, WAIT_POINT_LABEL, driverLabel } from '@/lib/meta'
 import { useCostsStore } from '@/state/costsStore'
 import { useScenarioStore } from '@/state/scenarioStore'
@@ -52,7 +52,7 @@ function BlockDetails({ id }: { id: string }) {
   return (
     <div className="space-y-3">
       <div>
-        <h3 className="font-semibold">Block {p.id.slice(2)}</h3>
+        <h3 className="font-semibold">{formatBlock(p.id)}</h3>
         <p className="text-sm text-muted-foreground">{PRIORITY_META[p.priorityClass].label}{p.builtForm === 'dense_low_rise' ? ' · Dense low-rise housing' : ''}</p>
       </div>
       <div className="grid grid-cols-2 gap-2">

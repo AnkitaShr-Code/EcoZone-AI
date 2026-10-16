@@ -120,8 +120,10 @@ Requirements: [uv](https://docs.astral.sh/uv/) (installs Python 3.12 for you), N
 ```bash
 uv sync                      # Python workspace: contract, engine, pipeline, agents, api
 make check                   # ruff, pyright, import boundaries, pytest, plus the app's typecheck, lint and build
-uv run uvicorn ecozone_api.main:app --reload   # API at :8000/api, serves app/dist if built
 cd app && npm install && npm run dev            # the app alone at :5173, on mock data
+make api                     # API at :8000/api over the bundles in data/bundles/<area>/ (needs WP4 and WP5)
+make app-http                # the app at :5173 on the API (VITE_API_MODE=http; /api is proxied)
+uv run ecozone snapshot --area deccan           # refresh the app's mock files from the API
 docker build -f infra/Dockerfile -t ecozone .   # the one Cloud Run image
 ```
 

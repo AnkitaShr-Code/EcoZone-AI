@@ -2,6 +2,7 @@
 // adapter directly; they use the hooks in ./hooks.ts, which call `api`.
 
 import type { AreaResult, AreaSummary, Change, Explanation, Hotspot, LayerData, LayerName, SearchEvent, SearchRequest, Site, UnitCosts } from './types'
+import { httpApi } from './http/httpApi'
 import { mockApi } from './mock/mockApi'
 
 export interface EcoZoneApi {
@@ -21,7 +22,8 @@ const mode = import.meta.env.VITE_API_MODE ?? 'mock'
 
 function select(): EcoZoneApi {
   if (mode === 'mock') return mockApi
-  throw new Error(`VITE_API_MODE=${mode} is not available yet. Use "mock" until api/http lands.`)
+  if (mode === 'http') return httpApi
+  throw new Error(`VITE_API_MODE=${mode} is not a mode. Use "mock" or "http".`)
 }
 
 export const api = select()

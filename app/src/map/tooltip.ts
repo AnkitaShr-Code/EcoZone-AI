@@ -1,5 +1,5 @@
 import type { BlockProps, ParcelProps, SegmentProps, WaitPointProps } from '@/api/types'
-import { formatShadeTime } from '@/lib/format'
+import { formatBlock, formatShadeTime } from '@/lib/format'
 import { PRIORITY_META, WAIT_POINT_LABEL } from '@/lib/meta'
 import type { SelectionKind } from '@/state/uiStore'
 
@@ -8,7 +8,7 @@ export function tooltipText(kind: SelectionKind, props: unknown, shadeIndex: num
   switch (kind) {
     case 'block': {
       const p = props as BlockProps
-      return `Block ${p.id.slice(2)}\n${PRIORITY_META[p.priorityClass].label}`
+      return `${formatBlock(p.id)}\n${PRIORITY_META[p.priorityClass].label}`
     }
     case 'segment': {
       const p = props as SegmentProps
