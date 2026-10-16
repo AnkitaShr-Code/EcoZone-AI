@@ -1,0 +1,20 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.import_linter_cache/
+.hypothesis/
+
+# Local data: bundles and pipeline cache (ENGINEERING_RULES.md §4)
+data/
+
+# Secrets and local config (ENGINEERING_RULES.md principle 8)
+.env
+.env.*
+!.env.example
+
+# Local tool config
+.claude/
+.DS_Store
