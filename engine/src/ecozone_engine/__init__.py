@@ -5,6 +5,13 @@ work packages: changing one is its own PR, agreed by the engine and API owners.
 """
 
 from ._stub import NotImplementedYetError
+from .errors import (
+    EngineInputError,
+    InvalidChangeError,
+    QuantityOutOfRangeError,
+    UnknownParcelError,
+    UnknownSiteError,
+)
 from .greedy import greedy_baseline
 from .io import load_bundle
 from .model import (
@@ -45,14 +52,17 @@ __all__ = [
     "BlockResult",
     "Change",
     "ChangeKind",
+    "EngineInputError",
     "Feature",
     "HotspotData",
     "IndexKey",
     "InterventionKind",
+    "InvalidChangeError",
     "LayerName",
     "NotImplementedYetError",
     "PortfolioData",
     "PriorityClass",
+    "QuantityOutOfRangeError",
     "RiskInfo",
     "RiskLabel",
     "Scores",
@@ -61,6 +71,8 @@ __all__ = [
     "SingleSiteData",
     "UnitCost",
     "UnitCosts",
+    "UnknownParcelError",
+    "UnknownSiteError",
     "compute_baselines",
     "greedy_baseline",
     "hotspots",

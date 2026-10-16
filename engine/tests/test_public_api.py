@@ -33,3 +33,10 @@ def test_stub_raises_not_implemented_yet() -> None:
 def test_change_is_frozen_and_hashable() -> None:
     change = engine.Change(kind="shade", site_id="s_1", quantity=48.0)
     assert hash(change) == hash(engine.Change(kind="shade", site_id="s_1", quantity=48.0))
+
+
+def test_input_errors_are_value_errors_with_planner_messages() -> None:
+    error = engine.QuantityOutOfRangeError("s_1", 900, 10, 400)
+    assert isinstance(error, engine.EngineInputError)
+    assert isinstance(error, ValueError)
+    assert "10 to 400" in str(error)
