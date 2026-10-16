@@ -63,6 +63,23 @@ strict = ["contract/src", "engine/src"]
 venvPath = "."
 venv = ".venv"
 
+# geopandas ships no type stubs, so its frames resolve to loosely typed pandas classes; the pipeline is built on
+# them and would otherwise report hundreds of false positives. Everything else is still checked there.
+[[tool.pyright.executionEnvironments]]
+root = "pipeline"
+extraPaths = ["pipeline/src", "pipeline/tests"]
+reportAttributeAccessIssue = "none"
+reportArgumentType = "none"
+reportCallIssue = "none"
+reportReturnType = "none"
+reportGeneralTypeIssues = "none"
+reportIndexIssue = "none"
+reportOperatorIssue = "none"
+reportOptionalMemberAccess = "none"
+
+[[tool.pyright.executionEnvironments]]
+root = "."
+
 # ---------- import-linter: package boundaries (ENGINEERING_RULES.md §4) ----------
 [tool.importlinter]
 root_packages = ["ecozone_contract", "ecozone_engine", "ecozone_pipeline", "ecozone_agents", "ecozone_api"]
@@ -99,4 +116,5 @@ forbidden_modules = ["ecozone_api", "ecozone_pipeline"]
 [tool.pytest.ini_options]
 testpaths = ["contract/tests", "engine/tests", "pipeline/tests", "agents/tests", "api/tests"]
 addopts = "-q --import-mode=importlib"
+pythonpath = ["pipeline/tests"]
 markers = ["cloud: needs live Google Cloud; skipped unless ECOZONE_CLOUD_TESTS=1"]

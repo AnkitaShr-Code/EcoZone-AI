@@ -1,0 +1,134 @@
+# Area config for the Deccan Gymkhana - Fergusson College box (docs/ENGINEERING_RULES.md §2).
+# Onboarding another area changes this file only (pipeline/RULES.md). Every value here is a prototype
+# setting unless it says otherwise; PLANNING.md sections are cited where they define the rule.
+
+area:
+  id: deccan
+  name: Deccan Gymkhana - Fergusson College, Pune
+  city: Pune
+  crs: EPSG:32643
+  bbox_wgs84: [73.838, 18.5165, 73.848, 18.5245] # west, south, east, north
+  bundle_version: 1
+
+reference:
+  date: "2026-04-15" # PLANNING.md, Pedestrian Shade Score
+  times_ist: ["13:00", "15:00", "16:00"]
+  timezone: Asia/Kolkata
+
+wind:
+  # Open-Meteo ERA5 archive; afternoon hours of the pre-monsoon season, speed-weighted vector mean.
+  start_date: "2025-03-01"
+  end_date: "2025-05-31"
+  hours_local: [12, 13, 14, 15, 16, 17]
+  from_deg: null # set a number to skip the download (tests, offline runs)
+
+osm:
+  overpass_url: https://overpass-api.de/api/interpreter
+  timeout_s: 180
+  attribution: "© OpenStreetMap contributors, ODbL 1.0"
+  licence_url: https://www.openstreetmap.org/copyright
+  road_classes: [trunk, primary, secondary, tertiary, unclassified, residential, living_street]
+  # Width in metres where OSM has no width tag (PLANNING.md, assumptions).
+  road_width_m:
+    trunk: 24
+    primary: 20
+    secondary: 16
+    tertiary: 12
+    unclassified: 9
+    residential: 8
+    living_street: 6
+  metres_per_floor: 3.0 # PLANNING.md, assumptions
+  min_building_area_m2: 12
+
+# Wait-point weights and the OSM tags that make a waiting point (PLANNING.md, Repair priority).
+wait_points:
+  weights: { school: 3, college: 2, hospital: 3, clinic: 2, marketplace: 2, bus_stop: 1 }
+  near_wait_m: 30 # a footpath chunk is "near" a waiting point inside this distance (shade site rule)
+  weight_radius_m: 150 # PLANNING.md, E_b
+
+# Height fallback chain, last step (pipeline/RULES.md). Prototype setting, listed in the deck caveats.
+typology:
+  default_floors: 3
+  rules: # first match wins; `building: any` matches every tag
+    - { building: [hut, shed, garage, garages, roof, shelter, kiosk, toilets, service, carport], floors: 1 }
+    - { building: any, max_footprint_m2: 60, floors: 2 }
+    - { building: any, max_footprint_m2: 200, floors: 3 }
+    - { building: [hospital, school, college, university, commercial, retail, office, hotel, apartments], floors: 4 }
+    - { building: any, floors: 3 }
+
+# Labeled default until Earth Engine provides Sentinel-2 albedo (cut order 1). Prototype setting.
+roof_albedo:
+  low_rise_max_floors: 3
+  low_rise: 0.20
+  other: 0.30
+
+geometry:
+  min_block_area_m2: 300
+  chunk_length_m: 10
+  min_chunk_m: 2
+  junction_clip_m: 10 # footpath chunks stop this far back from a junction (pipeline/RULES.md)
+  sidewalk_match_m: 3 # an OSM sidewalk within this distance of a derived edge replaces it
+  sidewalk_min_cover: 0.5
+  frontage_m: 15 # buildings this far beyond the kerb count towards a chunk's H/W
+  block_chunk_max_m: 30 # a chunk belongs to the nearest block within this distance
+
+# Built-form class and the vulnerability proxy (PLANNING.md, Repair priority).
+# PLANNING.md defaults are 0.5 / 60 m2 / 2 floors; on the Deccan OSM extract no block meets them (median footprint
+# 240 m2, typology floors 3), so cool roofs would have no sites. These are the loosened values; the team should confirm.
+dense_low_rise:
+  min_coverage: 0.35
+  max_median_footprint_m2: 250
+  max_median_floors: 3
+
+attributes:
+  # PLANNING.md, Terms table. Radii in metres.
+  green_buffer_m: 150 # I_s, G_c, roof albedo
+  wide_green_buffer_m: 300 # G_buf
+  l_built_half_length_m: 300
+  l_built_gap_m: 1.0 # buildings closer than twice this count as one unbroken run
+  d_water_cap_m: 1000 # P_g reaches 0 here
+  d_green_cap_m: 1000
+  upwind_half_angle_deg: 60
+  green_patch_min_m2: 300
+  tree_crown_radius_m: 3.0 # OSM tree nodes count as crowns of this size (proxy)
+  v_ref_percentile: 95
+
+classify:
+  max_parcels: 30 # PLANNING.md, area rescoring: about 30 candidate parcels
+  min_parcel_m2: 400
+  max_parcel_m2: 6000
+  parcel_open_buffer_m: 4 # buildings are buffered by this before taking the block's free space
+  parcel_opening_m: 6 # free space narrower than twice this is a sliver, not a plot
+  neighbour_radius_m: 30 # buildings this close set a parcel's neighbour height
+  parcel_road_max_m: 20 # a parcel must front a road within this distance
+  max_coverage_for_parcel: 0.25
+  vacant_landuse: [brownfield, greenfield, construction]
+  split_seed: ecozone-deccan # tune/test split is a hash of seed + block id
+
+sites:
+  tree_row:
+    min_road_width_m: 8 # a width class that allows a planting strip
+    spacing_m: 8
+    max_run_length_m: 80
+    min_trees: 2
+    canopy_hw_limit: 1.0 # PLANNING.md Oct 15 site rule: H/W of 1 or more rejects tree rows
+  shade:
+    structure_half_width_m: 2.5
+    min_m2: 8
+    max_m2: 40
+  depave:
+    min_area_m2: 150
+    min_share: 0.25
+    max_share: 0.8
+  pocket_green:
+    min_area_m2: 80
+    max_area_m2: 1500
+    max_sites: 40
+    open_buffer_m: 2
+    opening_m: 3
+    min_share: 0.25
+    max_share: 1.0
+  cool_roof:
+    max_albedo: 0.25
+    min_share: 0.2
+    max_share: 1.0
