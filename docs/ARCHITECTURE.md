@@ -24,7 +24,7 @@ How the product in [PLANNING.md](PLANNING.md) is built, in one place. This is th
   ┌──────────────▼──────────────────────┐   ┌────────────▼────────────────────┐
   │  FastAPI routes                     │   │  ADK agent layer (Gemini on     │
   │  /areas /parcels /interventions     │   │  Vertex AI)                     │
-  │  /shadows /buildout                 │   │  Orchestrator → 4 agents        │
+  │  /shadows /buildout                 │   │  Code router → 4 agents         │
   └──────────────┬──────────────────────┘   │  LoopAgent searches             │
                  │                          │  Output guard (callback)        │
                  │                          └────────────┬────────────────────┘
@@ -34,9 +34,9 @@ How the product in [PLANNING.md](PLANNING.md) is built, in one place. This is th
   │  AreaModel in memory · shadows · VCI HEI GCS PSS · interventions ·       │
   │  area rescoring · priority · ACS · greedy baseline · drivers             │
   └──────────────┬───────────────────────────────────────────────────────────┘
-                 │ load area at startup                    writes
-            BigQuery ◄──────────────────────────  Firestore (sessions, plans,
-            Cloud Storage                          portfolios, observations)
+                 │ load area bundle at startup        api writes
+     Cloud Storage: area bundle (GeoParquet)      Firestore (sessions, plans,
+     BigQuery: analytics copy, runs, evals        portfolios, observations)
 ```
 
 Two rules shape everything, and any future code change must preserve them:
@@ -49,12 +49,15 @@ Two rules shape everything, and any future code change must preserve them:
 | Component | Owns | Depends on |
 | --- | --- | --- |
 | `pipeline/` | Offline job per city: OSM extract, geometry, Earth Engine layers, wind/sun, baselines, validation, BigQuery/GCS load | Public data sources only; runs once per city, not in the request path |
-| `engine/` | Deterministic scoring: `AreaModel`, shadows, indices (VCI/HEI/GCS/PSS), interventions, incremental area rescoring, priority/ACS, greedy baseline, drivers | Data loaded from BigQuery at service startup; no network calls, no randomness |
+| `engine/` | Deterministic scoring: `AreaModel`, shadows, indices (VCI/HEI/GCS/PSS), interventions, incremental area rescoring, priority/ACS, greedy baseline, drivers | Area bundle (GeoParquet from GCS) loaded at service startup; no network calls, no randomness |
 | `api/` | FastAPI routes, Pydantic schemas, static serving of the React build, Firestore/BigQuery clients | `engine/` directly for REST routes; `agents/` for agent-run routes |
-| `agents/` | ADK orchestrator, 4 sub-agents (Spatial Analyst, Repair Planner, Scenario Analyst, Planning Advisor), the shared `LoopAgent` search, the output guard | `engine/` through thin tool wrappers only — never computes a number itself |
+| `contract/` | Pydantic API models; `openapi.json`, from which the app's TypeScript types are generated | pydantic only |
+| `agents/` | Code router, 4 ADK agents (Spatial Analyst, Repair Planner, Scenario Analyst, Planning Advisor), the shared `LoopAgent` search, the output guard | `engine/` through thin tool wrappers only — never computes a number itself |
 | `app/` | React + TypeScript + deck.gl/MapLibre UI, SSE client, Repair/Protect panels | `api/` over REST and SSE |
 | `evals/` | pytest engine tests, agent eval scripts, heat-check validation, `REPORT.md` | Reads from `engine/`, `agents/`, and BigQuery `eval_results` |
 | `infra/` | Dockerfile, Cloud Build config, deploy notes, IAM roles | Builds `app/` and the Python services into one Cloud Run container |
+
+Coding rules for every non-UI folder: [ENGINEERING_RULES.md](ENGINEERING_RULES.md) (Oct 15 decisions, stack, dependency direction, contract, testing, workflow). Front-end rules: [../app/UI_RULES.md](../app/UI_RULES.md).
 
 Full component-level detail (interfaces, tool contracts, data store schemas, key flows, performance budget, effort estimate, risks) is in [DESIGN.md](DESIGN.md).
 
@@ -67,4 +70,5 @@ Full component-level detail (interfaces, tool contracts, data store schemas, key
 | Day-by-day task checklist, gates, cut order | [TASKS.md](TASKS.md) |
 | Submission deck plan | [PITCH_DECK_PLAN.md](PITCH_DECK_PLAN.md) |
 | Product pitch, evidence, submission requirements | [../README.md](../README.md) |
+| Engineering rules (non-UI) | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) and each folder's `RULES.md` |
 | Agent-facing coding guidance | [../AGENTS.md](../AGENTS.md) |

@@ -51,8 +51,9 @@ Repository layout, each owned by a lane (see [docs/DESIGN.md](docs/DESIGN.md) §
 docs/       architecture, planning, design, tasks, deck plan
 pipeline/   offline data job per city (D lane) — OSM extract, geometry, Earth Engine layers, wind/sun, baselines
 engine/     deterministic scoring engine, pure Python, no network calls (D lane) — indices, interventions, rescoring, greedy baseline
-api/        FastAPI routes + Pydantic schemas (A lane) — instant REST routes call the engine directly; agent runs go through SSE
-agents/     ADK orchestrator + 4 sub-agents (Spatial Analyst, Repair Planner, Scenario Analyst, Planning Advisor), shared LoopAgent search, output guard (A lane)
+contract/   Pydantic API models → openapi.json → generated app types (D + U lanes agree changes)
+api/        FastAPI routes (A lane) — instant REST routes call the engine directly; agent runs go through SSE
+agents/     code router + 4 ADK agents (Spatial Analyst, Repair Planner, Scenario Analyst, Planning Advisor), shared LoopAgent search, output guard (A lane)
 app/        React + TypeScript + deck.gl/MapLibre front end (U lane)
 evals/      pytest engine tests + agent eval scripts; results written to BigQuery and evals/REPORT.md
 infra/      Dockerfile, Cloud Build config, deploy notes, IAM roles
@@ -67,6 +68,7 @@ The Repair and Protect design-search loops are the *same* generic ADK `LoopAgent
 
 ## Working conventions
 
+- **Everything outside `app/` follows [docs/ENGINEERING_RULES.md](docs/ENGINEERING_RULES.md)** (Oct 15 decisions, stack, package boundaries, contract, testing, workflow) plus the `RULES.md` in the folder being changed. Change the rule first if a change needs to break it.
 - **Front-end work follows [app/UI_RULES.md](app/UI_RULES.md)** (layout regions, step pattern, layer registry, tokens, copy, code structure). Change the rule there first if a change needs to break it.
 
 - All geometry/CRS work is planned in UTM 43N (EPSG:32643) for metric accuracy; convert to WGS84 only at BigQuery `GEOGRAPHY` load time and for the map.

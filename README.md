@@ -73,7 +73,7 @@ sessions and plans ──► Firestore          one Cloud Run service serves UI 
 ```
 
 - **Engine:** the only place a score is computed. Indices on a 0 to 100 scale: Ventilation Corridor Index, Heat Exposure Index (with a roof albedo term), Green Connectivity Score and Pedestrian Shade Score. Repair maximizes an exposure-weighted Area Cooling Score within the budget, with a quick-win share that must help this summer; dense tree rows are kept off deep, narrow streets, and no block may lose 10 or more ventilation points. Formulas: [docs/PLANNING.md](docs/PLANNING.md#scoring-engine).
-- **Agents:** an ADK orchestrator with Spatial Analyst, Repair Planner, Scenario Analyst and Planning Advisor. Both searches run as one ADK `LoopAgent`: Gemini proposes, and plain code scores the candidates and decides when to stop.
+- **Agents:** four ADK agents (Spatial Analyst, Repair Planner, Scenario Analyst, Planning Advisor), chosen by plain code from the API route. Both searches run as one ADK `LoopAgent`: Gemini proposes, and plain code scores the candidates and decides when to stop.
 - **Trust:** an output guard rejects any number not found in the turn's tool results or planner inputs, and any temperature, wind or energy unit. AI-estimated values are labeled.
 - **Data:** OpenStreetMap, Google Open Buildings 2.5D heights, Sentinel-2, ESA WorldCover, Open-Meteo wind, computed sun position; Landsat surface temperature is used only to validate the heat index. Google Maps tiles are not used.
 
