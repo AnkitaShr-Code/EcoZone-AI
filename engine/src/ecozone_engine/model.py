@@ -140,6 +140,8 @@ class PortfolioData:
 
 @dataclass(frozen=True)
 class AreaSummaryData:
+    """Area facts for the contract's AreaSummary; the API adds unit-cost defaults from config."""
+
     area_id: str
     name: str
     city: str
@@ -148,8 +150,14 @@ class AreaSummaryData:
     reference_date: str
     shade_times: tuple[ShadeTime, ...]
     baseline: AreaScores
+    wind_from_deg: float
+    metres_per_floor: float
     counts: Mapping[str, int] = field(default_factory=dict[str, int])
-    data_gaps: Mapping[str, int] = field(default_factory=dict[str, int])
+    """Keys: blocks, buildings, segments (chunks), wait_points, sites, parcels."""
+    buildings_by_height_source: Mapping[str, int] = field(default_factory=dict[str, int])
+    """Keys: osm_height, osm_levels, open_buildings, typology (pipeline height chain)."""
+    derived_footpath_chunks: int = 0
+    """Chunks whose footpath was derived from a road edge, not an OSM sidewalk."""
     skipped_steps: tuple[str, ...] = ()
     attribution: str = ""
 

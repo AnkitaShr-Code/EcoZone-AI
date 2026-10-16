@@ -414,7 +414,7 @@ export interface components {
              * Code
              * @enum {string}
              */
-            code: "AREA_NOT_FOUND" | "SITE_NOT_FOUND" | "PARCEL_NOT_FOUND" | "RUN_NOT_FOUND" | "QUANTITY_OUT_OF_RANGE" | "INVALID_CHANGE" | "NOT_IMPLEMENTED" | "INTERNAL";
+            code: "AREA_NOT_FOUND" | "SITE_NOT_FOUND" | "PARCEL_NOT_FOUND" | "RUN_NOT_FOUND" | "QUANTITY_OUT_OF_RANGE" | "INVALID_CHANGE" | "INVALID_REQUEST" | "NOT_IMPLEMENTED" | "INTERNAL";
             /**
              * Message
              * @description Says what happened and what to do; shown to the planner.
@@ -437,7 +437,7 @@ export interface components {
              * Code
              * @enum {string}
              */
-            code: "AREA_NOT_FOUND" | "SITE_NOT_FOUND" | "PARCEL_NOT_FOUND" | "RUN_NOT_FOUND" | "QUANTITY_OUT_OF_RANGE" | "INVALID_CHANGE" | "NOT_IMPLEMENTED" | "INTERNAL";
+            code: "AREA_NOT_FOUND" | "SITE_NOT_FOUND" | "PARCEL_NOT_FOUND" | "RUN_NOT_FOUND" | "QUANTITY_OUT_OF_RANGE" | "INVALID_CHANGE" | "INVALID_REQUEST" | "NOT_IMPLEMENTED" | "INTERNAL";
             /** Message */
             message: string;
         };

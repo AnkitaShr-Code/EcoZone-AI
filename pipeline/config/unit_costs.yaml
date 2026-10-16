@@ -1,0 +1,88 @@
+# Default unit costs per intervention, in rupees (WP8; pipeline/RULES.md, docs/ENGINEERING_RULES.md §2).
+#
+# These are PLANNER INPUT defaults: the app always labels them so, and the planner can edit them.
+# They are never presented as market prices.
+#
+# Provenance caveats, stated openly:
+# - None of these figures is from Pune. No PMC, PCMC or Maharashtra PWD (Pune) rate table could be read
+#   online. The closest public schedule is Mumbai's (BMC/MCGM Garden USOR 2023); Mumbai rates may run
+#   above Pune's.
+# - tree_row, depave and pocket_green are sums of schedule line items, not published all-in rates; the
+#   assumed quantities are in each note.
+# - Best upgrade: the Maharashtra PWD Pune Garden SSR 2022-23 or a PMC Garden Department estimate.
+#
+# Researched 2026-10-16. Each row: unit, default inr, range, source, url, accessed, note, confidence.
+
+tree_row:
+  unit: tree
+  inr: 9250
+  range_inr: [6600, 13400]
+  source: "BMC/MCGM Garden & Tree Authority Dept, Unified Schedule of Rates (USOR) 2023; tree guard from CPWD DSR Horticulture & Landscaping 2018"
+  url: "https://portal.mcgm.gov.in/irj/go/km/docs/documents/Unified%20Schedule%20of%20Rates/Garden/Garden%20USOR%202023%20%20Updated.pdf"
+  accessed: "2026-10-16"
+  confidence: medium
+  note: >-
+    Sum of line items for one street tree in a paved footpath: 1 m pit in a paved surface with disposal
+    (R3-GW-1-5-B) Rs 552; pit filling with red earth and manure, planting, staking and 60 days' care
+    (R3-GW-7-13) Rs 1,417; neem sapling 10-12 ft (R3-GW-5-310) Rs 1,035; care with water for 24 months
+    at Rs 179/month (R3-GW-7-24, schedule covers the first two years) Rs 4,296; MS tree guard 45 cm
+    square, 1.2 m (CPWD 2018 item 2.26) Rs 1,949. Low end: unpaved pit, 4-5 ft sapling, care without water.
+    High end: 2 m round guard and 36 months' care. The guard is a 2018 Delhi rate, likely low today.
+
+shade:
+  unit: m²
+  inr: 4900
+  range_inr: [3300, 5900]
+  source: "Mazagon Dock Shipbuilders Ltd, tender 1900000184 (Ulwe, Navi Mumbai), Enclosure-19 BOQ item 108, 2024"
+  url: "https://mazagondock.in/app/writereaddata/tenders/146131723202453532PMEnclosure_19_All_BOQ.pdf"
+  accessed: "2026-10-16"
+  confidence: medium
+  note: >-
+    BOQ rate Rs 4,899.40 per m² of plan area for a PVDF-coated polyester tensile roof including the MS
+    frame and cables (865 m² in that tender). Low end: Chhattisgarh PWD specialised-items SOR (2026),
+    Rs 3,329/m² for the membrane only on steel already erected. High end: supplier asking prices for
+    bus-stop tensile shelters, Rs 300-550 per sq ft (weak).
+
+depave:
+  unit: m²
+  inr: 910
+  range_inr: [840, 1430]
+  source: "BMC/MCGM Garden & Tree Authority Dept, Unified Schedule of Rates (USOR) 2023"
+  url: "https://portal.mcgm.gov.in/irj/go/km/docs/documents/Unified%20Schedule%20of%20Rates/Garden/Garden%20USOR%202023%20%20Updated.pdf"
+  accessed: "2026-10-16"
+  confidence: medium-low
+  note: >-
+    Sum of line items: digging out concrete or tar up to 30 cm with removal (R3-GW-6-2) Rs 219; 30 cm of
+    red earth and manure (R3-GW-7-1) Rs 480; one month of soil preparation with water (R3-GW-7-3) Rs 26;
+    shrub planting labour (R3-GW-2-4-E) Rs 47; 4 shrubs per m² at about Rs 35 each Rs 140. The shrub
+    density is an assumption. High end: 9 shrubs per m² plus drip irrigation. Excludes trees and paving
+    thicker than 30 cm or reinforced.
+
+pocket_green:
+  unit: m²
+  inr: 1350
+  range_inr: [1150, 3500]
+  source: "BMC/MCGM Garden & Tree Authority Dept, Unified Schedule of Rates (USOR) 2023"
+  url: "https://portal.mcgm.gov.in/irj/go/km/docs/documents/Unified%20Schedule%20of%20Rates/Garden/Garden%20USOR%202023%20%20Updated.pdf"
+  accessed: "2026-10-16"
+  confidence: low-medium
+  note: >-
+    Sum of line items averaged over the plot: clearing soft soil up to 30 cm (R3-GW-6-1) Rs 179; 30 cm
+    red earth and manure Rs 480; soil preparation Rs 26; carpet lawn (R3-GW-2-1-A-9) Rs 234; drip and
+    sprinkler irrigation (R3-GW-4-2-F) Rs 241; paths on 20% of the area at about Rs 972/m² for 60 mm
+    paver blocks (third-party figure citing CPWD DSR 2023, unverified) Rs 195. Excludes benches,
+    lighting and fencing. High end: large Gujarat park redevelopments at about Rs 3,500/m² (weak).
+
+cool_roof:
+  unit: m²
+  inr: 300
+  range_inr: [270, 430]
+  source: "Government of Telangana, Telangana Cool Roof Policy 2023-28 launch, as reported by Telangana Today, 3 Apr 2023"
+  url: "https://telanganatoday.com/indias-first-cool-roof-policy-launched-in-telangana"
+  accessed: "2026-10-16"
+  confidence: medium
+  note: >-
+    Rs 300 per m² for cool roof painting or tiles, stated at the policy launch (press report; the official
+    policy text or SoR item could not be found). Low end: Mahila Housing Trust, Ahmedabad cool roof
+    programme (2021), about Rs 25 per sq ft = Rs 269/m². High end: MHT programme manager (2025),
+    Rs 35-40 per sq ft = Rs 377-431/m².

@@ -52,6 +52,21 @@ compute_baselines(area: AreaModel) -> BaselineData                   # used by p
 
 All return types are frozen dataclasses in `model.py`; `api` and `agents` convert them to `contract` models in their `to_contract.py`.
 
+**Errors.** Bad input raises a subclass of `EngineInputError` (`errors.py`): `UnknownSiteError`, `UnknownParcelError`, `QuantityOutOfRangeError`, `InvalidChangeError`. The message is shown to the planner. The API maps them to `SITE_NOT_FOUND`, `PARCEL_NOT_FOUND`, `QUANTITY_OUT_OF_RANGE` and `INVALID_CHANGE`; anything else is a bug and becomes `INTERNAL`.
+
+**Building changes.** A Protect building is `Change(kind="building", site_id=<parcel id>, quantity=1, params=(("floors", f), ("footprint_pct", p), ("green_pct", g), ("orientation_deg", o)))`, params sorted by name.
+
+**Layer properties.** `layer()` returns features whose `properties` use these keys (snake_case; the API camelCases them and converts geometry to WGS84). Block and parcel centroids are taken from the geometry by the API.
+
+| Layer | Geometry | Properties |
+| --- | --- | --- |
+| `blocks` | Polygon | `area_m2`, `scores` (`Scores`), `priority`, `priority_class`, `built_form`, `wait_weight`, `drivers` (tuple of driver tags) |
+| `segments` | LineString | `road_name`, `road_class`, `length_m`, `block_id`, `near_wait`, `shaded` (`ShadeByTime`) |
+| `buildings` | Polygon | `height_m`, `height_source` |
+| `wait_points` | Point | `kind`, `name`, `weight` |
+| `parcels` | Polygon | `block_id`, `name`, `area_m2`, `road_name`, `road_width_m`, `street_bearing_deg`, `neighbour_height_m` |
+| `sites` | LineString, Polygon or MultiPolygon | `kind`, `name`, `quantity`, `time_to_benefit` (`weeks`, `season` or `years`), `wait_point_id`, `h_w`, `points` (tree positions as x, y tuples, tree rows only) |
+
 ## Domain rules that resolve gaps in PLANNING.md
 
 - **Chunks.** Footpaths are 10 m chunks (the last chunk of a run may be shorter). A chunk is shaded at time *t* when its midpoint lies inside the union of shadows at *t*. Chunk PSS = 100 × shaded times ÷ 3. Block and area PSS are length-weighted means of chunk PSS.
