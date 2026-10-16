@@ -68,6 +68,7 @@ ErrorCode = Literal[
     "RUN_NOT_FOUND",
     "QUANTITY_OUT_OF_RANGE",
     "INVALID_CHANGE",
+    "INVALID_REQUEST",
     "NOT_IMPLEMENTED",
     "INTERNAL",
 ]
