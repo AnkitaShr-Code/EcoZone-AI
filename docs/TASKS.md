@@ -15,6 +15,43 @@ Team of 3, about 100 to 130 person-hours from Oct 13 to Oct 18. Repair leads; Pr
 
 Team leader: Ankita Sharma.
 
+## Baseline build: who does what (from Oct 16, orchestrated by Claude)
+
+Supersedes the dates in "Backend baseline (re-planned Oct 15)" below; the build order is the same as [ENGINEERING_RULES.md §13](ENGINEERING_RULES.md#13-build-order-for-the-baseline). Work runs in parallel against three agreed interfaces, so nobody waits for anybody's code:
+
+- **Bundle schema** ([pipeline/RULES.md](../pipeline/RULES.md#bundle-tables)): between pipeline (Dhananjay) and engine (Ankita).
+- **Engine public API** ([engine/RULES.md](../engine/RULES.md#public-api)): between engine (Ankita) and API and agents (Claude). Claude commits stubs with these signatures in WP1.
+- **API contract** ([contract/](../contract/RULES.md)): between API (Claude) and app (Abhishek and Claude, U lane).
+
+| WP | Work package | Owner | Reviewer | Branch | Needs | Delivers | Target |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | Skeleton | Claude | Abhishek | `infra/skeleton` | — | uv workspace, five packages, engine API stubs, ruff, pyright, import-linter, pytest, `make check`, CI, Dockerfile serving the app with `/healthz` | Oct 16 |
+| 2 | Contract and app types | Claude | Ankita (D), Abhishek (U sign-off) | `contract/models` | 1 | Pydantic models with the agreed changes, `openapi.json`, `generated.ts`, `types.ts` re-exports, mock validation | Oct 16 |
+| 3 | Google Cloud setup | Abhishek | Ankita | `infra/gcp` | — | Project, APIs, Artifact Registry, bundle bucket, Firestore, Cloud Run service, service accounts, GitHub WIF, `gcloud` on every machine, Vertex Flash and Pro model ids verified, Earth Engine status | Oct 16 |
+| 4 | Pipeline to bundle v1 (OSM only) | Dhananjay | Ankita | `pipeline/bundle-v1` | 1 (start the geometry code now) | `config/deccan.yaml`, OSM extract, blocks, 10 m chunks, height chain, parcels, sites with the canopy site rule, sun and wind, bundle writer, tiny fixture | Oct 16 night |
+| 5a | Engine core | Ankita | Dhananjay | `engine/core` | 1, tiny fixture | Bundle load, shadows, chunk shading, PSS, VCI, HEI, GCS, priority, ACS, drivers; golden and property tests | Oct 16 night |
+| 5b | Engine rescore and greedy | Ankita | Claude | `engine/rescore` | 5a | Five interventions, `building` change, risk label, `rescore`, single-site results, greedy with the quick-win share | Oct 17 13:00 |
+| 6 | API routes and app on HTTP | Claude | Abhishek | `api/routes` | 2, engine stubs | Read routes, `rescore`, runs over SSE, explain, memory store, app HTTP adapter, `ecozone snapshot` | Oct 17 morning |
+| 7 | Agents | Claude | Abhishek | `agents/search` | 2, 3 (model ids) | Shared search loop with fake-LLM tests, guard, templates, then live Gemini | Oct 17 |
+| 8 | Default unit costs | Claude | Ankita | `pipeline/unit-costs` | — | `pipeline/config/unit_costs.yaml` with a cited source per row | Oct 16 |
+| 9 | Deploy and persistence | Abhishek | Claude | `infra/deploy` | 1, 3 | `cloudbuild.yaml`, Cloud Run deploy from `main`, Firestore store, BigQuery `runs` | Oct 17 |
+| 10 | Evals subset | Dhananjay | Ankita | `evals/baseline` | 5b, 7 | Determinism, range, direction, Gemini vs greedy, speed; `evals/REPORT.md` | Oct 17 evening |
+| 11 | Submission | All (Abhishek and Claude lead video and deck) | Ankita | — | 10 | Video, deck PDF, public repo, live link | Oct 18 morning |
+
+**Checkpoints**
+
+- **Oct 16, end of day:** WP 1, 2, 3 and 8 merged; bundle v1 builds locally; engine indices and shadows pass on the tiny fixture.
+- **Oct 17, 13:00 (Gate 2):** real `rescore` and greedy; app runs on `VITE_API_MODE=http`; both modes work end to end locally with the fake LLM.
+- **Oct 17, 21:00 (Gate 3, feature freeze):** deployed on Cloud Run; live Gemini search; evals subset run.
+- **Oct 18 morning:** video, deck, submit.
+
+**How we work in parallel**
+
+- One branch per work package, small PRs, squash merge. Claude opens PRs; the named reviewer approves and merges (Ankita merges anything urgent as team leader).
+- A blocked owner codes against the interface (stub, fixture or contract) instead of waiting, and says so in the PR.
+- A change to one of the three interfaces is its own PR, agreed by both sides first.
+- Earth Engine stays off the critical path: OSM-only bundle v1 first, Earth Engine layers as bundle v2 only if approval lands before Gate 2.
+
 ## Oct 13 (today): contracts and foundations
 
 - [x] **All:** assign lane owners and name the team leader (deck slide 1)
@@ -114,7 +151,7 @@ Never cut: Repair with all five interventions, the shade score, the Protect prev
 
 - [ ] Earth Engine approval (applied, waiting)
 - [ ] Gemini model name on Vertex AI
-- [ ] Team leader and member names
+- [x] Team leader and member names (Ankita Sharma leads)
 - [ ] Registration status
 - [ ] Source for default unit costs
 - [x] Basemap provider: OpenFreeMap Positron (app/UI_RULES.md)
