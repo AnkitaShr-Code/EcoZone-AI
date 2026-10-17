@@ -508,3 +508,29 @@ def _assert_area_scores_in_range(scores: engine.AreaScores) -> None:
 def _assert_scores_in_range(scores: engine.Scores, label: str = "") -> None:
     for name, val in [("vci", scores.vci), ("hei", scores.hei), ("gcs", scores.gcs), ("pss", scores.pss)]:
         assert 0.0 <= val <= 100.0, f"{label}.{name} = {val} out of range"
+
+
+def test_baseline_caches_do_not_change_a_rescore(area: engine.AreaModel) -> None:
+    """The shadows, unions and shading stored at load are an optimisation: dropping them gives the same result."""
+    from dataclasses import replace
+
+    bare = replace(area, baseline_building_shadows=(), baseline_shadow_unions=(), baseline_shading=())
+    tree = next(s for s in area.sites if not s.rejected and s.kind == "tree_row")
+    shade = next(s for s in area.sites if not s.rejected and s.kind == "shade")
+    depave = next(s for s in area.sites if not s.rejected and s.kind == "depave")
+    building = Change(
+        kind="building",
+        site_id=area.parcels[0].parcel_id,
+        quantity=1,
+        params=(("floors", 6.0), ("footprint_pct", 60.0), ("green_pct", 10.0), ("orientation_deg", 90.0)),
+    )
+    for changes in (
+        [Change(kind="tree_row", site_id=tree.site_id, quantity=tree.quantity_min)],
+        [Change(kind="shade", site_id=shade.site_id, quantity=shade.quantity_min)],
+        [Change(kind="depave", site_id=depave.site_id, quantity=depave.quantity_min)],
+        [building],
+        [],
+    ):
+        assert engine.rescore(area, changes, DEFAULT_COSTS) == engine.rescore(bare, changes, DEFAULT_COSTS)
+    for t in ("13:00", "15:00", "16:00"):
+        assert [p.wkb for p in engine.shadows(area, t)] == [p.wkb for p in engine.shadows(bare, t)]

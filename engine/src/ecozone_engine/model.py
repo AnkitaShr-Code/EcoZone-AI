@@ -161,6 +161,10 @@ class AreaModel:
         default=(), hash=False, compare=False, repr=False
     )
     """Shadow polygon of every building per reference time; empty on a hand-built model (rebuilt on demand)."""
+    baseline_shadow_unions: tuple[tuple[ShadeTime, BaseGeometry], ...] = field(
+        default=(), hash=False, compare=False, repr=False
+    )
+    """Union of the baseline building shadows per reference time; empty on a hand-built model."""
     baseline_shading: tuple[tuple[str, ShadeByTime], ...] = field(default=(), hash=False, compare=False, repr=False)
     """Chunk id → shade state with no changes applied; empty on a hand-built model (rebuilt on demand)."""
 
