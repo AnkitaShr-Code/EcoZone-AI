@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
+import geopandas as gpd
 import numpy as np
 import pytest
 from shapely import Point, box
@@ -11,6 +13,8 @@ from ecozone_engine.model import WaitPointRow
 from ecozone_engine.priority import wait_weight_sum
 from ecozone_pipeline.steps.attributes import axis_mean_deg, longest_built_run, share, split_for
 from ecozone_pipeline.steps.sun_wind import prevailing_wind_from_deg, sun_table
+
+_DECCAN_BUNDLE = Path(__file__).parents[3] / "EcoZone-AI" / "data" / "areas" / "deccan" / "v1"
 
 
 def angle_gap(a: float, b: float, period: float = 360.0) -> float:
@@ -109,4 +113,26 @@ def test_wait_weight_column_equals_engine_value(tiny: Tiny) -> None:
         expected = wait_weight_sum(row.geometry, wp_rows)
         assert float(row.wait_weight) == pytest.approx(expected, abs=1e-9), (
             f"block {row.id}: bundle wait_weight={row.wait_weight:.4f} != engine {expected:.4f}"
+        )
+
+
+@pytest.mark.skipif(
+    not _DECCAN_BUNDLE.exists(),
+    reason=f"Deccan bundle not present at {_DECCAN_BUNDLE}",
+)
+def test_wait_weight_column_equals_engine_value_deccan() -> None:
+    """Same guard as the tiny-fixture test, run on the real Deccan bundle.
+
+    Skipped when data/areas/deccan/v1 is not present (e.g. CI without the bundle).
+    """
+    blocks = gpd.read_parquet(_DECCAN_BUNDLE / "blocks.parquet")
+    wp_gdf = gpd.read_parquet(_DECCAN_BUNDLE / "wait_points.parquet")
+    wp_rows: list[WaitPointRow] = [
+        WaitPointRow(wait_id=str(row.id), geometry=row.geometry, kind=str(row.kind), weight=float(row.weight))
+        for row in wp_gdf.itertuples(index=False)
+    ]
+    for row in blocks.itertuples(index=False):
+        expected = wait_weight_sum(row.geometry, wp_rows)
+        assert float(row.wait_weight) == pytest.approx(expected, abs=1e-9), (
+            f"deccan block {row.id}: bundle wait_weight={row.wait_weight:.4f} != engine {expected:.4f}"
         )
