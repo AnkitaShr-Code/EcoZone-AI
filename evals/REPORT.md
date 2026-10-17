@@ -123,6 +123,10 @@ Wall time with `time.perf_counter`, 20 repeated runs after one warm-up (10 for s
 | greedy: first run:mid_quick60 | seconds: 17.5 |  |
 | greedy: first run:high | seconds: 46.7 |  |
 
+## Heat check
+
+**Heat check: not run.** Create the surface temperature table with `uv run --extra ee pipeline heat-check --area deccan` (needs Earth Engine access; see evals/heat_check/README.md). Then rerun the evals. No correlation is reported.
+
 ## Other measured values
 
 **budget.greedy**
@@ -213,7 +217,7 @@ Wall time with `time.perf_counter`, 20 repeated runs after one warm-up (10 for s
 ## Not run
 
 - **Live Gemini evals** (Gemini vs greedy with the real model, grounding and tool-order runs on Gemini): need Vertex AI credentials; not run here.
-- **Heat check** (`pipeline/validate.py`: heat index against measured surface temperature on the held-out blocks): not run. The bundle's pipeline skipped steps `earth_engine, baselines`, so there is no surface temperature layer in it, and Earth Engine access is not available here. No correlation is reported.
+- **Heat check**: not run; see the Heat check section. No correlation is reported.
 
 ## How the search was driven
 
