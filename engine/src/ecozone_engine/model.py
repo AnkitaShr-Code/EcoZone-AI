@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Literal, cast
 
 from shapely.geometry.base import BaseGeometry
 
@@ -24,16 +24,199 @@ ShadeByTime = tuple[bool, bool, bool]
 """Shade state per reference time, in the order of the area's shade times."""
 
 
+# ---------------------------------------------------------------------------
+# Bundle row types — one frozen dataclass per table, populated by io.py
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class SunEntry:
+    """Sun position for one reference time, from meta.json."""
+
+    time: ShadeTime
+    altitude_deg: float
+    azimuth_deg: float
+
+
+@dataclass(frozen=True)
+class AreaMeta:
+    """Scalar metadata from meta.json."""
+
+    area_id: str
+    name: str
+    city: str
+    bundle_version: str
+    bbox_xy: tuple[float, float, float, float]
+    reference_date: str
+    shade_times: tuple[ShadeTime, ...]
+    sun: tuple[SunEntry, ...]
+    wind_from_deg: float
+    v_ref: float  # 95th-percentile building volume (for T_m in HEI)
+    attribution: str
+    counts: Mapping[str, int]
+    buildings_by_height_source: Mapping[str, int]
+    derived_footpath_chunks: int
+    skipped_steps: tuple[str, ...]
+    metres_per_floor: float
+
+
+@dataclass(frozen=True)
+class BlockRow:
+    """One row from blocks.parquet with computed index scores added at load time."""
+
+    block_id: str
+    area_m2: float
+    geometry: BaseGeometry
+    # Precomputed bundle attributes (PLANNING.md §Terms and what changes them)
+    i_s: float  # impervious share % (150 m buffer)
+    g_c: float  # vegetation share % (150 m buffer)
+    g_buf: float  # green share % (300 m buffer)
+    d_green: float  # distance to nearest green patch (m)
+    d_water: float  # distance to nearest upwind water/park (m)
+    h_w: float  # height-to-width ratio of the block's canyon
+    canyon_axis_deg: float
+    l_built: float  # longest unbroken built run along wind line (m)
+    v: float  # total building volume in block (m³)
+    roof_albedo: float  # area-weighted roof albedo
+    wait_weight: float  # sum of waiting-point weights within 150 m (from pipeline)
+    built_form: str  # "dense_low_rise" or "other"
+    coverage: float
+    median_footprint_m2: float
+    median_floors: float
+    # Scores computed at load time (engine/RULES.md WP5a)
+    vci: float = 0.0
+    hei: float = 0.0
+    gcs: float = 0.0
+    pss: float = 0.0
+    priority: float = 0.0
+    priority_class: PriorityClass = "medium"
+    drivers: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ChunkRow:
+    """One 10 m footpath chunk from chunks.parquet."""
+
+    chunk_id: str
+    geometry: BaseGeometry  # LineString in EPSG:32643
+    block_id: str
+    length_m: float
+    near_wait: bool
+    bearing_deg: float
+    road_class: str
+    # Shade state per reference time, computed at load time
+    shade: ShadeByTime = (False, False, False)
+    pss: float = 0.0
+
+
+@dataclass(frozen=True)
+class BuildingRow:
+    """One row from buildings.parquet."""
+
+    building_id: str
+    geometry: BaseGeometry  # Polygon footprint in EPSG:32643
+    height_m: float
+    block_id: str
+    roof_albedo: float
+    height_source: str
+
+
+@dataclass(frozen=True)
+class SiteRow:
+    """One candidate Repair site from sites.parquet."""
+
+    site_id: str
+    kind: InterventionKind
+    name: str
+    geometry: BaseGeometry
+    quantity_min: float
+    quantity_max: float
+    rejected: bool
+    rule: str
+    wait_point_id: str | None
+    h_w: float
+    block_id: str
+    time_to_benefit: str
+
+
+@dataclass(frozen=True)
+class WaitPointRow:
+    """One waiting point from wait_points.parquet."""
+
+    wait_id: str
+    kind: str
+    name: str
+    weight: float
+    geometry: BaseGeometry
+
+
+@dataclass(frozen=True)
+class ParcelRow:
+    """One Protect parcel from parcels.parquet."""
+
+    parcel_id: str
+    block_id: str
+    area_m2: float
+    road_name: str | None
+    road_width_m: float
+    street_bearing_deg: float
+    neighbour_height_m: float
+    name: str
+    geometry: BaseGeometry
+
+
+# ---------------------------------------------------------------------------
+# AreaModel — the single immutable in-memory area
+# ---------------------------------------------------------------------------
+
+
 @dataclass(frozen=True)
 class AreaModel:
     """One area loaded from a bundle. Immutable; never mutated by scoring (engine/RULES.md, "Pure").
 
-    The engine owner (WP5a) adds the arrays and STRtree indexes; fields below are the minimum
-    the API needs to identify the area.
+    `area_id` and `bundle_version` identify the model; all heavy fields are excluded from
+    hash/compare so lightweight instances can be constructed in tests with just the two ids.
     """
 
     area_id: str
     bundle_version: str
+
+    # Metadata from meta.json
+    meta: AreaMeta | None = field(default=None, hash=False, compare=False, repr=False)
+
+    # Bundle tables (empty tuples until load_bundle populates them)
+    blocks: tuple[BlockRow, ...] = field(default=(), hash=False, compare=False, repr=False)
+    chunks: tuple[ChunkRow, ...] = field(default=(), hash=False, compare=False, repr=False)
+    buildings: tuple[BuildingRow, ...] = field(default=(), hash=False, compare=False, repr=False)
+    sites: tuple[SiteRow, ...] = field(default=(), hash=False, compare=False, repr=False)
+    wait_points: tuple[WaitPointRow, ...] = field(default=(), hash=False, compare=False, repr=False)
+    parcels: tuple[ParcelRow, ...] = field(default=(), hash=False, compare=False, repr=False)
+
+    # O(1) id→index lookups into the above tuples
+    block_index: Mapping[str, int] = field(
+        default_factory=lambda: cast(dict[str, int], {}), hash=False, compare=False, repr=False
+    )
+    chunk_index: Mapping[str, int] = field(
+        default_factory=lambda: cast(dict[str, int], {}), hash=False, compare=False, repr=False
+    )
+    site_index: Mapping[str, int] = field(
+        default_factory=lambda: cast(dict[str, int], {}), hash=False, compare=False, repr=False
+    )
+    parcel_index: Mapping[str, int] = field(
+        default_factory=lambda: cast(dict[str, int], {}), hash=False, compare=False, repr=False
+    )
+
+    # Spatial indexes (STRtree, None before load_bundle)
+    building_tree: object = field(default=None, hash=False, compare=False, repr=False)
+    chunk_tree: object = field(default=None, hash=False, compare=False, repr=False)
+
+    # Precomputed baseline (populated by load_bundle; None on a stub instance)
+    baseline: BaselineData | None = field(default=None, hash=False, compare=False, repr=False)
+
+
+# ---------------------------------------------------------------------------
+# Result types
+# ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True)

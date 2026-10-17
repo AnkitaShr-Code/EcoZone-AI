@@ -25,8 +25,8 @@ def test_public_function_exists(name: str) -> None:
     assert inspect.isfunction(getattr(engine, name))
 
 
-def test_stub_raises_not_implemented_yet() -> None:
-    with pytest.raises(engine.NotImplementedYetError, match="WP5a"):
+def test_load_bundle_missing_path_raises_file_not_found() -> None:
+    with pytest.raises(FileNotFoundError):
         engine.load_bundle(Path("missing"))
 
 
