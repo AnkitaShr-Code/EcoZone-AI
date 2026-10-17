@@ -14,6 +14,8 @@ from typing import Literal
 from shapely import STRtree
 from shapely.geometry.base import BaseGeometry
 
+from .settings import SETTINGS
+
 ShadeTime = Literal["13:00", "15:00", "16:00"]
 InterventionKind = Literal["tree_row", "shade", "depave", "pocket_green", "cool_roof"]
 ChangeKind = InterventionKind | Literal["building"]
@@ -63,6 +65,7 @@ class BuildingRow:
     geometry: BaseGeometry
     height_m: float
     block_id: str
+    height_source: str = "typology"  # osm_height, osm_levels, open_buildings or typology
 
 
 @dataclass(frozen=True)
@@ -72,6 +75,8 @@ class ChunkRow:
     block_id: str
     length_m: float
     near_wait: bool
+    road_name: str | None = None
+    road_class: str = ""
 
 
 @dataclass(frozen=True)
@@ -87,6 +92,7 @@ class SiteRow:
     wait_point_id: str | None
     H_W: float | None
     time_to_benefit: str  # 'weeks', 'season', or 'years'
+    name: str = ""
 
 
 @dataclass(frozen=True)
@@ -95,6 +101,7 @@ class WaitPointRow:
     geometry: BaseGeometry
     kind: str
     weight: float
+    name: str | None = None
 
 
 @dataclass(frozen=True)
@@ -106,6 +113,8 @@ class ParcelRow:
     street_bearing_deg: float
     neighbour_height_m: float
     geometry: BaseGeometry
+    name: str = ""
+    road_name: str | None = None
 
 
 # ── AreaModel (WP5a adds arrays and STRtree indexes) ──────────────────────────
@@ -121,6 +130,15 @@ class AreaModel:
     # ── Scalar meta ───────────────────────────────────────────────────────────
     V_ref: float = 0.0
     wind_from_deg: float = 0.0
+    name: str = ""
+    city: str = ""
+    bbox_xy: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
+    reference_date: str = ""
+    shade_times: tuple[ShadeTime, ...] = ()
+    metres_per_floor: float = SETTINGS.metres_per_floor
+    derived_footpath_chunks: int = 0
+    skipped_steps: tuple[str, ...] = ()
+    attribution: str = ""
 
     # ── Sun table (sorted by time) ────────────────────────────────────────────
     sun: tuple[SunEntry, ...] = ()
