@@ -102,8 +102,9 @@ def test_risk_label_reflects_the_parcels_block(bench: Bench, cases: AreaCases, r
 
 
 def test_orientation_sensitivity_of_a_tall_building(bench: Bench, cases: AreaCases, rec: Recorder) -> None:
-    """Informational: worst block VCI drop of the same tall design at every 15 degree orientation. The design search
-    uses orientation as a lever; this shows how far it alone moves the ventilation flag."""
+    """Worst block VCI drop of the same tall design at every 15 degree orientation. The design search uses
+    orientation as a lever; this shows how far it alone moves the ventilation flag. No orientation may hide the
+    building: every drop is positive."""
     g = cases.guard_designs[0]
     rows: dict[str, float] = {}
     for deg in range(0, 180, 15):
@@ -116,4 +117,4 @@ def test_orientation_sensitivity_of_a_tall_building(bench: Bench, cases: AreaCas
         f"{g.design.floors} floors, {g.design.footprint_pct:g}% footprint, {g.design.green_pct:g}% green; "
         "key = orientation in degrees, value = worst VCI drop",
     )
-    assert all(v >= 0 for v in rows.values())
+    assert all(v > 0 for v in rows.values()), rows
