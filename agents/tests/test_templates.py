@@ -75,7 +75,7 @@ def test_repair_template_reads_like_the_ui_mock_and_passes_the_guard(
     assert "raises the area cooling score from 40 to 46" in text
     assert "using ₹ 5.8 lakh of the ₹ 7 lakh budget" in text
     assert "It combines 1 depave site, 1 shade structure and 1 street tree row." in text
-    assert "₹ 2 lakh goes to work that helps this summer, meeting the 20% quick-win share" in text
+    assert "₹ 4.7 lakh goes to work that helps this summer, meeting the 20% quick-win share" in text
     assert "1 candidate site was rejected by the ventilation check" in text
     assert "The simple ranking baseline reaches 44; this plan reaches 46." in text
     assert "planner input" in text
