@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from ecozone_api.main import create_app
@@ -13,8 +14,11 @@ def test_healthz_without_a_bundle() -> None:
     assert response.json() == {"ok": True, "bundleVersion": None}
 
 
-def test_engine_stubs_do_not_stop_startup(tmp_path: Path) -> None:
+@pytest.mark.parametrize("meta", [None, "{}"], ids=["no-bundle", "meta-without-area-id"])
+def test_a_directory_that_is_not_a_bundle_does_not_stop_startup(tmp_path: Path, meta: str | None) -> None:
     (tmp_path / "deccan").mkdir()
+    if meta is not None:
+        (tmp_path / "deccan" / "meta.json").write_text(meta)
     with TestClient(create_app(Settings(bundle_uri=str(tmp_path), app_dist=tmp_path / "x"))) as client:
         assert client.get("/api/healthz").json()["bundleVersion"] is None
         body = client.get("/api/areas/deccan").json()
