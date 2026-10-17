@@ -2,7 +2,7 @@
 # Trigger: push to main. Identity: the trigger's service account (no keys anywhere).
 #
 # Environment-specific values come from TRIGGER SUBSTITUTIONS set in Cloud, not from git:
-#   _BUNDLE_URI       gs://<bucket>/areas/deccan/v1      (required)
+#   _BUNDLE_URI       gs://<bucket>/areas                (required; holds <area>/v<N>/ bundles, newest version is loaded)
 #   _GEMINI_LOC       location serving the models below   (required, verify first)
 #   _MODEL_PROPOSER   Vertex model id, search proposer    (required, verify first)
 #   _MODEL_WRITER     Vertex model id, explanations/briefs (required, verify first)

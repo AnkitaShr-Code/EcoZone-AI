@@ -195,7 +195,7 @@ gcloud builds triggers create github \
   --branch-pattern=^main$ \
   --build-config=infra/cloudbuild.yaml \
   --service-account="projects/${PROJECT}/serviceAccounts/${SA_DEPLOY}@${PROJECT}.iam.gserviceaccount.com" \
-  --substitutions=_BUNDLE_URI=gs://${BUNDLE_BUCKET}/areas/deccan/v1,_GEMINI_LOC=${GEMINI_LOC},_MODEL_PROPOSER=${MODEL_PROPOSER},_MODEL_WRITER=${MODEL_WRITER}
+  --substitutions=_BUNDLE_URI=gs://${BUNDLE_BUCKET}/areas,_GEMINI_LOC=${GEMINI_LOC},_MODEL_PROPOSER=${MODEL_PROPOSER},_MODEL_WRITER=${MODEL_WRITER}
 ```
 
 > **Why not pass `_PROJECT` or `_SHORT_SHA`?** The new `cloudbuild.yaml` uses the Cloud Build built-ins
@@ -262,14 +262,14 @@ Record the exact model IDs and update `cloudbuild.yaml` substitutions and `.env`
 ## 12. Upload bundle to GCS (after WP4 is done)
 
 ```bash
-# Pipeline produces the bundle at data/bundles/deccan/
-gsutil -m cp -r data/bundles/deccan gs://$BUNDLE_BUCKET/deccan
+# Pipeline writes the bundle to data/areas/deccan/v1/ (uv run pipeline all --area deccan)
+gcloud storage cp -r data/areas/deccan/v1/* gs://$BUNDLE_BUCKET/areas/deccan/v1/
 
 # Re-deploy with the bundle URI set
 gcloud run services update ecozone \
   --region=$REGION \
   --project=$PROJECT \
-  --update-env-vars="ECOZONE_BUNDLE_URI=gs://${BUNDLE_BUCKET}/deccan"
+  --update-env-vars="ECOZONE_BUNDLE_URI=gs://${BUNDLE_BUCKET}/areas"
 ```
 
 ---

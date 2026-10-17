@@ -58,5 +58,8 @@ def fetch_bundles(uri: str, dest: Path, client: Any = None) -> Path:
             blob.download_to_filename(str(target / filename))
         log.info("Fetched bundle %s v%d from gs://%s/%s", area, version, bucket, prefix)
     if not found:
-        log.warning("No bundles found under gs://%s/%s", bucket, prefix)
+        raise RuntimeError(
+            f"No bundles found under gs://{bucket}/{prefix}; expected <area>/v<N>/<table>.parquet. "
+            "Check the bucket, the prefix and the service account."
+        )
     return dest
