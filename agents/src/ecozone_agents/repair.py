@@ -157,6 +157,7 @@ class RepairMode:
         r = self.request
         usable = [s for s in self.sites.values() if s.ventilation_ok and s.acs_gain > 0 and s.cost_inr <= r.budget_inr]
         usable.sort(key=lambda s: (-s.acs_gain / max(1.0, s.cost_inr), s.id))
+        shown = self._sites_shown(usable)
         best = max((s for s in scored if s.valid), key=lambda s: s.value, default=None)
         previous = [s for s in scored if s.candidate.round == round_no - 1 and not s.valid and s.candidate.round > 0]
         return {
@@ -175,7 +176,7 @@ class RepairMode:
                     "time_to_benefit": s.time_to_benefit,
                     "quick_win": s.quick_win,
                 }
-                for s in usable[: self.settings.max_sites_in_prompt]
+                for s in shown
             ],
             "greedy": _plan(self._greedy),
             "best_so_far": _plan(best),
@@ -184,6 +185,14 @@ class RepairMode:
                 for s in previous[:DROP_REASONS_SHOWN]
             ],
         }
+
+    def _sites_shown(self, usable: Sequence[SiteInfo]) -> list[SiteInfo]:
+        """Cap the list the model sees without starving it of quick wins. Sorted by gain per rupee, the
+        cap alone is filled with tree rows, which are not quick wins, so the model could not meet the share."""
+        cap = self.settings.max_sites_in_prompt
+        quick = [s for s in usable if s.quick_win][: cap // 2]
+        others = [s for s in usable if not s.quick_win][: cap - len(quick)]
+        return sorted([*quick, *others], key=lambda s: (-s.acs_gain / max(1.0, s.cost_inr), s.id))
 
     # ---------- the result ----------
 
@@ -251,4 +260,5 @@ def _plan(s: Scored | None) -> dict[str, object] | None:
         "site_ids": [ch.site_id for ch in s.changes],
         "score": s.candidate.score,
         "cost_inr": s.candidate.cost_inr,
+        "quick_win_cost_inr": tc.inr(s.result.quick_win_cost_inr) if s.result else None,
     }

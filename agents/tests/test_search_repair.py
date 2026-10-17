@@ -174,6 +174,18 @@ async def test_proposer_sees_a_compact_brief_with_greedy_and_best_so_far(
     assert "geometry" not in str(first.brief)
 
 
+async def test_a_small_site_cap_still_shows_quick_wins_and_plans_carry_their_quick_win_cost(
+    make_runner: Callable[..., Any], area: e.AreaModel, repair_request: RepairSearchRequest, emit: Any
+) -> None:
+    proposer = ScriptedProposer([[GOOD_PLAN]])
+    await run(make_runner(proposer, max_sites_in_prompt=2, max_rounds=1), area, repair_request, emit)
+    brief = proposer.requests[0].brief
+    shown: list[dict[str, Any]] = brief["sites"]  # type: ignore[index, assignment]
+    assert len(shown) <= 2
+    assert any(site["quick_win"] for site in shown)
+    assert isinstance(brief["greedy"]["quick_win_cost_inr"], float)  # type: ignore[index]
+
+
 async def test_proposer_failure_ends_with_best_so_far_and_an_error_event(
     make_runner: Callable[..., Any], area: e.AreaModel, repair_request: RepairSearchRequest, emit: Any
 ) -> None:
