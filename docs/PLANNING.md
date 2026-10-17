@@ -242,7 +242,7 @@ Assumptions made explicit: 3 m per floor; street widths come from the road class
 
 ### Risk label (Protect)
 
-The worst change is the largest of the VCI drop, the HEI rise, the GCS drop and the PSS drop. A worst change under 10 points is LOW, 10 to 24 is MODERATE, and 25 or more is HIGH. These thresholds are prototype settings, tuned on the test parcels.
+The worst change is the largest of the VCI drop, the HEI rise, the GCS drop and the PSS drop, measured on the block that contains the proposed building's parcel, not on the area as a whole: a building changes its own block, and averaging that change over every block of the area would hide a large drop on the one block it affects. With several proposed buildings, each parcel gets a label from its own block and the result carries the worst of them. A worst change under 10 points is LOW, 10 to 24 is MODERATE, and 25 or more is HIGH. These thresholds are prototype settings, tuned on the test parcels.
 
 > The indices are prototype composite indicators for comparing options in the same area. They are not airflow, temperature or comfort measurements, and the weights are design heuristics. The heat index is checked against measured surface temperature (see Trust and evaluation); the other indices are not validated. The shade score is exact geometry under its stated assumptions, but says nothing about how cool the shade feels.
 

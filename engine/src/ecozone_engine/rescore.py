@@ -218,7 +218,18 @@ def rescore(area: AreaModel, changes: Sequence[Change], unit_costs: UnitCosts) -
         drivers = repair_drivers(changes_list, area_before, area_after, wait_points_covered)
 
     # ── 14. Risk info (Protect only) ──────────────────────────────────────────
-    r_info: RiskInfo | None = risk_label(area_before, area_after) if has_building else None
+    # Measured on the block that contains each proposed building's parcel, not on the area-weighted scores
+    # (PLANNING.md §Risk label). Parcels are walked in sorted id order; `risk` is the worst of them, ties
+    # broken by parcel id.
+    parcel_risks: list[tuple[str, RiskInfo]] = []
+    for pid in sorted({c.site_id for c in building_changes}):
+        parcel = next(p for p in area.parcels if p.parcel_id == pid)
+        own_before = before_scores.get(parcel.block_id)
+        own_after = after_scores.get(parcel.block_id)
+        if own_before is None or own_after is None:
+            own_before = own_after = Scores(vci=0.0, hei=0.0, gcs=0.0, pss=0.0)
+        parcel_risks.append((pid, risk_label(own_before, own_after)))
+    r_info: RiskInfo | None = min(parcel_risks, key=lambda pr: (-pr[1].change, pr[0]))[1] if parcel_risks else None
 
     return AreaResultData(
         before=area_before,
@@ -233,4 +244,5 @@ def rescore(area: AreaModel, changes: Sequence[Change], unit_costs: UnitCosts) -
         drivers=drivers,
         blocks_worse=blocks_worse,
         risk=r_info,
+        parcel_risk=tuple(parcel_risks),
     )

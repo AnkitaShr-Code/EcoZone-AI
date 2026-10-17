@@ -132,14 +132,16 @@ def area_weighted_scores(
     )
 
 
-def risk_label(
-    before: AreaScores,
-    after: AreaScores,
-) -> RiskInfo | None:
+def risk_label(before: Scores, after: Scores) -> RiskInfo:
     """Risk label for a Protect building change (PLANNING.md §Risk label).
 
+    `before` and `after` are the Scores of the block that contains the proposed building's parcel, not
+    area-weighted scores: a building changes its own block, and averaging that change over every block of the
+    area shrinks a 30 to 50 point VCI drop on the block to under one point.
+
     The worst change is the largest of: VCI drop, HEI rise, GCS drop, PSS drop.
-    <10 → LOW, 10-24 → MODERATE, >=25 → HIGH.
+    Thresholds (risk_moderate_min, risk_high_min) come from settings: below the first LOW, below the second
+    MODERATE, otherwise HIGH.
     """
     candidates: list[tuple[float, IndexKey]] = [
         (max(0.0, before.vci - after.vci), "vci"),
