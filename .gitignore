@@ -18,3 +18,8 @@ data/
 # Local tool config
 .claude/
 .DS_Store
+
+# Eval runs: local JSONL rows; only the final run is committed (evals/RULES.md)
+evals/results/*
+!evals/results/final.jsonl
+!evals/results/.gitkeep
