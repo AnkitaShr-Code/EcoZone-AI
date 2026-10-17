@@ -36,7 +36,7 @@ The tool treats a neighborhood as one cooling network: air paths, green patches 
 
 1. Select an area. The map ranks blocks and footpaths by heat, missing afternoon shade, nearby waiting points (schools, hospitals, markets, bus stops) and dense low-rise built form.
 2. Set a rupee budget, the share that must help this summer (quick wins), and check the unit costs (planner input).
-3. Gemini proposes portfolios of interventions; the engine scores each one; Gemini refines for up to three rounds. A greedy baseline is computed alongside, and the better result is shown.
+3. Gemini proposes portfolios of interventions; the engine scores each one; Gemini refines for up to two rounds. A greedy baseline is computed alongside, and the better result is shown.
 4. Read the plan: site, cost, why, waiting points covered, time to benefit, ventilation check, and rejected options with reasons.
 5. Compare footpath shadows at 1, 3 and 4 pm before and after, and export a phased cooling plan with field check lists.
 

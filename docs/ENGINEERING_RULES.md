@@ -135,7 +135,7 @@ Measured with `pytest-benchmark` on the Deccan bundle and reported in `evals/REP
 | `rescore`, one Repair portfolio | < 200 ms |
 | `rescore`, one Protect building | < 100 ms |
 | Shadows for one time with a portfolio | < 500 ms |
-| Search, 3 rounds | < 60 s; returns best so far at the time limit |
+| Search, 2 rounds | About 2 to 3 minutes live (Gemini 3.5 Flash takes 40 to 60 s per proposal call); returns best so far at the 300 s limit |
 
 ## 9. Testing
 

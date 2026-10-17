@@ -154,7 +154,7 @@ async def test_judge_runs_all_rounds_while_improving(
         [prop("r3", "s_shade_2", "s_dep_1", "s_pg_1")],  # 6.6
         [prop("r4 never asked for", "s_shade_2", "s_dep_1")],
     ]
-    runner = make_runner(ScriptedProposer(rounds), proposals_per_round=1)
+    runner = make_runner(ScriptedProposer(rounds), proposals_per_round=1, max_rounds=3)
     await run(runner, area, repair_request, emit)
     assert [ev.round for ev in emit.of(RoundEvent)] == [1, 2, 3]  # the round limit
     assert emit.done.rounds == 3

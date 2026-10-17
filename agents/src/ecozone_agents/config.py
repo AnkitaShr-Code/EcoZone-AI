@@ -23,7 +23,7 @@ class AgentSettings(BaseSettings):
     model_writer: str | None = None
     """Pro tier Vertex model id for explanations (WP3 verifies it)."""
 
-    max_rounds: int = Field(default=3, ge=1)
+    max_rounds: int = Field(default=2, ge=1)
     min_rounds: int = Field(default=2, ge=1)
     """The judge never stops on "no improvement" before this round, so the planner always sees a refinement."""
     proposals_per_round: int = Field(default=4, ge=1)
@@ -31,8 +31,8 @@ class AgentSettings(BaseSettings):
     """Stop when no portfolio beats the best by more than this many ACS points."""
     protect_threshold: float = 2.0
     """Stop when no design beats the best by more than this many points of the worst change."""
-    search_time_limit_s: float = 60.0
-    proposer_timeout_s: float = 25.0
+    search_time_limit_s: float = 300.0
+    proposer_timeout_s: float = 120.0
     explain_timeout_s: float = 20.0
     max_sites_in_prompt: int = 120
     rejected_shown: int = 3
