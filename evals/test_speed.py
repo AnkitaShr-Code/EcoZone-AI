@@ -134,6 +134,6 @@ def test_search_three_rounds_time(bench: Bench, cases: AreaCases, rec: Recorder)
             "rescores": run.engine.rescore_calls,
             "target_ms": TARGET_SEARCH_MS,
         },
-        "offline proposer; greedy baseline and single-site results precomputed in parallel, excluded from this time",
+        "offline proposer; greedy baseline and single-site results precomputed, excluded from this time",
     )
     assert ms < TARGET_SEARCH_MS

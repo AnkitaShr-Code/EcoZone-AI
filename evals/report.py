@@ -258,9 +258,9 @@ def build(rows: list[Row]) -> str:
         srows.append(
             [
                 f"{m['test'].split('.')[1]}: {m['subject']}",
-                f"{v['p50_ms']:,.0f}",
-                f"{v['p95_ms']:,.0f}",
-                f"{v['min_ms']:,.0f} to {v['max_ms']:,.0f}",
+                f"{v['p50_ms']:,.1f}",
+                f"{v['p95_ms']:,.1f}",
+                f"{v['min_ms']:,.1f} to {v['max_ms']:,.1f}",
                 f"{v['target_ms']:,.0f}" if "target_ms" in v else "none",
                 ("within" if v["p95_ms"] <= v["target_ms"] else "over") if "target_ms" in v else "",
             ]
@@ -343,7 +343,7 @@ ANALYSIS = {
         "than any left-out quick-win site, so the loop (which requires the full share) marks it invalid. "
         "engine/greedy.py phase 1 refuses any quick win that would take the quick-win spend over the share "
         "(`quick_spent + cost > quick_win_budget`), takes minimum quantities only and never tops up past the share, "
-        "so it reaches the share only by luck; agents/repair.py `_invalid_reason` is a plain `>=` check against the "
+        "and phase 2 then spends the rest of the budget on the best sites of any kind, so it reaches the share only by luck; agents/repair.py `_invalid_reason` is a plain `>=` check against the "
         "planner's share, which matches PLANNING.md ('at least the share'). The gap is therefore in greedy's phase "
         "logic, not in how the loop reads the share."
     ),
