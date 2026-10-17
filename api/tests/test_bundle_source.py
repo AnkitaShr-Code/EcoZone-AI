@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import cast
 
+import pytest
+
 import ecozone_engine as e
 from ecozone_api.bundle_source import fetch_bundles, resolve_bundle_root
 from ecozone_api.deps import EnginePort, load_areas
@@ -61,9 +63,9 @@ def test_a_refetch_replaces_stale_files(tmp_path: Path) -> None:
     assert not (out / "deccan" / "old.parquet").exists()
 
 
-def test_an_empty_prefix_loads_nothing(tmp_path: Path) -> None:
-    root = fetch_bundles("gs://bkt/empty", tmp_path / "out", FakeClient(OBJECTS))
-    assert list(root.iterdir()) == []
+def test_an_empty_prefix_stops_startup(tmp_path: Path) -> None:
+    with pytest.raises(RuntimeError, match="No bundles found under gs://bkt/empty/"):
+        fetch_bundles("gs://bkt/empty", tmp_path / "out", FakeClient(OBJECTS))
 
 
 def test_versions_compare_as_numbers_not_text(tmp_path: Path) -> None:
