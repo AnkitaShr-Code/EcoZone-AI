@@ -7,6 +7,8 @@ import pytest
 from shapely import Point, box
 from tiny_area import Tiny
 
+from ecozone_engine.model import WaitPointRow
+from ecozone_engine.priority import wait_weight_sum
 from ecozone_pipeline.steps.attributes import axis_mean_deg, longest_built_run, share, split_for
 from ecozone_pipeline.steps.sun_wind import prevailing_wind_from_deg, sun_table
 
@@ -90,3 +92,21 @@ def test_v_ref_is_the_95th_percentile_of_block_volume(tiny: Tiny) -> None:
     expected = float(np.percentile(b.loc[b["V"] > 0, "V"], 95))
     assert tiny.cfg["attributes"]["v_ref_percentile"] == 95
     assert json.loads((tiny.bundle_dir / "meta.json").read_text())["V_ref"] == pytest.approx(expected)
+
+
+def test_wait_weight_column_equals_engine_value(tiny: Tiny) -> None:
+    """Bundle wait_weight column must equal engine's wait_weight_sum() on every block.
+
+    This guards against pipeline/engine divergence after the single-computation rule.
+    """
+    blocks = tiny.bundle_table("blocks")
+    wp_gdf = tiny.bundle_table("wait_points")
+    wp_rows: list[WaitPointRow] = [
+        WaitPointRow(wait_id=str(row.id), geometry=row.geometry, kind=str(row.kind), weight=float(row.weight))
+        for row in wp_gdf.itertuples(index=False)
+    ]
+    for row in blocks.itertuples(index=False):
+        expected = wait_weight_sum(row.geometry, wp_rows)
+        assert float(row.wait_weight) == pytest.approx(expected, abs=1e-9), (
+            f"block {row.id}: bundle wait_weight={row.wait_weight:.4f} != engine {expected:.4f}"
+        )

@@ -55,9 +55,7 @@ def chunk_shade_state(
     return (state[0], state[1], state[2])
 
 
-def build_shadow_unions(
-    area: AreaModel, changes: Sequence[Change]
-) -> dict[ShadeTime, Polygon | MultiPolygon | None]:
+def build_shadow_unions(area: AreaModel, changes: Sequence[Change]) -> dict[ShadeTime, Polygon | MultiPolygon | None]:
     """Build shadow unions (sun-position-dependent) at each reference time."""
     times: tuple[ShadeTime, ...] = ("13:00", "15:00", "16:00")
     result: dict[ShadeTime, Polygon | MultiPolygon | None] = {}

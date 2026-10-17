@@ -151,8 +151,11 @@ def test_baseline_scores_in_range(area: engine.AreaModel) -> None:
             assert 0.0 <= val <= 100.0, f"{block_id}.{name} = {val}"
     baseline = area.area_baseline
     for name, val in [
-        ("vci", baseline.vci), ("hei", baseline.hei), ("gcs", baseline.gcs),
-        ("pss", baseline.pss), ("acs", baseline.acs),
+        ("vci", baseline.vci),
+        ("hei", baseline.hei),
+        ("gcs", baseline.gcs),
+        ("pss", baseline.pss),
+        ("acs", baseline.acs),
     ]:
         assert 0.0 <= val <= 100.0, f"area.{name} = {val}"
 
@@ -338,8 +341,10 @@ def test_ventilation_check_building_high_hw(area: engine.AreaModel) -> None:
         site_id=parcel.parcel_id,
         quantity=1.0,
         params=(
-            ("floors", floors), ("footprint_pct", 60.0),
-            ("green_pct", 5.0), ("orientation_deg", parcel.street_bearing_deg),
+            ("floors", floors),
+            ("footprint_pct", 60.0),
+            ("green_pct", 5.0),
+            ("orientation_deg", parcel.street_bearing_deg),
         ),
     )
     result = engine.rescore(area, [change], DEFAULT_COSTS)
@@ -433,6 +438,7 @@ def test_risk_label_building_has_risk(area: engine.AreaModel) -> None:
 
 # ── Hypothesis property tests ─────────────────────────────────────────────────
 
+
 @h_settings(max_examples=30, deadline=10_000)
 @given(
     h_w=st.floats(min_value=0.0, max_value=5.0, allow_nan=False),
@@ -443,7 +449,7 @@ def test_risk_label_building_has_risk(area: engine.AreaModel) -> None:
 )
 def test_vci_range_property(h_w: float, l_built: float, d_water: float, wind: float, canyon: float) -> None:
     """VCI is always in [0, 100]."""
-    result = vci(h_w, canyon, l_built, d_water, wind)
+    result = vci(h_w=h_w, canyon_axis_deg=canyon, l_built=l_built, d_water=d_water, wind_from_deg=wind)
     assert 0.0 <= result <= 100.0
 
 
@@ -457,7 +463,7 @@ def test_vci_range_property(h_w: float, l_built: float, d_water: float, wind: fl
 )
 def test_hei_range_property(i_s: float, g_c: float, v: float, v_ref: float, albedo: float) -> None:
     """HEI is always in [0, 100]."""
-    result = hei(i_s, g_c, v, v_ref, albedo)
+    result = hei(i_s=i_s, g_c=g_c, v=v, v_ref=v_ref, roof_albedo=albedo)
     assert 0.0 <= result <= 100.0
 
 
@@ -468,7 +474,7 @@ def test_hei_range_property(i_s: float, g_c: float, v: float, v_ref: float, albe
 )
 def test_gcs_range_property(g_buf: float, d_green: float) -> None:
     """GCS is always in [0, 100]."""
-    result = gcs(g_buf, d_green)
+    result = gcs(g_buf=g_buf, d_green=d_green)
     assert 0.0 <= result <= 100.0
 
 
@@ -480,8 +486,8 @@ def test_gcs_range_property(g_buf: float, d_green: float) -> None:
 )
 def test_direction_vci_higher_hw_never_improves(more_hw: bool, h_w: float, delta: float) -> None:
     """Higher H/W never improves VCI (PLANNING.md Direction Protect)."""
-    base = vci(h_w, 90.0, 10.0, 500.0, 90.0)
-    higher = vci(h_w + delta, 90.0, 10.0, 500.0, 90.0)
+    base = vci(h_w=h_w, canyon_axis_deg=90.0, l_built=10.0, d_water=500.0, wind_from_deg=90.0)
+    higher = vci(h_w=h_w + delta, canyon_axis_deg=90.0, l_built=10.0, d_water=500.0, wind_from_deg=90.0)
     assert higher <= base + 1e-9
 
 
@@ -490,8 +496,11 @@ def test_direction_vci_higher_hw_never_improves(more_hw: bool, h_w: float, delta
 
 def _assert_area_scores_in_range(scores: engine.AreaScores) -> None:
     for name, val in [
-        ("vci", scores.vci), ("hei", scores.hei), ("gcs", scores.gcs),
-        ("pss", scores.pss), ("acs", scores.acs),
+        ("vci", scores.vci),
+        ("hei", scores.hei),
+        ("gcs", scores.gcs),
+        ("pss", scores.pss),
+        ("acs", scores.acs),
     ]:
         assert 0.0 <= val <= 100.0, f"area.{name} = {val} out of range"
 

@@ -35,6 +35,7 @@ def _validate(area: AreaModel, change: Change) -> None:
     if change.kind == "building":
         if not any(p.parcel_id == change.site_id for p in area.parcels):
             from .errors import UnknownParcelError
+
             raise UnknownParcelError(change.site_id)
         return
 
@@ -52,9 +53,8 @@ def _validate(area: AreaModel, change: Change) -> None:
     # Quantity range check
     if change.quantity < site.quantity_min or change.quantity > site.quantity_max:
         from .errors import QuantityOutOfRangeError
-        raise QuantityOutOfRangeError(
-            change.site_id, change.quantity, site.quantity_min, site.quantity_max
-        )
+
+        raise QuantityOutOfRangeError(change.site_id, change.quantity, site.quantity_min, site.quantity_max)
 
 
 def _apply_deltas_to_block(block: BlockRow, deltas: dict[str, float]) -> BlockRow:
@@ -118,6 +118,7 @@ def rescore(area: AreaModel, changes: Sequence[Change], unit_costs: UnitCosts) -
     # ── 4. Compute new chunk shading with change set applied ──────────────────
     # Create a temporary AreaModel with updated buildings for shadow computation
     from .model import AreaModel
+
     tmp_area = AreaModel(
         area_id=area.area_id,
         bundle_version=area.bundle_version,
@@ -157,9 +158,21 @@ def rescore(area: AreaModel, changes: Sequence[Change], unit_costs: UnitCosts) -
         before_scores[bid] = before
 
         # After: recompute from updated attributes
-        a_vci = vci(new_blk.H_W, new_blk.canyon_axis_deg, new_blk.L_built, new_blk.d_water, area.wind_from_deg)
-        a_hei = hei(new_blk.I_s, new_blk.G_c, new_blk.V, area.V_ref, new_blk.roof_albedo)
-        a_gcs = gcs(new_blk.G_buf, new_blk.d_green)
+        a_vci = vci(
+            h_w=new_blk.H_W,
+            canyon_axis_deg=new_blk.canyon_axis_deg,
+            l_built=new_blk.L_built,
+            d_water=new_blk.d_water,
+            wind_from_deg=area.wind_from_deg,
+        )
+        a_hei = hei(
+            i_s=new_blk.I_s,
+            g_c=new_blk.G_c,
+            v=new_blk.V,
+            v_ref=area.V_ref,
+            roof_albedo=new_blk.roof_albedo,
+        )
+        a_gcs = gcs(g_buf=new_blk.G_buf, d_green=new_blk.d_green)
         a_pss = block_pss(bid, chunk_list, new_chunk_shading)
         after = Scores(vci=a_vci, hei=a_hei, gcs=a_gcs, pss=a_pss)
         after_scores[bid] = after

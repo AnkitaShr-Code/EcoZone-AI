@@ -27,6 +27,7 @@ ShadeByTime = tuple[bool, bool, bool]
 
 # ── Per-row data loaded from the bundle (WP5a) ────────────────────────────────
 
+
 @dataclass(frozen=True)
 class SunEntry:
     time: ShadeTime
@@ -44,15 +45,15 @@ class BlockRow:
     median_footprint_m2: float
     median_floors: float
     built_form: str
-    I_s: float          # impervious share 0-100
-    G_c: float          # green cover share 0-100
-    G_buf: float        # green share in 300 m buffer 0-100
-    d_green: float      # distance to nearest green patch (m)
-    d_water: float      # distance to nearest upwind water/park (m)
-    H_W: float          # street height-to-width ratio
+    I_s: float  # impervious share 0-100
+    G_c: float  # green cover share 0-100
+    G_buf: float  # green share in 300 m buffer 0-100
+    d_green: float  # distance to nearest green patch (m)
+    d_water: float  # distance to nearest upwind water/park (m)
+    H_W: float  # street height-to-width ratio
     canyon_axis_deg: float
-    L_built: float      # longest built-up run along wind line (m)
-    V: float            # building volume (m³)
+    L_built: float  # longest built-up run along wind line (m)
+    V: float  # building volume (m³)
     roof_albedo: float  # area-weighted roof albedo
 
 
@@ -76,7 +77,7 @@ class ChunkRow:
 @dataclass(frozen=True)
 class SiteRow:
     site_id: str
-    kind: str             # InterventionKind literal
+    kind: str  # InterventionKind literal
     geometry: BaseGeometry
     block_id: str | None
     quantity_min: float
@@ -109,6 +110,7 @@ class ParcelRow:
 
 # ── AreaModel (WP5a adds arrays and STRtree indexes) ──────────────────────────
 
+
 @dataclass(frozen=True)
 class AreaModel:
     """One area loaded from a bundle. Immutable; never mutated by scoring (engine/RULES.md, "Pure")."""
@@ -133,20 +135,12 @@ class AreaModel:
 
     # ── Baseline scores keyed by block_id ─────────────────────────────────────
     block_baselines: tuple[tuple[str, Scores], ...] = ()
-    area_baseline: AreaScores = field(
-        default_factory=lambda: AreaScores(vci=0.0, hei=0.0, gcs=0.0, pss=0.0, acs=0.0)
-    )
+    area_baseline: AreaScores = field(default_factory=lambda: AreaScores(vci=0.0, hei=0.0, gcs=0.0, pss=0.0, acs=0.0))
 
     # ── STRtrees: excluded from hash and comparison ───────────────────────────
-    block_tree: STRtree = field(
-        default_factory=lambda: STRtree([]), hash=False, compare=False, repr=False
-    )
-    building_tree: STRtree = field(
-        default_factory=lambda: STRtree([]), hash=False, compare=False, repr=False
-    )
-    chunk_tree: STRtree = field(
-        default_factory=lambda: STRtree([]), hash=False, compare=False, repr=False
-    )
+    block_tree: STRtree = field(default_factory=lambda: STRtree([]), hash=False, compare=False, repr=False)
+    building_tree: STRtree = field(default_factory=lambda: STRtree([]), hash=False, compare=False, repr=False)
+    chunk_tree: STRtree = field(default_factory=lambda: STRtree([]), hash=False, compare=False, repr=False)
 
 
 @dataclass(frozen=True)

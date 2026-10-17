@@ -10,6 +10,34 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from .model import AreaScores, Change
+from .settings import SETTINGS as S
+
+
+def block_drivers(
+    *,
+    pss: float,
+    i_s: float,
+    roof_albedo: float,
+    d_green: float,
+    wait_weight_sum: float,
+) -> tuple[str, ...]:
+    """Improvement-opportunity driver tags for one block (PLANNING.md §Primary drivers).
+
+    Tags explain what interventions would help.  Unlike repair_drivers (which reflects a
+    scored change set), these are derived from the block's baseline attributes alone.
+    """
+    tags: list[str] = []
+    if pss < S.driver_shade_pss_threshold:
+        tags.append("SHADE_GAIN")
+    if i_s > S.driver_impervious_threshold:
+        tags.append("IMPERVIOUS_LOSS")
+    if roof_albedo < S.driver_albedo_threshold:
+        tags.append("ALBEDO_GAIN")
+    if d_green > S.driver_green_link_threshold:
+        tags.append("GREEN_LINK")
+    if wait_weight_sum > 0.0:
+        tags.append("WAIT_POINT_COVERED")
+    return tuple(sorted(tags))
 
 
 def repair_drivers(

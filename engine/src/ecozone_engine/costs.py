@@ -32,9 +32,7 @@ def is_quick_win(area: AreaModel, change: Change) -> bool:
     return site.time_to_benefit in S.quick_win_ttb
 
 
-def portfolio_costs(
-    area: AreaModel, changes: Sequence[Change], unit_costs: UnitCosts
-) -> tuple[float, float]:
+def portfolio_costs(area: AreaModel, changes: Sequence[Change], unit_costs: UnitCosts) -> tuple[float, float]:
     """Return (total_cost_inr, quick_win_cost_inr) for a change set."""
     total = 0.0
     quick = 0.0

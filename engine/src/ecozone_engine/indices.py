@@ -15,6 +15,7 @@ from .sun import delta_theta_deg
 
 
 def vci(
+    *,
     h_w: float,
     canyon_axis_deg: float,
     l_built: float,
@@ -40,6 +41,7 @@ def vci(
 
 
 def hei(
+    *,
     i_s: float,
     g_c: float,
     v: float,
@@ -55,19 +57,14 @@ def hei(
     t_m = 100.0 * min(1.0, v / v_ref) if v_ref > 0.0 else 0.0
     span = S.albedo_ref_high - S.albedo_ref_low
     r_a = 100.0 * max(0.0, min(1.0, (S.albedo_ref_high - roof_albedo) / span))
-    raw = (
-        S.w_hei_is * i_s
-        + S.w_hei_gc * (100.0 - g_c)
-        + S.w_hei_tm * t_m
-        + S.w_hei_ra * r_a
-    )
+    raw = S.w_hei_is * i_s + S.w_hei_gc * (100.0 - g_c) + S.w_hei_tm * t_m + S.w_hei_ra * r_a
     return max(0.0, min(100.0, raw))
 
 
 # ── Green Connectivity Score (PLANNING.md §GCS) ───────────────────────────────
 
 
-def gcs(g_buf: float, d_green: float) -> float:
+def gcs(*, g_buf: float, d_green: float) -> float:
     """GCS for one block.
 
     Golden test (best case):
