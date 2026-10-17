@@ -2,7 +2,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import ecozone_engine as e
 from ecozone_api.bundle_source import fetch_bundles, resolve_bundle_root
+from ecozone_api.deps import load_areas
+
+
+class _FakeEngine:
+    def load_bundle(self, path: Path) -> e.AreaModel:
+        return e.AreaModel(area_id=path.name, bundle_version="v1-test")
 
 
 class FakeBlob:
@@ -68,3 +75,12 @@ def test_unset_and_local_uris_do_not_touch_the_cloud(tmp_path: Path) -> None:
     assert resolve_bundle_root(None) is None
     assert resolve_bundle_root("") is None
     assert resolve_bundle_root(str(tmp_path)) == tmp_path
+
+
+def test_local_bundle_uri_loads_areas_unchanged(tmp_path: Path) -> None:
+    # A local path goes through resolve_bundle_root unchanged; load_areas must still find the area.
+    area_dir = tmp_path / "tiny"
+    area_dir.mkdir()
+    bundle_root = resolve_bundle_root(str(tmp_path))
+    areas = load_areas(_FakeEngine(), bundle_root)
+    assert list(areas) == ["tiny"]
