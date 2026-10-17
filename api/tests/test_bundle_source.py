@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 import ecozone_engine as e
 from ecozone_api.bundle_source import fetch_bundles, resolve_bundle_root
-from ecozone_api.deps import load_areas
+from ecozone_api.deps import EnginePort, load_areas
 
 
 class _FakeEngine:
@@ -82,5 +83,5 @@ def test_local_bundle_uri_loads_areas_unchanged(tmp_path: Path) -> None:
     area_dir = tmp_path / "tiny"
     area_dir.mkdir()
     bundle_root = resolve_bundle_root(str(tmp_path))
-    areas = load_areas(_FakeEngine(), bundle_root)
+    areas = load_areas(cast(EnginePort, _FakeEngine()), bundle_root)
     assert list(areas) == ["tiny"]
