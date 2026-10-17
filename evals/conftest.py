@@ -1,5 +1,7 @@
 """Session fixtures for the evals: which bundle, the workbench, the results recorder and the outcome rows."""
 
+import os
+import platform
 from collections.abc import Iterator
 from typing import Any
 
@@ -60,6 +62,34 @@ def info() -> BundleInfo:
 @pytest.fixture(scope="session")
 def rec() -> Recorder:
     return _recorder()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _record_session(info: BundleInfo, rec: Recorder) -> None:
+    m = info.meta
+    rec.measure(
+        "session",
+        "bundle",
+        {
+            "area_id": info.area_id,
+            "bundle_version": info.bundle_version,
+            "bundle_kind": info.kind,
+            "bundle_note": info.note,
+            "name": m.get("name"),
+            "reference_date": m.get("reference_date"),
+            "pipeline_git_sha": m.get("pipeline_git_sha"),
+            "settings_hash": m.get("settings_hash"),
+            "counts": m.get("counts"),
+            "skipped_steps": m.get("skipped_steps"),
+            "tune_blocks": len(info.tune_ids),
+            "test_blocks": len(info.test_ids),
+        },
+    )
+    rec.measure(
+        "session",
+        "machine",
+        {"platform": platform.platform(), "cpus": os.cpu_count(), "python": platform.python_version()},
+    )
 
 
 @pytest.fixture(scope="session")
