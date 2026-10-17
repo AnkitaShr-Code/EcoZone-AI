@@ -54,7 +54,7 @@ Small inset: the search loop (Gemini proposer → code scorer → code judge; st
 Real screenshot of the Repair screen if ready by Oct 17; otherwise the annotated mockup. Callouts: rejected tree row with reason, live search progress, planner-input and AI-estimated badges, arrows and text with color.
 
 ### 8. Architecture
-Redraw section 1 of DESIGN.md: offline pipeline → BigQuery and Cloud Storage; one Cloud Run service with React, FastAPI, the ADK agent layer (orchestrator, 4 agents, LoopAgent search, output guard) and the engine; Firestore; Gemini on Vertex AI. Dashed path: Landsat → heat check only.
+Redraw section 1 of DESIGN.md: offline pipeline → BigQuery and Cloud Storage; one Cloud Run service with React, FastAPI, the agent layer (code router, role-based agents, one propose-score-judge search loop in plain asyncio, output guard) and the engine; Firestore; Gemini on Vertex AI. Dashed path: Landsat → heat check only.
 
 ### 9. Technologies
 | Area | Technology |
@@ -63,7 +63,7 @@ Redraw section 1 of DESIGN.md: offline pipeline → BigQuery and Cloud Storage; 
 | Backend | Python, FastAPI, shapely, geopandas, pvlib |
 | Front end | React, TypeScript, deck.gl, MapLibre GL |
 | Cloud | Cloud Run, BigQuery (GEOGRAPHY), Firestore, Cloud Storage, Cloud Build, Earth Engine |
-| Data | OpenStreetMap, Google Open Buildings 2.5D, Sentinel-2, ESA WorldCover, Open-Meteo, Landsat 8/9 (validation) |
+| Data | OpenStreetMap, Open-Meteo wind (ERA5), computed sun position; Landsat 8/9 only for the heat check if it has run. Open Buildings, Sentinel-2 and WorldCover are future layers, not in the shipped bundle |
 
 Note on the slide: Google Maps tiles are not used because of the Maps Platform AI-use terms.
 
@@ -85,7 +85,7 @@ Report only measured results.
 | Gemini vs greedy | win/tie/loss per test area, with ACS gain and cost |
 | Grounding violations | count |
 | Speed: rescore, simulate, full search | measured times |
-| Heat check | Spearman correlation and block count on held-out blocks, scatter plot, caveats |
+| Heat check | Only if it has run: Spearman correlation and block count on held-out blocks, scatter plot, caveats. Otherwise one line: not run, listed as next |
 
 If a result is poor, say so and why.
 
@@ -94,7 +94,7 @@ If a result is poor, say so and why.
 - **More interventions:** greening nala and river edges; street-level imagery for site checks once licensing is verified.
 - **More cities:** one pipeline run per city.
 - **Language:** plans in Marathi for ward offices.
-- **Limits stated openly:** heuristic indices, only heat validated; shade is clear-sky geometry; albedo block-level; Open Buildings heights unmeasured in India.
+- **Limits stated openly:** heuristic indices, not yet checked against measurements (unless the heat check has run); shade is clear-sky geometry; albedo block-level; Open Buildings heights unmeasured in India.
 
 ### 14. Links
 | Item | Status |
@@ -104,7 +104,7 @@ If a result is poor, say so and why.
 | Final product | Cloud Run URL, opens without login |
 
 ### 15–16. Closing
-Slide 15: *Repair and protect a city's cooling network*, with three proof points (engine-scored AI plans, shade where people wait, heat index checked against satellite). Slide 16: contact and thanks. Delete if unused.
+Slide 15: *Repair and protect a city's cooling network*, with three proof points (engine-scored AI plans, shade where people wait, engine-scored plans checked by tests and evals; satellite check only if it has run). Slide 16: contact and thanks. Delete if unused.
 
 ## Mapping to judging criteria
 
