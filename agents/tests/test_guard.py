@@ -65,15 +65,15 @@ ACCEPTED = [
 
 REJECTED = [
     # (text, a fragment of the expected violation)
-    ("The score reaches 47.", "Number \"47\""),
-    ("Shade rises by 6 points.", "Number \"6\""),  # a difference the model computed
-    ("It costs ₹ 11 lakh.", "Number \"11\""),
-    ("It costs ₹ 9.3 crore.", "Number \"9.3\""),  # wrong scale
-    ("That is 99%.", "Number \"99\""),
-    ("Round 5 found a better plan.", "Number \"5\""),  # beyond the round limit
-    ("Shade at 7 pm is lower.", "Number \"7\""),
+    ("The score reaches 47.", 'Number "47"'),
+    ("Shade rises by 6 points.", 'Number "6"'),  # a difference the model computed
+    ("It costs ₹ 11 lakh.", 'Number "11"'),
+    ("It costs ₹ 9.3 crore.", 'Number "9.3"'),  # wrong scale
+    ("That is 99%.", 'Number "99"'),
+    ("Round 5 found a better plan.", 'Number "5"'),  # beyond the round limit
+    ("Shade at 7 pm is lower.", 'Number "7"'),
     ("The time 14:00 is used.", "14:00"),
-    ("This is the 11th option.", "Number \"11\""),
+    ("This is the 11th option.", 'Number "11"'),
     # forbidden units
     ("It is 5 °C cooler.", "°C"),
     ("It is 5 ℃ cooler.", "℃"),

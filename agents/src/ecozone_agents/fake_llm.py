@@ -1,4 +1,6 @@
-"""A scripted `ModelClient` for tests: answers are queued per role, so no test touches a network.
+"""Scripted fakes for tests: a `ModelClient` and a `Proposer`.
+
+The `ModelClient`: answers are queued per role, so no test touches a network.
 
 Each answer is a pydantic model (or a plain dict validated against the schema), an exception to
 raise, or a function of the prompt. When a role's queue runs out the last answer repeats, which
@@ -13,7 +15,7 @@ from dataclasses import dataclass, field
 from pydantic import BaseModel
 
 from .errors import ModelError
-from .ports import ModelOut, Role
+from .ports import ModelOut, Proposal, ProposalRequest, Role
 
 Answer = BaseModel | dict[str, object] | Exception | Callable[[dict[str, object]], BaseModel | dict[str, object]]
 
@@ -57,3 +59,23 @@ class ScriptedModel:
 
     def count(self, role: Role) -> int:
         return sum(1 for call in self.calls if call.role == role)
+
+
+@dataclass
+class ScriptedProposer:
+    """Returns the queued proposals per round (the last list repeats) and records what it was shown."""
+
+    rounds: Sequence[Sequence[Proposal]] = ()
+    error: Exception | None = None
+    delay_s: float = 0.0
+    requests: list[ProposalRequest] = field(default_factory=list[ProposalRequest])
+
+    async def propose(self, request: ProposalRequest) -> list[Proposal]:
+        self.requests.append(request)
+        if self.delay_s:
+            await asyncio.sleep(self.delay_s)
+        if self.error:
+            raise self.error
+        if not self.rounds:
+            return []
+        return list(self.rounds[min(len(self.requests) - 1, len(self.rounds) - 1)])

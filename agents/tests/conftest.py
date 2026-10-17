@@ -6,9 +6,8 @@ a small table so tests can predict every number: site gains add up, two sites in
 with green share and with the long side turned to the wind (270°, so the axis is 90).
 """
 
-import asyncio
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 import pytest
@@ -17,7 +16,7 @@ from shapely.geometry import Point, box
 import ecozone_contract as c
 import ecozone_engine as e
 from ecozone_agents import AgentSettings, AgentsRunner
-from ecozone_agents.ports import Event, Proposal, ProposalRequest
+from ecozone_agents.ports import Event
 from ecozone_contract.runs import ProtectSearchRequest, RepairSearchRequest
 
 X0, Y0 = 374_000.0, 2_047_500.0
@@ -51,7 +50,15 @@ def default_sites() -> dict[str, SiteSpec]:
         "s_pg_1": SiteSpec("pocket_green", "Vacant plot", 150, "years", 1.8, 50, 400),
         "s_roof_1": SiteSpec("cool_roof", "Dense block roofs", 600, "weeks", 1.2, 100, 900),
         "s_tree_9": SiteSpec(
-            "tree_row", "Narrow lane", 10, "years", 3.5, 4, 20, vent_ok=False, reason="Street is too deep and narrow: canopy would block the breeze."
+            "tree_row",
+            "Narrow lane",
+            10,
+            "years",
+            3.5,
+            4,
+            20,
+            vent_ok=False,
+            reason="Too deep and narrow: canopy would block the breeze.",
         ),
     }
 
@@ -185,7 +192,9 @@ class FakeEngine:
         if ch.site_id != "pc_1":
             raise e.UnknownParcelError(ch.site_id)
         p = dict(ch.params)
-        worst = p["floors"] * p["footprint_pct"] / 60 + (100 - p["green_pct"]) / 20 + abs(p["orientation_deg"] - 90) / 18
+        worst = (
+            p["floors"] * p["footprint_pct"] / 60 + (100 - p["green_pct"]) / 20 + abs(p["orientation_deg"] - 90) / 18
+        )
         scores = e.AreaScores(vci=60, hei=60, gcs=20, pss=BASE_PSS, acs=BASE_ACS)
         after = e.AreaScores(vci=60 - worst, hei=60, gcs=20, pss=BASE_PSS + 1.0, acs=BASE_ACS - worst / 4)
         return e.AreaResultData(
@@ -239,24 +248,10 @@ class FakeEngine:
         return e.PortfolioData(changes, self.rescore(area, changes, unit_costs))
 
 
-@dataclass
-class ScriptedProposer:
-    """Returns the queued proposals per round (the last list repeats) and records what it was shown."""
-
-    rounds: Sequence[Sequence[Proposal]] = ()
-    error: Exception | None = None
-    delay_s: float = 0.0
-    requests: list[ProposalRequest] = field(default_factory=list[ProposalRequest])
-
-    async def propose(self, request: ProposalRequest) -> list[Proposal]:
-        self.requests.append(request)
-        if self.delay_s:
-            await asyncio.sleep(self.delay_s)
-        if self.error:
-            raise self.error
-        if not self.rounds:
-            return []
-        return list(self.rounds[min(len(self.requests) - 1, len(self.rounds) - 1)])
+@pytest.fixture
+def anyio_backend() -> str:
+    """Async tests run on asyncio through anyio's pytest plugin (already installed with starlette)."""
+    return "asyncio"
 
 
 @pytest.fixture(autouse=True)
@@ -352,11 +347,9 @@ def emit() -> Collector:
     return Collector()
 
 
-
 @pytest.fixture
 def make_runner(engine: FakeEngine, unit_costs: c.UnitCosts) -> Callable[..., AgentsRunner]:
     def build(proposer: Any, writer: Any = None, **settings: Any) -> AgentsRunner:
         return AgentsRunner(engine, proposer, writer, make_settings(**settings), unit_costs)
 
     return build
-
