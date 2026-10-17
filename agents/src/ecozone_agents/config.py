@@ -26,6 +26,8 @@ class AgentSettings(BaseSettings):
     max_rounds: int = Field(default=2, ge=1)
     min_rounds: int = Field(default=2, ge=1)
     """The judge never stops on "no improvement" before this round, so the planner always sees a refinement."""
+    thinking_level: Literal["minimal", "low", "medium", "high"] | None = "low"
+    """Gemini 3 thinking effort. The model default took 60 to 100 s per proposal; low takes about 25 s."""
     proposals_per_round: int = Field(default=4, ge=1)
     repair_threshold: float = 0.5
     """Stop when no portfolio beats the best by more than this many ACS points."""
