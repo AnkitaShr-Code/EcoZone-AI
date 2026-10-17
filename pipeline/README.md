@@ -16,7 +16,7 @@ Steps in order: `osm`, `sun_wind`, `heights`, `geometry`, `classify`, `attribute
 
 ## Status
 
-Bundle v1 (OSM only) builds for Deccan. Earth Engine layers, BigQuery load and GCS upload are not built yet; `meta.json` lists `earth_engine` under `skipped_steps`, and `baselines` stays skipped until the engine implements `load_bundle` and `compute_baselines`.
+Bundle v1 (OSM only) builds for Deccan and is unchanged. The heat check exists as a separate command, `uv run --extra ee pipeline heat-check --area deccan`, which fetches Landsat surface temperature per block for validation only (needs Earth Engine access and the optional `ee` extra; see [../evals/heat_check/README.md](../evals/heat_check/README.md)); it is not part of `all`. Earth Engine layers for the scores, BigQuery load and GCS upload are not built yet; `meta.json` lists `earth_engine` under `skipped_steps`, and `baselines` stays skipped until the engine implements `load_bundle` and `compute_baselines`.
 
 ## Tests
 

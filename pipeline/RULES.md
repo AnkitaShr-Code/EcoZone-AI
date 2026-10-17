@@ -15,7 +15,7 @@ pipeline/
     steps/heights.py         height fallback chain with height_source
     steps/classify.py        parcels, candidate sites per site rule, built-form class
     steps/sun_wind.py        pvlib sun table; Open-Meteo prevailing wind
-    steps/earth_engine.py    optional: Open Buildings heights, S2 shares, roof albedo, WorldCover, Landsat LST, clips
+    steps/earth_engine.py    optional: Open Buildings heights, S2 shares, roof albedo, WorldCover, Landsat LST, clips (built so far: Landsat LST per block for the heat check, run as `pipeline heat-check`, not part of `all`)
     steps/attributes.py      per-block attributes
     steps/baselines.py       baseline scores by calling ecozone_engine
     steps/bundle.py          write GeoParquet + meta.json; upload to GCS
