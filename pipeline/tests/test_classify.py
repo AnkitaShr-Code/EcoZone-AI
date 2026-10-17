@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import geopandas as gpd
 import pytest
+from shapely.geometry import LineString
 from tiny_area import Tiny
 
-from ecozone_pipeline.steps.classify import SITE_KINDS, TIME_TO_BENEFIT
+from ecozone_pipeline.steps.classify import SITE_KINDS, TIME_TO_BENEFIT, tree_row_sites
 
 
 def test_every_intervention_type_has_sites(tiny: Tiny) -> None:
@@ -93,3 +95,45 @@ def test_parcel_count_is_capped(tiny: Tiny) -> None:
 def test_site_geometry_is_not_empty(tiny: Tiny, kind: str) -> None:
     sites = tiny.table("sites").query("kind == @kind")
     assert (~sites.geometry.is_empty).all()
+
+
+def _run(hw: list[float], gap_after: int | None = None) -> gpd.GeoDataFrame:
+    """One east-west footpath run of 10 m chunks with the given H/W per chunk; optionally a 5 m gap after one."""
+    rows = []
+    x = 0.0
+    for i, value in enumerate(hw):
+        rows.append(
+            {
+                "id": f"ch_{i}",
+                "run_id": "run_1",
+                "road_name": "Test Road",
+                "side": "north",
+                "road_width_m": 12.0,
+                "length_m": 10.0,
+                "H_W": value,
+                "block_id": "blk_1",
+                "geometry": LineString([(x, 0), (x + 10, 0)]),
+            }
+        )
+        x += 10.0 + (5.0 if gap_after == i else 0.0)
+    return gpd.GeoDataFrame(rows, geometry="geometry", crs="EPSG:32643")
+
+
+def test_one_deep_stretch_rejects_the_whole_tree_row(tiny: Tiny) -> None:
+    """H/W averages 0.78 here, but the 1.4 stretch is a deep street: the site rule (PLANNING.md Oct 15) applies."""
+    (row,) = tree_row_sites(_run([0.4, 0.5, 1.4, 0.8]), tiny.cfg)
+    assert row["rejected"] is True
+    assert row["rule"] == "CANOPY_OBSTRUCTION"
+    assert row["H_W"] == pytest.approx(1.4)
+
+
+def test_a_shallow_run_is_accepted(tiny: Tiny) -> None:
+    (row,) = tree_row_sites(_run([0.4, 0.5, 0.9, 0.8]), tiny.cfg)
+    assert row["rejected"] is False
+    assert row["H_W"] == pytest.approx(0.9)
+
+
+def test_a_gap_in_a_run_splits_it_into_single_linestrings(tiny: Tiny) -> None:
+    rows = tree_row_sites(_run([0.4] * 8, gap_after=3), tiny.cfg)
+    assert len(rows) == 2
+    assert all(r["geometry"].geom_type == "LineString" for r in rows)

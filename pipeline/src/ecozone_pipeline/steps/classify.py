@@ -223,6 +223,11 @@ def build_parcels(
 # ---------- sites (Repair) ----------
 
 
+def _joins(previous: Any, current: Any, tolerance_m: float = 0.5) -> bool:
+    """True when two consecutive chunks of a run touch end to start (within tolerance)."""
+    return bool(previous.distance(current) <= tolerance_m)
+
+
 def tree_row_sites(chunks: gpd.GeoDataFrame, cfg: AreaConfig) -> list[dict[str, Any]]:
     s = cfg["sites"]["tree_row"]
     rows: list[dict[str, Any]] = []
@@ -236,7 +241,8 @@ def tree_row_sites(chunks: gpd.GeoDataFrame, cfg: AreaConfig) -> list[dict[str, 
             trees = math.floor(glen / float(s["spacing_m"]))
             if trees < int(s["min_trees"]):
                 return
-            hw = float(np.mean([c.H_W for c in group]))
+            # The site rule is per street: one deep stretch rejects the whole row, so use the worst chunk.
+            hw = float(max(c.H_W for c in group))
             geom = shapely.line_merge(shapely.multilinestrings([c.geometry for c in group]))
             first = group[0]
             rejected = hw >= float(s["canopy_hw_limit"])
@@ -256,6 +262,11 @@ def tree_row_sites(chunks: gpd.GeoDataFrame, cfg: AreaConfig) -> list[dict[str, 
             )
 
         for chunk in run.itertuples(index=False):
+            if group and not _joins(group[-1].geometry, chunk.geometry):
+                # A gap in the run would make the merged row a MultiLineString, which the API cannot serve.
+                flush()
+                group.clear()
+                length = 0.0
             group.append(chunk)
             length += chunk.length_m
             if length >= float(s["max_run_length_m"]):
