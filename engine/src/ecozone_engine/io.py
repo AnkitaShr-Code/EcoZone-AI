@@ -14,6 +14,7 @@ from pathlib import Path
 import geopandas as gpd
 from shapely import STRtree
 
+from .errors import InvalidBundleError
 from .indices import block_cooling, gcs, hei, vci
 from .model import (
     AreaModel,
@@ -35,6 +36,9 @@ def load_bundle(path: Path) -> AreaModel:
     with meta_path.open() as f:
         meta: dict[str, object] = json.load(f)
 
+    for _required in ("area_id", "bundle_version"):
+        if _required not in meta:
+            raise InvalidBundleError(_required, str(path))
     area_id = str(meta["area_id"])
     bundle_version = str(meta["bundle_version"])
     v_ref = float(str(meta.get("V_ref", 0.0)))

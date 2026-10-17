@@ -7,6 +7,7 @@ work packages: changing one is its own PR, agreed by the engine and API owners.
 from ._stub import NotImplementedYetError
 from .errors import (
     EngineInputError,
+    InvalidBundleError,
     InvalidChangeError,
     QuantityOutOfRangeError,
     UnknownParcelError,
@@ -57,6 +58,7 @@ __all__ = [
     "HotspotData",
     "IndexKey",
     "InterventionKind",
+    "InvalidBundleError",
     "InvalidChangeError",
     "LayerName",
     "NotImplementedYetError",

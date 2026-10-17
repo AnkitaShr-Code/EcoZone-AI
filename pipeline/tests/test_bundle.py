@@ -12,7 +12,7 @@ from shapely import MultiLineString, Point
 from tiny_area import FIXTURES, Tiny
 from typer.testing import CliRunner
 
-from ecozone_engine import AreaScores, BaselineData, Scores
+from ecozone_engine import AreaScores, BaselineData, InvalidBundleError, Scores
 from ecozone_pipeline.cli import app
 from ecozone_pipeline.steps import baselines
 from ecozone_pipeline.steps.bundle import SCHEMA, load_tables, validate_tables
@@ -119,14 +119,13 @@ def test_validation_catches_each_kind_of_problem(tiny: Tiny) -> None:
     assert any("not a single LineString" in e for e in broken(sites=split_tree_row))
 
 
-def test_baselines_are_skipped_until_the_engine_can_compute_them(tiny: Tiny, tmp_path: Path) -> None:
-    out = tmp_path / "skip"
-    out.mkdir()
-    (out / "meta.json").write_text(json.dumps({"skipped_steps": ["earth_engine"]}))
-    result = baselines.run(out)
-    assert result["skipped"] == "baselines"
-    assert json.loads((out / "meta.json").read_text())["skipped_steps"] == ["earth_engine", "baselines"]
-    assert not (out / "baselines.parquet").exists()
+def test_load_bundle_raises_for_missing_area_id(tmp_path: Path) -> None:
+    """load_bundle raises InvalidBundleError, not KeyError, for a meta.json missing required fields."""
+    from ecozone_engine import load_bundle
+
+    (tmp_path / "meta.json").write_text(json.dumps({"skipped_steps": ["earth_engine"]}))
+    with pytest.raises(InvalidBundleError, match="area_id"):
+        load_bundle(tmp_path)
 
 
 def test_baselines_are_written_when_the_engine_provides_them(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
