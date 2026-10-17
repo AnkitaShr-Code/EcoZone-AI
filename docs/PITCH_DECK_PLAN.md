@@ -48,7 +48,7 @@ Delete before export.
 Two rows on one map:
 - **Repair:** select area → priority map → set budget → Gemini proposes portfolios → engine scores (shade, heat, green, ventilation, cost) → refine ×3 → plan and shadows → cooling plan brief.
 - **Protect:** select parcel → enter proposal → engine scores → Gemini explains → design search → options A/B/C → build-out → planning brief.
-Small inset: the search loop (Gemini proposer → code scorer → code judge; stop at 3 rounds or no gain).
+Small inset: the search loop (Gemini proposer → code scorer → code judge; stop at 2 rounds or no gain).
 
 ### 7. Wireframes / mock diagrams
 Real screenshot of the Repair screen if ready by Oct 17; otherwise the annotated mockup. Callouts: rejected tree row with reason, live search progress, planner-input and AI-estimated badges, arrows and text with color.

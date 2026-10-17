@@ -172,7 +172,7 @@ Built without ADK (decision in [ENGINEERING_RULES.md](ENGINEERING_RULES.md) §2)
 | Scenario Analyst | search loop (`protect.py`) | simulate_scenario, compare_scenarios, simulate_buildout | Runs the design search |
 | Planning Advisor | writer model + output guard | format_cooling_plan, format_planning_brief | Writes explanations and briefs |
 
-**One search loop, two uses.** `search.py` runs one loop of at most 3 rounds with three steps:
+**One search loop, two uses.** `search.py` runs one loop of at most 2 rounds with three steps:
 
 1. **Proposer** (Gemini Flash tier): reads the compact brief (best results so far), proposes four candidates as structured JSON (portfolios for Repair, designs for Protect).
 2. **Scorer** (code, no LLM): calls the engine for each candidate, drops invalid ones (over budget, below the quick-win share, ventilation fail, floor-area rule), emits one progress event per candidate.
@@ -187,7 +187,7 @@ The scorer and judge are plain code, so the loop's control flow is deterministic
 | Output guard | `guard.py`, run on every writer answer: extracts every number from the text, checks it against numbers in this turn's tool results and planner inputs (with rounding tolerance), and rejects forbidden units (°C, m/s, kWh). One regeneration, then a template filled from engine values |
 | Sessions | Runs live in the API instance's memory, Cloud Run session affinity on; finished portfolios, plans and observations are written to Firestore so nothing is lost on restart |
 | Progress | Scorer and judge events are forwarded to the SSE stream, which drives the live search animation |
-| Cost control | Proposer sees compact JSON summaries, not geometry; at most 3 rounds × 1 Gemini call per search |
+| Cost control | Proposer sees compact JSON summaries, not geometry; at most 2 rounds × 1 Gemini call per search |
 
 ### C5. Front end (React + TypeScript)
 
@@ -255,7 +255,7 @@ The scorer and judge are plain code, so the loop's control flow is deterministic
 1. UI loads the area: layers from GCS, `GET /hotspots`, baseline shadows.
 2. Planner sets budget, quick-win share and unit costs; UI calls `POST /agent/runs` with mode `repair`.
 3. Router → Spatial Analyst (`get_area_context`) → Repair Planner (`rank_hotspots`, `list_candidate_sites`, `greedy_baseline`).
-4. Search loop: up to 3 rounds of propose (Gemini) → score (engine) → judge. Each scored candidate streams to the UI.
+4. Search loop: up to 2 rounds of propose (Gemini) → score (engine) → judge. Each scored candidate streams to the UI.
 5. Planning Advisor writes the plan from the best portfolio's `AreaResult`; the guard checks it.
 6. Plan saved to Firestore, run logged to BigQuery; UI shows the plan, the shadows (`GET /shadows?portfolio=`) and the brief.
 
@@ -271,7 +271,7 @@ The scorer and judge are plain code, so the loop's control flow is deterministic
 | `rescore` for one portfolio | Under 200 ms |
 | Protect `simulate` | Under 100 ms |
 | Shadows for one time step with a portfolio | Under 500 ms |
-| Full Repair search (3 rounds) | Under 60 s; returns best so far at a time limit |
+| Full Repair search (2 rounds) | About 2 to 3 minutes live; returns best so far at the 300 s limit |
 | Map first render | Under 3 s on a laptop |
 
 These are targets to measure, not claims.

@@ -145,7 +145,7 @@ An offline pipeline turns public data into tables per city in BigQuery. A live a
 | Repair: priority map | An area | Priority per block and footpath; baseline shade at 1, 3 and 4 pm | Names the top hotspots and why, from driver tags | Ranked hotspot map |
 | Repair: cooling plan | Budget and unit costs | Candidate sites; score, cost and ventilation check for every portfolio; greedy baseline | Proposes and refines portfolios for up to 3 rounds; field check list per site | Costed, phased plan with before and after scores and shadows |
 | Protect: preview and explain | A parcel and a proposal | Baseline and proposed indices, risk label, driver tags | Plain-language drivers; imagery observations labeled AI-estimated | Before and after, risk label, explanation |
-| Protect: design search | The proposal and the share of floor area to keep | Scores for every candidate | Proposes and refines candidates for up to 3 rounds | Options A, B and C |
+| Protect: design search | The proposal and the share of floor area to keep | Scores for every candidate | Proposes and refines candidates for up to 2 rounds | Options A, B and C |
 | Protect: area build-out | A street or group of blocks and the maximum envelope | Rescores every parcel in the area, neighbors included | Names the parcels and streets that lose most, and why | Area averages before and after, count of HIGH parcels |
 
 Every mode ends in a brief, and every answer passes the output guard before the planner sees it.
@@ -276,7 +276,7 @@ Four agents, built with the Agent Development Kit (ADK), each with its own tools
 2. The engine computes a greedy baseline: fill the quick-win share with the best quick wins by score gain per rupee, then add the remaining sites by gain per rupee until the budget is spent.
 3. Gemini proposes four portfolios per round. Its job is to find what greedy misses: interactions between sites. Two shade measures on the same footpath overlap, so the second adds little; depaving a school yard next to a pocket green links two patches, so together they add more than apart.
 4. `simulate_interventions` scores each portfolio: ACS change, cost, ventilation check, waiting points covered, driver tags.
-5. Gemini discards portfolios over budget, below the quick-win share or failing the ventilation check, and refines. The loop stops after three rounds, or earlier when no portfolio beats the best by more than 0.5 ACS points.
+5. Gemini discards portfolios over budget, below the quick-win share or failing the ventilation check, and refines. The loop stops after two rounds, or earlier when no portfolio beats the best by more than 0.5 ACS points.
 6. The best scored portfolio is shown. If the greedy baseline beats every Gemini portfolio, the app shows the greedy one and says so.
 
 ### Design search loop (Protect)
@@ -285,7 +285,7 @@ Four agents, built with the Agent Development Kit (ADK), each with its own tools
 2. It proposes four candidate designs within the allowed ranges.
 3. Each is scored by `simulate_scenario`.
 4. Candidates breaking the floor-area rule are dropped; Gemini proposes a refined batch.
-5. The loop stops after three rounds, or earlier when no candidate beats the best by more than 2 points.
+5. The loop stops after two rounds, or earlier when no candidate beats the best by more than 2 points.
 6. Options B and C are selected from scored candidates only.
 
 Levers: height, footprint %, green %, orientation (15° steps), green placement (scattered, or a connected corridor on the edge facing the nearest green patch). Candidates may not exceed the proposal's height or footprint or reduce its green share.

@@ -28,7 +28,7 @@ def test_settings_read_the_documented_environment_variables(monkeypatch: pytest.
         "pro-model",
     )
     assert s.gemini_configured and s.llm == "gemini"
-    assert (s.max_rounds, s.proposals_per_round, s.explain_timeout_s) == (3, 4, 20.0)
+    assert (s.max_rounds, s.proposals_per_round, s.explain_timeout_s) == (2, 4, 20.0)
 
 
 def test_there_is_no_api_key_setting() -> None:

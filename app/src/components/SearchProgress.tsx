@@ -31,7 +31,7 @@ export function SearchProgress({ state, running, failed, scoreLabel, formatScore
           : running ? <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden /> : <Check className="size-4 text-delta-better" aria-hidden />}
         <p className="flex-1" aria-live="polite">
           {failed ? "The search stopped with an error. Try drafting again." : running
-            ? roundNow ? `Round ${roundNow} of up to 3 · ${candidates.length} options scored` : 'Preparing the search…'
+            ? roundNow ? `Round ${roundNow} of up to 2 · ${candidates.length} options scored` : 'Preparing the search…'
             : `Search finished · ${candidates.length} options scored in ${roundNow} rounds`}
         </p>
         {running && onStop && (
