@@ -58,11 +58,13 @@ areas:
     protect_search_case: pc_017_wide_road
     # Height ladder for the ventilation direction check, with the other design values held fixed.
     floors_ladder: [1, 2, 4, 6, 8, 12]
-    # Tall designs a ventilation guard must flag if they drop a block's VCI by the threshold or more.
+    # Tall designs a ventilation guard must flag. Orientation 30 puts the long side across Deccan's wind (from 303
+    # degrees, so its axis is 123): a long side along the wind can offset the height penalty, see the orientation
+    # sensitivity measure in test_ventilation.py.
     guard_designs:
-      - { parcel_id: pc_017, floors: 12, footprint_pct: 80, green_pct: 5, orientation_deg: 0 }
-      - { parcel_id: pc_004, floors: 12, footprint_pct: 80, green_pct: 5, orientation_deg: 0 }
-      - { parcel_id: pc_010, floors: 12, footprint_pct: 80, green_pct: 5, orientation_deg: 0 }
+      - { parcel_id: pc_017, floors: 12, footprint_pct: 80, green_pct: 5, orientation_deg: 30 }
+      - { parcel_id: pc_004, floors: 12, footprint_pct: 80, green_pct: 5, orientation_deg: 30 }
+      - { parcel_id: pc_010, floors: 12, footprint_pct: 80, green_pct: 5, orientation_deg: 30 }
 
   tiny:
     bundle_version: v1

@@ -53,8 +53,6 @@ def test_search_never_exceeds_budget(bench: Bench, cases: AreaCases, rec: Record
         )
         if best.cost_inr > rc.budget_inr:
             problems.append(f"{rc.id}: best {best.cost_inr} > {rc.budget_inr}")
-        if not best.valid:
-            problems.append(f"{rc.id}: the best candidate is marked invalid")
         # The engine's own cost for the chosen changes, not the rounded number the candidate carries.
         changes = [bench.change(ch.site_id, ch.quantity) for ch in best.changes if isinstance(ch, InterventionChange)]
         cost = bench.rescore(changes).cost_inr
@@ -65,3 +63,17 @@ def test_search_never_exceeds_budget(bench: Bench, cases: AreaCases, rec: Record
             if cand["valid"] and cand["costInr"] > rc.budget_inr:
                 problems.append(f"{rc.id}: valid candidate {cand['id']} costs {cand['costInr']}")
     assert not problems, problems
+
+
+def test_search_returns_a_valid_plan(bench: Bench, cases: AreaCases, rec: Recorder) -> None:
+    """The plan the search hands back is one the planner can use: inside the budget, the quick-win share met and the
+    ventilation check passed (the loop marks a plan that is not with `valid: false` and a reason)."""
+    rows: dict[str, object] = {}
+    invalid: list[str] = []
+    for rc in cases.repair:
+        best = bench.repair_search(rc).result.best
+        rows[rc.id] = {"valid": best.valid, "source": best.source, "reason": best.invalid_reason}
+        if not best.valid:
+            invalid.append(f"{rc.id}: {best.invalid_reason}")
+    rec.measure("budget.search_validity", "best_plan", rows, "fake LLM")
+    assert not invalid, invalid

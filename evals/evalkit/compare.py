@@ -21,6 +21,17 @@ def classify(ai: float, greedy: float) -> str:
     return "tie"
 
 
+def ai_invalid_reasons(run: SearchRun) -> dict[str, int]:
+    """Why the AI candidates the loop dropped or flagged were invalid, counted by reason."""
+    counts: dict[str, int] = {}
+    for raw in run.events:
+        ev: dict[str, Any] = json.loads(raw)
+        if ev["type"] == "candidate" and ev["candidate"]["source"] == "gemini" and not ev["candidate"]["valid"]:
+            reason = str(ev["candidate"].get("invalidReason"))
+            counts[reason] = counts.get(reason, 0) + 1
+    return counts
+
+
 def best_ai_acs(bench: Bench, run: SearchRun) -> tuple[float | None, float | None, int, int]:
     """(best valid AI plan's raw ACS, its cost, valid AI candidates, all AI candidates), from engine values."""
     best: tuple[float, float] | None = None
@@ -68,6 +79,7 @@ def compare(bench: Bench, rc: RepairCase, run: SearchRun) -> dict[str, Any]:
         "greedy_invalid_reason": base.get("invalidReason"),
         "ai_valid_candidates": valid,
         "ai_candidates": total,
+        "ai_invalid_reasons": ai_invalid_reasons(run),
         "rounds": run.result.rounds,
         "reported_gemini_beat_greedy": run.result.gemini_beat_greedy,
         "search_seconds": round(run.seconds, 1),

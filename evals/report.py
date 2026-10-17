@@ -227,7 +227,7 @@ def build(rows: list[Row]) -> str:
     )
     out.append("")
     sp = [m for m in rows if m["result"] == "measured" and m["test"].startswith("speed.rescore")]
-    sp += measures(rows, "speed.shadows")
+    sp += measures(rows, "speed.shadows") + measures(rows, "speed.diagnosis")
     srows: list[list[str]] = []
     for m in sp:
         v = m["value"]

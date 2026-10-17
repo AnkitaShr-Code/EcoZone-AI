@@ -109,3 +109,21 @@ def test_risk_label_reflects_the_parcels_block(bench: Bench, cases: AreaCases, r
         mismatches += expected(worst) != r.risk.label
     rec.measure("ventilation.risk_label", "parcel_block_vs_engine", rows)
     assert mismatches == 0, rows
+
+
+def test_orientation_sensitivity_of_a_tall_building(bench: Bench, cases: AreaCases, rec: Recorder) -> None:
+    """Informational: worst block VCI drop of the same tall design at every 15 degree orientation. The design search
+    uses orientation as a lever; this shows how far it alone moves the ventilation flag."""
+    g = cases.guard_designs[0]
+    rows: dict[str, float] = {}
+    for deg in range(0, 180, 15):
+        d = Design(g.design.floors, g.design.footprint_pct, g.design.green_pct, float(deg))
+        rows[f"{deg}"] = round(bench.rescore([building_change(g.parcel_id, d)]).worst_vci_drop, 2)
+    rec.measure(
+        "ventilation.orientation_sensitivity",
+        g.parcel_id,
+        rows,
+        f"{g.design.floors} floors, {g.design.footprint_pct:g}% footprint, {g.design.green_pct:g}% green; "
+        "key = orientation in degrees, value = worst VCI drop",
+    )
+    assert all(v >= 0 for v in rows.values())
