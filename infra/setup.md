@@ -176,8 +176,16 @@ gcloud iam service-accounts add-iam-policy-binding \
 ```bash
 # First connect the GitHub repo via the console:
 # Cloud Build > Triggers > Connect repository > GitHub > ecozone-ai repo
+# (only needed once per repo; reuse the connection for any number of triggers)
+
+# Verify Vertex AI model IDs first (step 11 below), then fill in the values below.
+export MODEL_PROPOSER=<flash-model-id>   # e.g. gemini-2.0-flash-001
+export MODEL_WRITER=<pro-model-id>       # e.g. gemini-2.5-pro-001
+export GEMINI_LOC=$REGION               # location serving those models, e.g. asia-south1
 
 # Then create the trigger:
+# _REGION, _SERVICE, _REGISTRY, _REPO, _STORE all have defaults in cloudbuild.yaml — no need to pass them.
+# $PROJECT_ID and $SHORT_SHA are Cloud Build built-ins; do NOT pass them as _PROJECT / _SHORT_SHA.
 gcloud builds triggers create github \
   --name=deploy-main \
   --project=$PROJECT \
@@ -187,8 +195,13 @@ gcloud builds triggers create github \
   --branch-pattern=^main$ \
   --build-config=infra/cloudbuild.yaml \
   --service-account="projects/${PROJECT}/serviceAccounts/${SA_DEPLOY}@${PROJECT}.iam.gserviceaccount.com" \
-  --substitutions=_REGION=$REGION,_SERVICE=ecozone,_REGISTRY=${REGION}-docker.pkg.dev,_REPO=$REPO,_PROJECT=$PROJECT,_BUNDLE_URI=gs://${BUNDLE_BUCKET}/deccan,_SHORT_SHA=\$SHORT_SHA
+  --substitutions=_BUNDLE_URI=gs://${BUNDLE_BUCKET}/areas/deccan/v1,_GEMINI_LOC=${GEMINI_LOC},_MODEL_PROPOSER=${MODEL_PROPOSER},_MODEL_WRITER=${MODEL_WRITER}
 ```
+
+> **Why not pass `_PROJECT` or `_SHORT_SHA`?** The new `cloudbuild.yaml` uses the Cloud Build built-ins
+> `$PROJECT_ID` and `$SHORT_SHA` directly. Passing them as user-defined substitutions causes Cloud Build
+> to warn about unused variables and is confusing. All credentials and config flow from Cloud at build
+> time — no local values are baked in.
 
 ## 9. First manual deploy (before CI is wired)
 
