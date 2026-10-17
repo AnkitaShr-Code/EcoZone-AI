@@ -16,9 +16,9 @@ class EngineSettings:
     w_vci_co: float = 0.25
     w_vci_ob: float = 0.25
     w_vci_pg: float = 0.20
-    l_built_scale: float = 5.0    # C_o = max(0, 100 - L_built/5)
-    h_w_scale: float = 2.5        # O_b = 100*(1 - min(1, H_W/2.5))
-    d_water_scale: float = 10.0   # P_g = max(0, 100 - d_water/10)
+    l_built_scale: float = 5.0  # C_o = max(0, 100 - L_built/5)
+    h_w_scale: float = 2.5  # O_b = 100*(1 - min(1, H_W/2.5))
+    d_water_scale: float = 10.0  # P_g = max(0, 100 - d_water/10)
 
     # ── HEI weights (PLANNING.md §HEI) ───────────────────────────────────────
     w_hei_is: float = 0.35
@@ -26,12 +26,12 @@ class EngineSettings:
     w_hei_tm: float = 0.20
     w_hei_ra: float = 0.15
     albedo_ref_high: float = 0.70  # dark roof reference (Ra numerator)
-    albedo_ref_low: float = 0.10   # cool roof reference (Ra denominator floor)
+    albedo_ref_low: float = 0.10  # cool roof reference (Ra denominator floor)
 
     # ── GCS weights (PLANNING.md §GCS) ───────────────────────────────────────
     w_gcs_gbuf: float = 0.50
     w_gcs_llink: float = 0.50
-    d_green_scale: float = 3.0    # L_link = max(0, 100 - d_green/3)
+    d_green_scale: float = 3.0  # L_link = max(0, 100 - d_green/3)
 
     # ── ACS weights (PLANNING.md §ACS) ───────────────────────────────────────
     w_acs_hei: float = 0.45
@@ -48,6 +48,8 @@ class EngineSettings:
     # ── Wait-point weights (PLANNING.md §Priority, prototype settings) ────────
     wt_school: float = 3.0
     wt_hospital: float = 3.0
+    wt_clinic: float = 2.0
+    wt_college: float = 2.0
     wt_market: float = 2.0
     wt_bus_stop: float = 1.0
 
@@ -66,8 +68,8 @@ class EngineSettings:
 
     # ── Shadow / tree geometry (PLANNING.md §PSS, §Interventions) ────────────
     metres_per_floor: float = 3.0
-    crown_radius_m: float = 3.5   # tree crown disc radius
-    crown_height_m: float = 5.0   # crown centre height above ground
+    crown_radius_m: float = 3.5  # tree crown disc radius
+    crown_height_m: float = 5.0  # crown centre height above ground
     shade_structure_height_m: float = 3.0  # shade structure canopy height
 
     # ── Spatial radii (PLANNING.md §Terms, §Area rescoring) ──────────────────
@@ -81,8 +83,14 @@ class EngineSettings:
     quick_win_ttb: tuple[str, ...] = ("weeks", "season")
 
     # ── Prototype intervention attributes ─────────────────────────────────────
-    cool_roof_albedo: float = 0.60        # applied roof albedo after cool coating
-    depave_green_frac: float = 0.70       # fraction of depaved area that becomes green
+    cool_roof_albedo: float = 0.60  # applied roof albedo after cool coating
+    depave_green_frac: float = 0.70  # fraction of depaved area that becomes green
+
+    # ── Block-level driver thresholds (PLANNING.md §Primary drivers) ──────────
+    driver_shade_pss_threshold: float = 30.0  # PSS below this → SHADE_GAIN
+    driver_impervious_threshold: float = 50.0  # I_s above this → IMPERVIOUS_LOSS
+    driver_albedo_threshold: float = 0.30  # roof_albedo below this → ALBEDO_GAIN
+    driver_green_link_threshold: float = 100.0  # d_green above this → GREEN_LINK
 
     # ── Greedy skip threshold (engine/RULES.md §Greedy) ──────────────────────
     greedy_min_gain: float = 0.0

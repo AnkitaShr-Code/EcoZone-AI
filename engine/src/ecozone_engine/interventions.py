@@ -34,7 +34,7 @@ def apply_tree_row(area: AreaModel, change: Change) -> BlockDeltas:
     if site is None:
         return {}
     n_trees = max(0, round(change.quantity))
-    crown_area = math.pi * S.crown_radius_m ** 2
+    crown_area = math.pi * S.crown_radius_m**2
     total_crown_area = crown_area * n_trees
     deltas: BlockDeltas = {}
 
@@ -50,7 +50,7 @@ def apply_tree_row(area: AreaModel, change: Change) -> BlockDeltas:
             deltas.setdefault(block_id, {})["G_c"] = gc_delta
 
     # G_buf increment for blocks within 300 m of site centroid
-    buffer_area = math.pi * S.green_buffer_radius_m ** 2
+    buffer_area = math.pi * S.green_buffer_radius_m**2
     site_centroid = site.geometry.centroid
     for b in _blocks_within(list(area.blocks), site_centroid, S.green_buffer_radius_m):
         gbuf_delta = min(
@@ -65,8 +65,12 @@ def apply_tree_row(area: AreaModel, change: Change) -> BlockDeltas:
     for b in sorted(area.blocks, key=lambda r: r.block_id):
         b_centroid = b.geometry.centroid
         if positions:
-            nearest = min(b_centroid.distance(  # type: ignore[arg-type]
-                type(b_centroid)(cx, cy)) for cx, cy in positions)  # type: ignore[call-arg]
+            nearest = min(
+                b_centroid.distance(  # type: ignore[arg-type]
+                    type(b_centroid)(cx, cy)
+                )
+                for cx, cy in positions
+            )  # type: ignore[call-arg]
             if nearest < b.d_green:
                 d_delta = -(b.d_green - nearest)
                 deltas.setdefault(b.block_id, {})
@@ -97,7 +101,7 @@ def apply_depave(area: AreaModel, change: Change) -> BlockDeltas:
             deltas[block_id] = {"I_s": is_delta, "G_c": gc_delta}
 
     green_area = depaved_m2 * S.depave_green_frac
-    buffer_area = math.pi * S.green_buffer_radius_m ** 2
+    buffer_area = math.pi * S.green_buffer_radius_m**2
     site_centroid = site.geometry.centroid
     for b in _blocks_within(list(area.blocks), site_centroid, S.green_buffer_radius_m):
         gbuf_delta = min(100.0 - b.G_buf, green_area / buffer_area * 100.0)
@@ -117,7 +121,7 @@ def apply_pocket_green(area: AreaModel, change: Change) -> BlockDeltas:
     if site is None:
         return {}
     green_area = change.quantity  # m²
-    buffer_area = math.pi * S.green_buffer_radius_m ** 2
+    buffer_area = math.pi * S.green_buffer_radius_m**2
     site_centroid = site.geometry.centroid
     deltas: BlockDeltas = {}
 

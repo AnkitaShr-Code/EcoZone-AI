@@ -19,11 +19,7 @@ from .settings import SETTINGS as S
 
 def _candidate_sites(area: AreaModel) -> list[tuple[str, str, float]]:
     """(site_id, kind, quantity_min) for all non-rejected sites, sorted by site_id."""
-    return [
-        (s.site_id, s.kind, s.quantity_min)
-        for s in sorted(area.sites, key=lambda s: s.site_id)
-        if not s.rejected
-    ]
+    return [(s.site_id, s.kind, s.quantity_min) for s in sorted(area.sites, key=lambda s: s.site_id) if not s.rejected]
 
 
 def _score_gain(area: AreaModel, change: Change, unit_costs: UnitCosts) -> tuple[float, float]:
@@ -58,7 +54,8 @@ def greedy_baseline(
     scored.sort(key=sort_key)
 
     quick_wins = [
-        (c, sid, knd, qty) for _g, c, sid, knd, qty in scored
+        (c, sid, knd, qty)
+        for _g, c, sid, knd, qty in scored
         if is_quick_win(area, Change(kind=knd, site_id=sid, quantity=qty))  # type: ignore[arg-type]
     ]
 

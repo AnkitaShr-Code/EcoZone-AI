@@ -13,6 +13,9 @@ from shapely.geometry.base import BaseGeometry
 from shapely.ops import linemerge, nearest_points, unary_union
 from shapely.strtree import STRtree
 
+from ecozone_engine.model import WaitPointRow
+from ecozone_engine.priority import wait_weight_sum
+
 from ..config import AreaConfig, Paths
 from ..store import polygonal, read_json, read_table, write_json, write_table
 from .geometry import bearing_deg
@@ -93,7 +96,6 @@ def block_attributes(
 ) -> gpd.GeoDataFrame:
     a = cfg["attributes"]
     box = bbox_polygon(cfg)
-    wait_w = float(cfg["wait_points"]["weight_radius_m"])
     green_r, wide_r = float(a["green_buffer_m"]), float(a["wide_green_buffer_m"])
 
     crowns = unary_union([Point(p).buffer(float(a["tree_crown_radius_m"])) for p in layers["trees"].geometry])
@@ -116,8 +118,19 @@ def block_attributes(
     b_tree = STRtree(buildings.geometry.values) if len(buildings) else None
     b_foot = buildings["footprint_m2"].to_numpy(dtype=float) if len(buildings) else np.array([])
     b_alb = buildings["roof_albedo"].to_numpy(dtype=float) if len(buildings) else np.array([])
-    wp_tree = STRtree(layers["wait_points"].geometry.values) if len(layers["wait_points"]) else None
-    wp_weight = layers["wait_points"]["weight"].to_numpy(dtype=float) if wp_tree else np.array([])
+    wait_point_rows: list[WaitPointRow] = (
+        [
+            WaitPointRow(
+                wait_id=str(row.id),
+                geometry=row.geometry,
+                kind=str(row.kind),
+                weight=float(row.weight),
+            )
+            for row in layers["wait_points"].itertuples(index=False)
+        ]
+        if len(layers["wait_points"])
+        else []
+    )
     default_albedo = float(cfg["roof_albedo"]["other"])
     by_block = {bid: grp for bid, grp in chunks.groupby("block_id")}
     bld_by_block = {bid: grp for bid, grp in buildings.groupby("block_id")}
@@ -167,11 +180,7 @@ def block_attributes(
         else:
             cols["roof_albedo"].append(default_albedo)
 
-        if wp_tree is not None:
-            near = wp_tree.query(geom, predicate="dwithin", distance=wait_w)
-            cols["wait_weight"].append(float(wp_weight[near].sum()))
-        else:
-            cols["wait_weight"].append(0.0)
+        cols["wait_weight"].append(wait_weight_sum(geom, wait_point_rows))
         cols["split"].append(split_for(str(blk.id), seed))
 
     for name, values in cols.items():

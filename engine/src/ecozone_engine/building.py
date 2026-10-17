@@ -30,9 +30,7 @@ def apply_building(area: AreaModel, change: Change) -> BlockDeltas:
     orientation_deg = params.get("orientation_deg", parcel.street_bearing_deg)
 
     if floors < 0.0 or footprint_pct < 0.0 or footprint_pct > 100.0:
-        raise InvalidChangeError(
-            f"Parcel {parcel_id}: floors must be >= 0 and footprint_pct in [0, 100]."
-        )
+        raise InvalidChangeError(f"Parcel {parcel_id}: floors must be >= 0 and footprint_pct in [0, 100].")
 
     block_id = parcel.block_id
     blk = next((b for b in area.blocks if b.block_id == block_id), None)
@@ -40,6 +38,7 @@ def apply_building(area: AreaModel, change: Change) -> BlockDeltas:
         return {}
 
     import math
+
     h_m = floors * S.metres_per_floor
     w_m = parcel.road_width_m if parcel.road_width_m > 0.0 else 8.0
     new_hw = h_m / w_m

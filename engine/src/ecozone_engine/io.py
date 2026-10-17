@@ -121,9 +121,7 @@ def load_bundle(path: Path) -> AreaModel:
             str(block_id_raw) if block_id_raw is not None and str(block_id_raw) != "None" else None
         )
         wait_id_raw = row.get("wait_point_id")
-        wait_id_val: str | None = (
-            str(wait_id_raw) if wait_id_raw is not None and str(wait_id_raw) != "None" else None
-        )
+        wait_id_val: str | None = str(wait_id_raw) if wait_id_raw is not None and str(wait_id_raw) != "None" else None
         site_rows.append(
             SiteRow(
                 site_id=str(row["id"]),
@@ -198,15 +196,22 @@ def load_bundle(path: Path) -> AreaModel:
 
     chunk_list = list(chunk_rows)
     for b in sorted(block_rows, key=lambda r: r.block_id):
-        b_vci = vci(b.H_W, b.canyon_axis_deg, b.L_built, b.d_water, wind_from_deg)
-        b_hei = hei(b.I_s, b.G_c, b.V, v_ref, b.roof_albedo)
-        b_gcs = gcs(b.G_buf, b.d_green)
+        b_vci = vci(
+            h_w=b.H_W,
+            canyon_axis_deg=b.canyon_axis_deg,
+            l_built=b.L_built,
+            d_water=b.d_water,
+            wind_from_deg=wind_from_deg,
+        )
+        b_hei = hei(i_s=b.I_s, g_c=b.G_c, v=b.V, v_ref=v_ref, roof_albedo=b.roof_albedo)
+        b_gcs = gcs(g_buf=b.G_buf, d_green=b.d_green)
         b_pss = block_pss(b.block_id, chunk_list, chunk_shading)
         scores = Scores(vci=b_vci, hei=b_hei, gcs=b_gcs, pss=b_pss)
         block_baselines.append((b.block_id, scores))
 
         # Weighted for area ACS
         from .priority import vulnerability, wait_weight
+
         ew = wait_weight(b, list(wait_rows))
         vv = vulnerability(b)
         w = ew * vv
@@ -231,6 +236,7 @@ def load_bundle(path: Path) -> AreaModel:
     bbaseline_dict = dict(block_baselines)
     for b in sorted(block_rows, key=lambda r: r.block_id):
         from .priority import vulnerability, wait_weight
+
         ew = wait_weight(b, list(wait_rows))
         vv = vulnerability(b)
         w = ew * vv
