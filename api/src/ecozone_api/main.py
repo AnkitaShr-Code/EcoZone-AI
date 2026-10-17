@@ -13,6 +13,7 @@ import ecozone_engine
 from ecozone_agents import AgentSettings, build_runner
 
 from . import errors
+from .bundle_source import resolve_bundle_root
 from .deps import EnginePort, Services, load_areas, load_unit_costs
 from .routes import areas, health, rescore, runs
 from .run_manager import RunManager, SearchRunner, UnavailableRunner
@@ -38,7 +39,7 @@ def create_app(
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         port: EnginePort = engine or ecozone_engine  # pyright: ignore[reportAssignmentType]
-        bundle_root = Path(settings.bundle_uri) if settings.bundle_uri else None
+        bundle_root = resolve_bundle_root(settings.bundle_uri)
         unit_cost_defaults = load_unit_costs(settings.unit_costs)
         search_runner = runner or build_runner(port, unit_cost_defaults, agent_settings) or UnavailableRunner()
         app.state.services = Services(
