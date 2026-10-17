@@ -343,8 +343,8 @@ ANALYSIS = {
         "than any left-out quick-win site, so the loop (which requires the full share) marks it invalid. "
         "engine/greedy.py phase 1 refuses any quick win that would take the quick-win spend over the share "
         "(`quick_spent + cost > quick_win_budget`), takes minimum quantities only and never tops up past the share, "
-        "and phase 2 then spends the rest of the budget on the best sites of any kind, so it reaches the share only by luck; agents/repair.py `_invalid_reason` is a plain `>=` check against the "
-        "planner's share, which matches PLANNING.md ('at least the share'). The gap is therefore in greedy's phase "
+        "and phase 2 then spends the rest of the budget on the best sites of any kind, so it reaches the share only "
+        "by luck; agents/repair.py `_invalid_reason` is a plain `>=` check against the planner's share, which matches PLANNING.md ('at least the share'). The gap is therefore in greedy's phase "
         "logic, not in how the loop reads the share."
     ),
 }
