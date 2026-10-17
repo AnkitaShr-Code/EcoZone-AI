@@ -90,7 +90,8 @@ class LstSettings:
     """Scene-level `CLOUD_COVER` percent; a scene above it is not used at all."""
     max_st_uncertainty_k: float = 5.0
     scale_m: int = 30
-    min_valid_pixels: int = 1
+    min_valid_pixels: float = 0.0
+    """A block is kept only if its valid pixel count is above this; 0 drops only blocks with no valid pixel."""
     crs: str = "EPSG:32643"
 
 
@@ -341,19 +342,19 @@ def fetch_block_lst(
         )
     requested = {b.block_id for b in blocks}
     reductions = backend.reduce_blocks(blocks, windows)
-    rows: list[tuple[str, float, int]] = []
+    rows: list[tuple[str, float, float]] = []
     seen: set[str] = set()
     for r in reductions:
         if r.block_id not in requested or r.block_id in seen:
             continue
         seen.add(r.block_id)
-        pixels = round(r.pixel_count)
-        if r.median_kelvin is None or r.median_kelvin != r.median_kelvin or pixels < settings.min_valid_pixels:
+        pixels = round(r.pixel_count, 2)
+        if r.median_kelvin is None or r.median_kelvin != r.median_kelvin or pixels <= settings.min_valid_pixels:
             continue
         rows.append((r.block_id, round(r.median_kelvin, 4), pixels))
     table = pd.DataFrame(sorted(rows), columns=list(CSV_COLUMNS))
     kept = set(table["block_id"])
-    pixels_sorted = sorted(int(p) for p in table["valid_pixels"])
+    pixels_sorted = sorted(float(p) for p in table["valid_pixels"])
     info = backend.info()
     meta: dict[str, Any] = {
         "kind": "block_lst",
@@ -381,7 +382,10 @@ def fetch_block_lst(
         "scale_m": settings.scale_m,
         "crs": settings.crs,
         "native_thermal_resolution_m": 100,
-        "pixel_count": "coverage-weighted count of unmasked 30 m pixels, rounded to an integer",
+        "pixel_count": (
+            "valid_pixels is the coverage-weighted count of unmasked 30 m pixels in the block "
+            "(partly covered pixels count in part), 2 decimals"
+        ),
         "fetch_date": fetched_on.isoformat(),
         "earth_engine_project": info.get("project"),
         "earthengine_api_version": info.get("earthengine_api_version"),

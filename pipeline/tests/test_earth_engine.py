@@ -201,17 +201,23 @@ def test_blocks_without_pixels_are_dropped_and_listed() -> None:
     red = [
         BlockReduction("blk_a", 301.5, 12.0),
         BlockReduction("blk_b", None, 0.0),
-        BlockReduction("blk_c", 300.0, 0.2),  # under one pixel after rounding
+        BlockReduction("blk_c", 300.0, 0.0),  # a median with no coverage behind it
         BlockReduction("blk_d", float("nan"), 3.0),
         BlockReduction("blk_unknown", 300.0, 9.0),  # not asked for
     ]
     res = run_fetch(StubBackend({(2026, L8): 6}, red), ["blk_a", "blk_b", "blk_c", "blk_d", "blk_e"])
     assert list(res.table["block_id"]) == ["blk_a"]
     assert list(res.table.columns) == ["block_id", "lst_kelvin", "valid_pixels"]
-    assert res.table["valid_pixels"].tolist() == [12]
+    assert res.table["valid_pixels"].tolist() == [12.0]
     assert res.meta["blocks_requested"] == 5
     assert res.meta["blocks_with_lst"] == 1
     assert res.meta["blocks_dropped"] == ["blk_b", "blk_c", "blk_d", "blk_e"]  # blk_e was never returned
+
+
+def test_partly_covered_pixels_still_count_as_valid() -> None:
+    res = run_fetch(StubBackend({(2026, L8): 6}, [BlockReduction("blk_a", 301.5, 0.456)]), ["blk_a"])
+    assert res.table["valid_pixels"].tolist() == [0.46]
+    assert res.meta["blocks_dropped"] == []
 
 
 def test_enough_scenes_in_the_reference_year_do_not_pull_in_the_year_before() -> None:
