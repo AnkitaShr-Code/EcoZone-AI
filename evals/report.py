@@ -61,6 +61,8 @@ def measures(rows: list[Row], prefix: str) -> list[Row]:
 
 def build(rows: list[Row]) -> str:
     outcomes = [r for r in rows if r["subject"] == "outcome"]
+    for o in outcomes:
+        o["result"] = {"passed": "pass", "failed": "fail"}.get(o["result"], o["result"])
     session = {r["subject"]: r["value"] for r in rows if r["test"] == "session" and r["result"] == "measured"}
     bundle: dict[str, Any] = session.get("bundle", {})
     machine: dict[str, Any] = session.get("machine", {})
@@ -108,9 +110,9 @@ def build(rows: list[Row]) -> str:
 
     out.append("## Results")
     out.append("")
-    order = {"fail": 0, "xpass": 1, "xfail": 2, "skip": 3, "passed": 4}
+    order = {"fail": 0, "xpass": 1, "xfail": 2, "skip": 3, "pass": 4}
     rows_out = [
-        [f"`{short(o['test'])}`", {"passed": "pass"}.get(o["result"], o["result"]), f"{o['value']:.1f} seconds"]
+        [f"`{short(o['test'])}`", o["result"], f"{o['value']:.1f} seconds"]
         for o in sorted(outcomes, key=lambda o: (order.get(o["result"], 9), o["test"]))
     ]
     out += table(["Eval", "Result", "Time"], rows_out)
@@ -121,19 +123,26 @@ def build(rows: list[Row]) -> str:
     out.append("")
     if not problems:
         out.append("No eval failed.")
+    shown: set[tuple[str, str, str]] = set()
     for o in problems:
         out.append(f"### `{short(o['test'])}`: {o['result']}")
         out.append("")
         out.append(str(o.get("detail") or "(no detail recorded)"))
         out.append("")
+        note = ANALYSIS.get(short(o["test"]).split("::")[-1].split("[")[0])
+        if note:
+            out.append(f"Analysis (from reading the code, not measured): {note}")
+            out.append("")
+        group = _group(o["test"])
         related = [
             m
             for m in rows
             if m["result"] == "measured"
-            and m["test"].split(".")[0] == _group(o["test"])
-            and m["test"] not in ("session",)
+            and m["test"].split(".")[0] == group
+            and (group, m["test"], m["subject"]) not in shown
         ]
         for m in related:
+            shown.add((group, m["test"], m["subject"]))
             out.append(f"- measured `{m['test']}` / `{m['subject']}`: {fmt(m['value'])}")
         out.append("")
 
@@ -182,6 +191,13 @@ def build(rows: list[Row]) -> str:
             ],
             trs,
         )
+        out.append("")
+        for m in fake:
+            reasons = m["value"].get("ai_invalid_reasons") or {}
+            out.append(
+                f"- `{m['subject']}`: AI candidates not valid: {fmt(reasons) if reasons else 'none'}; "
+                f"rounds run: {m['value']['rounds']}; greedy plan cost {m['value']['greedy_cost_inr']:,} INR"
+            )
     else:
         out.append("Not run.")
     out.append("")
@@ -290,11 +306,30 @@ def build(rows: list[Row]) -> str:
         "must not call them. `evals/evalkit/adapter.py` answers those two reads from the loaded area and meta.json and "
         "passes everything else to the engine's public API unchanged. `rescore` is never cached. Greedy and the "
         "per-site results are computed once in worker processes by the same engine functions, to save wall time; "
-        "sites the canopy rule rejects are reported to the loop as not usable. Search runs use a long time limit so "
+        "sites the canopy rule rejects are reported to the loop as not usable (the engine's own `single_site` "
+        "raises InvalidChangeError for them, checked on the tiny fixture, which the loop's site catalog does not "
+        "expect). Search runs use a long time limit so "
         "the wall clock cannot change what a run does."
     )
     out.append("")
     return "\n".join(out) + "\n"
+
+
+ANALYSIS = {
+    "test_search_returns_a_valid_plan": (
+        "engine/greedy.py stops adding quick wins at the quick-win share in its first phase and only ends above the "
+        "share if later additions happen to be quick wins, so it can finish a fraction of a percent under; "
+        "agents/repair.py then marks that plan invalid ('Below the quick-win share') because it requires the full "
+        "share. When the greedy plan is invalid the loop needs a valid AI plan; the offline proposer's candidates are "
+        "dropped as repeats of greedy's own site set or fall under the share too. The shortfall is in the engine's "
+        "greedy or in how the loop reads the share, which is an engine/agents decision, not something this eval "
+        "should relax."
+    ),
+    "test_repair_rescore_latency": (
+        "baseline chunk shading alone takes about half of an empty rescore (see the diagnosis row in Speed), and "
+        "rescore runs it twice."
+    ),
+}
 
 
 def _group(nodeid: str) -> str:
