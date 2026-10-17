@@ -6,6 +6,8 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
   "ecozone-engine",
   "ecozone-contract",
+  "google-genai>=2.31.0",
+  "pydantic-settings>=2.16.0",
 ]
 
 [build-system]

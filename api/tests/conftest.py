@@ -11,6 +11,7 @@ from shapely.geometry import LineString, Point, Polygon, box
 
 import ecozone_contract as c
 import ecozone_engine as e
+from ecozone_agents import AgentSettings
 from ecozone_api.main import create_app
 from ecozone_api.run_manager import Emit
 from ecozone_api.settings import Settings
@@ -234,7 +235,10 @@ class ClientFactory:
         (self.tmp_path / "bundles" / "deccan").mkdir(parents=True, exist_ok=True)
         settings = Settings(bundle_uri=str(self.tmp_path / "bundles"), app_dist=self.tmp_path / "no-dist")
         runner = None if hold is None else ScriptedRunner(hold=hold)
-        return TestClient(create_app(settings, engine=engine, runner=runner, store=store))  # pyright: ignore[reportArgumentType]
+        # No Gemini settings: the default runner must be UnavailableRunner whatever the developer's shell holds.
+        no_llm = AgentSettings(_env_file=None, llm="gemini", google_cloud_project=None)  # pyright: ignore[reportCallIssue]
+        app = create_app(settings, engine=engine, runner=runner, store=store, agent_settings=no_llm)  # pyright: ignore[reportArgumentType]
+        return TestClient(app)
 
 
 @pytest.fixture

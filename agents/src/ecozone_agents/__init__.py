@@ -1,4 +1,9 @@
-"""ecozone_agents: ADK agents, the shared search loop, tool wrappers and the output guard (agents/RULES.md).
+"""ecozone_agents: the shared search loop, proposers, writer, output guard and template fallback (agents/RULES.md).
 
-Agents land in WP7.
+The API imports `AgentsRunner` and `build_runner`; everything else is internal or used by tests.
 """
+
+from .config import AgentSettings
+from .runner import AgentsRunner, build_runner
+
+__all__ = ["AgentSettings", "AgentsRunner", "build_runner"]

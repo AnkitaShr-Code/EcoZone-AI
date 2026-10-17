@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 import ecozone_engine
+from ecozone_agents import AgentSettings, build_runner
 
 from . import errors
 from .deps import EnginePort, Services, load_areas, load_unit_costs
@@ -25,19 +26,26 @@ def create_app(
     engine: EnginePort | None = None,
     runner: SearchRunner | None = None,
     store: Store | None = None,
+    agent_settings: AgentSettings | None = None,
 ) -> FastAPI:
-    """`engine`, `runner` and `store` default to the real engine, the agents runner and the memory store."""
+    """`engine`, `runner` and `store` default to the real engine, the agents runner and the memory store.
+
+    The default runner comes from the agent settings: `ECOZONE_LLM=fake` runs the offline proposer, and
+    Gemini needs its Vertex settings. With neither, `UnavailableRunner` answers runs with NOT_IMPLEMENTED.
+    """
     settings = settings or Settings()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         port: EnginePort = engine or ecozone_engine  # pyright: ignore[reportAssignmentType]
         bundle_root = Path(settings.bundle_uri) if settings.bundle_uri else None
+        unit_cost_defaults = load_unit_costs(settings.unit_costs)
+        search_runner = runner or build_runner(port, unit_cost_defaults, agent_settings) or UnavailableRunner()
         app.state.services = Services(
             engine=port,
             areas=load_areas(port, bundle_root),
-            unit_cost_defaults=load_unit_costs(settings.unit_costs),
-            runs=RunManager(runner or UnavailableRunner(), store or MemoryStore()),
+            unit_cost_defaults=unit_cost_defaults,
+            runs=RunManager(search_runner, store or MemoryStore()),
         )
         yield
 

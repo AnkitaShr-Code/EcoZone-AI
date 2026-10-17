@@ -160,21 +160,23 @@ Instant, deterministic routes used directly by the UI, and the agent run routes.
 
 The same container serves the React build as static files, so there is one URL, no CORS and no proxy timeouts on long SSE streams.
 
-### C4. Agent layer (ADK on Vertex AI Gemini)
+### C4. Agent layer (Gemini on Vertex AI, plain asyncio code)
 
-| Agent | ADK type | Tools | Notes |
+Built without ADK (decision in [ENGINEERING_RULES.md](ENGINEERING_RULES.md) §2): the "agents" below are code roles with the same tools and contracts; Gemini is called through `google-genai`.
+
+| Agent | Implementation | Tools | Notes |
 | --- | --- | --- | --- |
 | Router | Plain code (`runner.py`) | — | Picks the agent by API route; no LLM hop |
-| Spatial Analyst | `LlmAgent` | get_area_context, get_parcel_context, analyze_imagery | Imagery is multimodal input (image clips from GCS) |
-| Repair Planner | `LlmAgent` + search loop | rank_hotspots, list_candidate_sites, simulate_interventions, greedy_baseline | Runs the portfolio search |
-| Scenario Analyst | `LlmAgent` + search loop | simulate_scenario, compare_scenarios, simulate_buildout | Runs the design search |
-| Planning Advisor | `LlmAgent` | format_cooling_plan, format_planning_brief | Writes explanations and briefs |
+| Spatial Analyst (not in WP7) | model call | get_area_context, get_parcel_context, analyze_imagery | Imagery is multimodal input (image clips from GCS) |
+| Repair Planner | search loop (`repair.py`) | rank_hotspots, list_candidate_sites, simulate_interventions, greedy_baseline | Runs the portfolio search |
+| Scenario Analyst | search loop (`protect.py`) | simulate_scenario, compare_scenarios, simulate_buildout | Runs the design search |
+| Planning Advisor | writer model + output guard | format_cooling_plan, format_planning_brief | Writes explanations and briefs |
 
-**One search loop, two uses.** `search.py` builds an ADK `LoopAgent` with `max_iterations=3` and three steps:
+**One search loop, two uses.** `search.py` runs one loop of at most 3 rounds with three steps:
 
-1. **Proposer** (`LlmAgent`, Gemini): reads the best results so far from session state, proposes four candidates as structured JSON (portfolios for Repair, designs for Protect).
-2. **Scorer** (custom `BaseAgent`, no LLM): calls the engine for each candidate, drops invalid ones (over budget, below the quick-win share, ventilation fail, floor-area rule), writes scores to state, emits one progress event per candidate.
-3. **Judge** (custom `BaseAgent`, no LLM): stops the loop (escalate) when no candidate beats the best by the threshold (0.5 ACS points for Repair, 2 points for Protect).
+1. **Proposer** (Gemini Flash tier): reads the compact brief (best results so far), proposes four candidates as structured JSON (portfolios for Repair, designs for Protect).
+2. **Scorer** (code, no LLM): calls the engine for each candidate, drops invalid ones (over budget, below the quick-win share, ventilation fail, floor-area rule), emits one progress event per candidate.
+3. **Judge** (code, no LLM): stops the loop when no candidate beats the best by the threshold (0.5 ACS points for Repair, 2 points for Protect).
 
 The scorer and judge are plain code, so the loop's control flow is deterministic and only the proposals come from Gemini.
 
@@ -182,8 +184,8 @@ The scorer and judge are plain code, so the loop's control flow is deterministic
 | --- | --- |
 | Model | Gemini on Vertex AI through a service account; exact model name confirmed against the Vertex AI model list on day 1 |
 | Structured output | Proposer and imagery outputs use response schemas, so candidates parse without regexes |
-| Output guard | ADK `after_model_callback`: extracts every number from the text, checks it against numbers in this turn's tool results and planner inputs (with rounding tolerance), and rejects forbidden units (°C, m/s, kWh). One regeneration, then a template filled from engine values |
-| Sessions | ADK in-memory session service per instance, Cloud Run session affinity on; finished portfolios, plans and observations are written to Firestore so nothing is lost on restart |
+| Output guard | `guard.py`, run on every writer answer: extracts every number from the text, checks it against numbers in this turn's tool results and planner inputs (with rounding tolerance), and rejects forbidden units (°C, m/s, kWh). One regeneration, then a template filled from engine values |
+| Sessions | Runs live in the API instance's memory, Cloud Run session affinity on; finished portfolios, plans and observations are written to Firestore so nothing is lost on restart |
 | Progress | Scorer and judge events are forwarded to the SSE stream, which drives the live search animation |
 | Cost control | Proposer sees compact JSON summaries, not geometry; at most 3 rounds × 1 Gemini call per search |
 
