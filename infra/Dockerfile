@@ -4,6 +4,8 @@
 # ---- stage 1: build the React app ----
 FROM node:24-slim AS app
 WORKDIR /src/app
+ARG VITE_API_MODE=http
+ENV VITE_API_MODE=${VITE_API_MODE}
 COPY app/package.json app/package-lock.json ./
 RUN npm ci
 COPY app/ ./
