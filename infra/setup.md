@@ -262,8 +262,8 @@ Record the exact model IDs and update `cloudbuild.yaml` substitutions and `.env`
 ## 12. Upload bundle to GCS (after WP4 is done)
 
 ```bash
-# Pipeline produces the bundle at data/bundles/deccan/
-gcloud storage cp -r data/bundles/deccan/* gs://$BUNDLE_BUCKET/areas/deccan/v1/
+# Pipeline writes the bundle to data/areas/deccan/v1/ (uv run pipeline all --area deccan)
+gcloud storage cp -r data/areas/deccan/v1/* gs://$BUNDLE_BUCKET/areas/deccan/v1/
 
 # Re-deploy with the bundle URI set
 gcloud run services update ecozone \
