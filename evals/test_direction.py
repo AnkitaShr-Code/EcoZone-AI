@@ -124,15 +124,6 @@ def test_tall_building_cannot_improve_ventilation(bench: Bench, cases: AreaCases
     assert not problems, problems[:10]
 
 
-@pytest.mark.xfail(
-    reason=(
-        "Understood engine behaviour, not fixed here: apply_building (engine/building.py) sets the block's H/W to the "
-        "new building's own height over its street width and replaces the canyon axis with the building orientation, "
-        "so a one- or two-floor building lowers the block's H/W (and can align it with the wind) and the block's VCI "
-        "goes up. Reported as a finding."
-    ),
-    strict=False,
-)
 def test_any_building_cannot_improve_ventilation(bench: Bench, cases: AreaCases, rec: Recorder) -> None:
     """Whatever its height, adding a building to a block must not raise the block's VCI."""
     rises: dict[str, float] = {}

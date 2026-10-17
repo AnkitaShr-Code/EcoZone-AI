@@ -1,7 +1,5 @@
 """Ventilation guard: a plan that drops a block's VCI by the threshold or more is flagged invalid, nothing else."""
 
-import pytest
-
 import ecozone_engine as e
 from ecozone_engine.settings import SETTINGS
 from evalkit.bench import Bench, building_change
@@ -67,15 +65,6 @@ def test_low_impact_plan_is_not_flagged(bench: Bench, cases: AreaCases) -> None:
     assert r.ventilation_ok and r.worst_vci_drop < THRESHOLD
 
 
-@pytest.mark.xfail(
-    reason=(
-        "Understood engine behaviour, not fixed here: rescore passes the area-weighted before/after scores to "
-        "risk_label (engine/priority.py), so a large drop on the parcel's own block is averaged over every block of "
-        "the area and the label stays LOW. The contract describes the risk as the worst change on the parcel's block. "
-        "Reported as a finding."
-    ),
-    strict=False,
-)
 def test_risk_label_reflects_the_parcels_block(bench: Bench, cases: AreaCases, rec: Recorder) -> None:
     """The label follows the worst change on the parcel's block (contract RiskInfo): 10+ MODERATE, 25+ HIGH."""
 
@@ -106,14 +95,16 @@ def test_risk_label_reflects_the_parcels_block(bench: Bench, cases: AreaCases, r
             "engine_label": r.risk.label,
             "engine_change": round(r.risk.change, 3),
         }
-        mismatches += expected(worst) != r.risk.label
+        mismatches += expected(worst) != r.risk.label or abs(r.risk.change - worst) > 1e-9
+        mismatches += dict(r.parcel_risk).get(parcel_id) != r.risk
     rec.measure("ventilation.risk_label", "parcel_block_vs_engine", rows)
     assert mismatches == 0, rows
 
 
 def test_orientation_sensitivity_of_a_tall_building(bench: Bench, cases: AreaCases, rec: Recorder) -> None:
-    """Informational: worst block VCI drop of the same tall design at every 15 degree orientation. The design search
-    uses orientation as a lever; this shows how far it alone moves the ventilation flag."""
+    """Worst block VCI drop of the same tall design at every 15 degree orientation. The design search uses
+    orientation as a lever; this shows how far it alone moves the ventilation flag. No orientation may hide the
+    building: every drop is positive."""
     g = cases.guard_designs[0]
     rows: dict[str, float] = {}
     for deg in range(0, 180, 15):
@@ -126,4 +117,4 @@ def test_orientation_sensitivity_of_a_tall_building(bench: Bench, cases: AreaCas
         f"{g.design.floors} floors, {g.design.footprint_pct:g}% footprint, {g.design.green_pct:g}% green; "
         "key = orientation in degrees, value = worst VCI drop",
     )
-    assert all(v >= 0 for v in rows.values())
+    assert all(v > 0 for v in rows.values()), rows

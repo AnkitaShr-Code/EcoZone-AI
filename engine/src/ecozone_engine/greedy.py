@@ -2,8 +2,9 @@
 
 Algorithm (engine/RULES.md §Greedy):
 1. Separate valid sites into quick-win (weeks/season) and long-term (years).
-2. Fill the quick-win share of the budget with quick wins ranked by ACS gain per rupee;
-   tie-break by site id.
+2. Add quick wins ranked by ACS gain per rupee (tie-break by site id) until the quick-win spend is
+   at least the share of the budget. The last quick win may carry the spend past the share, as long
+   as the total stays within budget: the share is a minimum (PLANNING.md "at least the share").
 3. Fill the remaining budget with all remaining valid sites by ACS gain per rupee.
 4. Skip a site whose marginal ACS gain is <= 0 or which fails the ventilation check.
 5. Rescore the final portfolio and return.
@@ -65,11 +66,16 @@ def greedy_baseline(
     used_ids: set[str] = set()
     current_acs = area.area_baseline.acs
 
-    # ── Phase 1: fill quick-win budget ───────────────────────────────────────
+    # ── Phase 1: reach the quick-win share ────────────────────────────────────
+    # The share is a minimum, so a quick win is never refused for taking the quick-win spend past
+    # it; the loop stops once the share is met. Refusing it left the spend just under the share
+    # whenever the leftover was smaller than the cheapest remaining quick win. If the share cannot
+    # be reached within the budget, the quick wins that did fit are kept and the plan is returned
+    # short; the caller flags it.
     for cost, site_id, kind, qty in quick_wins:
+        if quick_spent >= quick_win_budget:
+            break
         if site_id in used_ids:
-            continue
-        if quick_spent + cost > quick_win_budget:
             continue
         if spent + cost > budget_inr:
             continue
