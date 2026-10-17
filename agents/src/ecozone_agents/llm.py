@@ -30,7 +30,7 @@ from .ports import (
 
 log = logging.getLogger(__name__)
 
-PROMPT_VERSION = "v1"
+PROMPT_VERSION = "v2"
 
 
 def load_prompt(name: str) -> str:

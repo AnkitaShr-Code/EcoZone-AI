@@ -64,7 +64,7 @@ def test_prompts_are_versioned_files_without_example_numbers() -> None:
         assert text.strip()
         # only the scales and steps the rules state; no scores, costs or example values
         assert set(re.findall(r"\d+", text)) <= {"0", "10", "15", "100", "180"}, name
-    assert PROMPT_VERSION == "v1"
+    assert PROMPT_VERSION == "v2"
 
 
 def test_schemas_describe_the_structured_answers() -> None:
