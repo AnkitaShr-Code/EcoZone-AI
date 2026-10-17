@@ -1,75 +1,93 @@
-# Cloud Build: build the Docker image, push to Artifact Registry, deploy to Cloud Run.
-# Triggered on push to main. Runs as the Cloud Build service account.
-# Region: asia-south1 (Mumbai) — closest to Pune.
+# Cloud Build: build the one EcoZone image, push to Artifact Registry, deploy to Cloud Run (asia-south1).
+# Trigger: push to main. Identity: the trigger's service account (no keys anywhere).
 #
-# Substitutions set in the trigger (console or gcloud builds triggers create):
-#   _REGION:        asia-south1
-#   _SERVICE:       ecozone
-#   _REGISTRY:      asia-south1-docker.pkg.dev
-#   _REPO:          ecozone-images
-#   _PROJECT:       ecozone-ai-2026
-#   _BUNDLE_URI:    gs://ecozone-bundles-ai2026/deccan   (set after WP4 bundle lands)
-#   _GEMINI_LOC:    asia-south1
-#   _MODEL_PROPOSER: gemini-2.0-flash-001
-#   _MODEL_WRITER:   gemini-2.0-pro-001
-#   _SHORT_SHA:     set to $SHORT_SHA in the GitHub trigger; default 'init' for manual submit
+# Environment-specific values come from TRIGGER SUBSTITUTIONS set in Cloud, not from git:
+#   _BUNDLE_URI       gs://<bucket>/areas/deccan/v1      (required)
+#   _GEMINI_LOC       location serving the models below   (required, verify first)
+#   _MODEL_PROPOSER   Vertex model id, search proposer    (required, verify first)
+#   _MODEL_WRITER     Vertex model id, explanations/briefs (required, verify first)
+#   _STORE            memory | firestore                  (default memory until the Firestore store ships)
+#   _REGION, _SERVICE, _REGISTRY, _REPO                   (defaults below)
+# A required value left empty fails the build in the first step instead of deploying a broken service.
+# $PROJECT_ID and $SHORT_SHA are built in (SHORT_SHA is empty only on a manual `gcloud builds submit`).
 
 substitutions:
-  _SHORT_SHA: 'init'
   _REGION: asia-south1
   _SERVICE: ecozone
   _REGISTRY: asia-south1-docker.pkg.dev
   _REPO: ecozone-images
-  _PROJECT: ecozone-ai-2026
-  _BUNDLE_URI: ''
-  _GEMINI_LOC: asia-south1
-  _MODEL_PROPOSER: gemini-2.0-flash-001
-  _MODEL_WRITER: gemini-2.5-pro-001
+  _STORE: memory
+  _BUNDLE_URI: ""
+  _GEMINI_LOC: ""
+  _MODEL_PROPOSER: ""
+  _MODEL_WRITER: ""
 
 options:
   logging: CLOUD_LOGGING_ONLY
   machineType: E2_HIGHCPU_8
 
+timeout: 1200s
+
 steps:
-  # 1. Build the image
-  - name: gcr.io/cloud-builders/docker
-    id: build
+  - id: check-config
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        [ -n "${_BUNDLE_URI}" ] || { echo "trigger substitution _BUNDLE_URI is empty"; exit 1; }
+        [ -n "${_GEMINI_LOC}" ] || { echo "trigger substitution _GEMINI_LOC is empty"; exit 1; }
+        [ -n "${_MODEL_PROPOSER}" ] || { echo "trigger substitution _MODEL_PROPOSER is empty"; exit 1; }
+        [ -n "${_MODEL_WRITER}" ] || { echo "trigger substitution _MODEL_WRITER is empty"; exit 1; }
+        echo "config ok"
+
+  # Warm the layer cache: --cache-from only works if the image is already local.
+  - id: pull-cache
+    name: gcr.io/cloud-builders/docker
+    waitFor: [check-config]
+    entrypoint: bash
+    args:
+      - -c
+      - docker pull ${_REGISTRY}/$PROJECT_ID/${_REPO}/${_SERVICE}:latest || true
+
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    waitFor: [pull-cache]
     args:
       - build
       - -f
       - infra/Dockerfile
-      - -t
-      - ${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}:${_SHORT_SHA}
-      - -t
-      - ${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}:latest
       - --cache-from
-      - ${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}:latest
+      - ${_REGISTRY}/$PROJECT_ID/${_REPO}/${_SERVICE}:latest
+      - -t
+      - ${_REGISTRY}/$PROJECT_ID/${_REPO}/${_SERVICE}:$SHORT_SHA
+      - -t
+      - ${_REGISTRY}/$PROJECT_ID/${_REPO}/${_SERVICE}:latest
       - .
 
-  # 2. Push image
-  - name: gcr.io/cloud-builders/docker
-    id: push
+  # Push before deploying: the `images:` list is only pushed after every step has finished.
+  - id: push
+    name: gcr.io/cloud-builders/docker
     waitFor: [build]
     args:
       - push
       - --all-tags
-      - ${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}
+      - ${_REGISTRY}/$PROJECT_ID/${_REPO}/${_SERVICE}
 
-  # 3. Deploy to Cloud Run
-  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    id: deploy
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     waitFor: [push]
     entrypoint: gcloud
     args:
       - run
       - deploy
       - ${_SERVICE}
-      - --image=${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}:${_SHORT_SHA}
+      - --image=${_REGISTRY}/$PROJECT_ID/${_REPO}/${_SERVICE}:$SHORT_SHA
       - --region=${_REGION}
-      - --project=${_PROJECT}
       - --platform=managed
-      - --service-account=ecozone-run@${_PROJECT}.iam.gserviceaccount.com
-      - --allow-unauthenticated
+      - --service-account=ecozone-run@$PROJECT_ID.iam.gserviceaccount.com
+      # Public without an allUsers binding; documented for projects under domain restricted sharing.
+      - --no-invoker-iam-check
       - --min-instances=1
       - --max-instances=4
       - --memory=2Gi
@@ -77,29 +95,11 @@ steps:
       - --concurrency=80
       - --timeout=3600
       - --session-affinity
-      - --set-env-vars=ECOZONE_STORE=memory
-      - --set-env-vars=GOOGLE_CLOUD_PROJECT=${_PROJECT}
-      - --set-env-vars=ECOZONE_GEMINI_LOCATION=${_GEMINI_LOC}
-      - --set-env-vars=ECOZONE_MODEL_PROPOSER=${_MODEL_PROPOSER}
-      - --set-env-vars=ECOZONE_MODEL_WRITER=${_MODEL_WRITER}
-      - --set-env-vars=ECOZONE_BUNDLE_URI=${_BUNDLE_URI}
-
-  # 4. Allow unauthenticated access (org policy strips --allow-unauthenticated; gcloud beta required)
-  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    id: allow-unauthenticated
-    waitFor: [deploy]
-    entrypoint: gcloud
-    args:
-      - beta
-      - run
-      - services
-      - add-iam-policy-binding
-      - ${_SERVICE}
-      - --region=${_REGION}
-      - --project=${_PROJECT}
-      - --member=allUsers
-      - --role=roles/run.invoker
+      - --update-labels=commit-sha=$SHORT_SHA
+      # One flag, so there is no doubt about how repeated flags combine.
+      - --update-env-vars=ECOZONE_STORE=${_STORE},GOOGLE_CLOUD_PROJECT=$PROJECT_ID,ECOZONE_GEMINI_LOCATION=${_GEMINI_LOC},ECOZONE_MODEL_PROPOSER=${_MODEL_PROPOSER},ECOZONE_MODEL_WRITER=${_MODEL_WRITER},ECOZONE_BUNDLE_URI=${_BUNDLE_URI}
+      - --quiet
 
 images:
-  - ${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}:${_SHORT_SHA}
-  - ${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}:latest
+  - ${_REGISTRY}/$PROJECT_ID/${_REPO}/${_SERVICE}:$SHORT_SHA
+  - ${_REGISTRY}/$PROJECT_ID/${_REPO}/${_SERVICE}:latest
