@@ -1,0 +1,105 @@
+# Cloud Build: build the Docker image, push to Artifact Registry, deploy to Cloud Run.
+# Triggered on push to main. Runs as the Cloud Build service account.
+# Region: asia-south1 (Mumbai) — closest to Pune.
+#
+# Substitutions set in the trigger (console or gcloud builds triggers create):
+#   _REGION:        asia-south1
+#   _SERVICE:       ecozone
+#   _REGISTRY:      asia-south1-docker.pkg.dev
+#   _REPO:          ecozone-images
+#   _PROJECT:       ecozone-ai-2026
+#   _BUNDLE_URI:    gs://ecozone-bundles-ai2026/deccan   (set after WP4 bundle lands)
+#   _GEMINI_LOC:    asia-south1
+#   _MODEL_PROPOSER: gemini-2.0-flash-001
+#   _MODEL_WRITER:   gemini-2.0-pro-001
+#   _SHORT_SHA:     set to $SHORT_SHA in the GitHub trigger; default 'init' for manual submit
+
+substitutions:
+  _SHORT_SHA: 'init'
+  _REGION: asia-south1
+  _SERVICE: ecozone
+  _REGISTRY: asia-south1-docker.pkg.dev
+  _REPO: ecozone-images
+  _PROJECT: ecozone-ai-2026
+  _BUNDLE_URI: ''
+  _GEMINI_LOC: asia-south1
+  _MODEL_PROPOSER: gemini-2.0-flash-001
+  _MODEL_WRITER: gemini-2.5-pro-001
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
+
+steps:
+  # 1. Build the image
+  - name: gcr.io/cloud-builders/docker
+    id: build
+    args:
+      - build
+      - -f
+      - infra/Dockerfile
+      - -t
+      - ${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}:${_SHORT_SHA}
+      - -t
+      - ${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}:latest
+      - --cache-from
+      - ${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}:latest
+      - .
+
+  # 2. Push image
+  - name: gcr.io/cloud-builders/docker
+    id: push
+    waitFor: [build]
+    args:
+      - push
+      - --all-tags
+      - ${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}
+
+  # 3. Deploy to Cloud Run
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    id: deploy
+    waitFor: [push]
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image=${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}:${_SHORT_SHA}
+      - --region=${_REGION}
+      - --project=${_PROJECT}
+      - --platform=managed
+      - --service-account=ecozone-run@${_PROJECT}.iam.gserviceaccount.com
+      - --allow-unauthenticated
+      - --min-instances=1
+      - --max-instances=4
+      - --memory=2Gi
+      - --cpu=2
+      - --concurrency=80
+      - --timeout=3600
+      - --session-affinity
+      - --set-env-vars=ECOZONE_STORE=memory
+      - --set-env-vars=GOOGLE_CLOUD_PROJECT=${_PROJECT}
+      - --set-env-vars=ECOZONE_GEMINI_LOCATION=${_GEMINI_LOC}
+      - --set-env-vars=ECOZONE_MODEL_PROPOSER=${_MODEL_PROPOSER}
+      - --set-env-vars=ECOZONE_MODEL_WRITER=${_MODEL_WRITER}
+      - --set-env-vars=ECOZONE_BUNDLE_URI=${_BUNDLE_URI}
+
+  # 4. Allow unauthenticated access (org policy strips --allow-unauthenticated; gcloud beta required)
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    id: allow-unauthenticated
+    waitFor: [deploy]
+    entrypoint: gcloud
+    args:
+      - beta
+      - run
+      - services
+      - add-iam-policy-binding
+      - ${_SERVICE}
+      - --region=${_REGION}
+      - --project=${_PROJECT}
+      - --member=allUsers
+      - --role=roles/run.invoker
+
+images:
+  - ${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}:${_SHORT_SHA}
+  - ${_REGISTRY}/${_PROJECT}/${_REPO}/${_SERVICE}:latest
