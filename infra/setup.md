@@ -178,10 +178,10 @@ gcloud iam service-accounts add-iam-policy-binding \
 # Cloud Build > Triggers > Connect repository > GitHub > ecozone-ai repo
 # (only needed once per repo; reuse the connection for any number of triggers)
 
-# Verify Vertex AI model IDs first (step 11 below), then fill in the values below.
-export MODEL_PROPOSER=<flash-model-id>   # e.g. gemini-2.0-flash-001
-export MODEL_WRITER=<pro-model-id>       # e.g. gemini-2.5-pro-001
-export GEMINI_LOC=$REGION               # location serving those models, e.g. asia-south1
+# Model ids and location are verified in step 11. Gemini 2.5 retires on Oct 20, 2026, so use 3.x.
+export MODEL_PROPOSER=gemini-3.8-flash
+export MODEL_WRITER=gemini-3.8-flash    # no GA Pro model in 3.x; gemini-3.1-pro-preview is preview only
+export GEMINI_LOC=global                # asia-south1 only lists gemini-2.5-flash; Cloud Run stays in $REGION
 
 # Then create the trigger:
 # _REGION, _SERVICE, _REGISTRY, _REPO, _STORE all have defaults in cloudbuild.yaml — no need to pass them.
@@ -248,16 +248,32 @@ gcloud billing budgets create \
 
 ## 11. Vertex AI — verify model IDs
 
+Chosen on Oct 17 from the publisher catalog and Google's [model versions page](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versions):
+
+| Setting | Value | Note |
+|---|---|---|
+| `_MODEL_PROPOSER` | `gemini-3.8-flash` | GA since Sep 2, 2026; retirement Sep 2, 2027 or later |
+| `_MODEL_WRITER` | `gemini-3.8-flash` | No GA Pro in 3.x; `gemini-3.1-pro-preview` is preview only |
+| `_GEMINI_LOC` | `global` | `asia-south1` lists only `gemini-2.5-flash` |
+
+Fallbacks: `gemini-3.5-flash` (until May 2027), `gemini-3.5-flash-lite`. Do not use `gemini-2.5-*` (retire Oct 20, 2026), `gemini-3.6-flash` (Nov 19, 2026) or `gemini-3.7-flash` (Jan 28, 2027).
+
+These ids come from the catalog, not from a call. Re-check them (`gcloud ai models list` shows only models you uploaded, so use the publisher API) and make one test call as an account with `roles/aiplatform.user`:
+
 ```bash
-gcloud ai models list \
-  --region=$REGION \
-  --project=$PROJECT \
-  --filter="displayName~gemini"
+TOKEN=$(gcloud auth print-access-token)
+
+# Models offered in a location
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://aiplatform.googleapis.com/v1beta1/publishers/google/models?pageSize=200" | grep -o 'models/gemini[^"]*'
+
+# One real call (a 403 on aiplatform.endpoints.predict means the account lacks the role)
+curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  "https://aiplatform.googleapis.com/v1/projects/$PROJECT/locations/global/publishers/google/models/gemini-3.8-flash:generateContent" \
+  -d '{"contents":[{"role":"user","parts":[{"text":"Reply with the single word OK"}]}]}'
 ```
 
-Record the exact model IDs and update `cloudbuild.yaml` substitutions and `.env`:
-- `_MODEL_PROPOSER`: Flash tier (for search loop)
-- `_MODEL_WRITER`: Pro tier (for explanations and briefs)
+The Cloud Run runtime service account (7a) needs `roles/aiplatform.user` too, or live Gemini fails after deploy.
 
 ## 12. Upload bundle to GCS (after WP4 is done)
 
