@@ -5,7 +5,9 @@ from pathlib import Path
 from typing import Any
 
 import geopandas as gpd
+import numpy as np
 import pytest
+import shapely
 from shapely import Point
 from tiny_area import FIXTURES, Tiny
 from typer.testing import CliRunner
@@ -161,8 +163,59 @@ def test_cli_rejects_an_unknown_step(tmp_path: Path) -> None:
     assert result.exit_code != 0
 
 
+def assert_close(a: Any, b: Any, path: str = "meta", rel: float = 1e-9, abs_: float = 2e-4) -> None:
+    """Exact for ints, strings and structure; tolerant for floats.
+
+    abs_ covers values rounded to 4 decimals in meta (the sun table), which can flip by one last digit across platforms.
+    """
+    if isinstance(a, float) or isinstance(b, float):
+        assert a == pytest.approx(b, rel=rel, abs=abs_), path
+    elif isinstance(a, dict):
+        assert a.keys() == b.keys(), path
+        for k in a:
+            assert_close(a[k], b[k], f"{path}.{k}", rel, abs_)
+    elif isinstance(a, list):
+        assert len(a) == len(b), path
+        for i, (x, y) in enumerate(zip(a, b, strict=True)):
+            assert_close(x, y, f"{path}[{i}]", rel, abs_)
+    else:
+        assert a == b, path
+
+
+def assert_table_close(
+    a: gpd.GeoDataFrame,
+    b: gpd.GeoDataFrame,
+    name: str,
+    rel: float = 1e-9,
+    abs_: float = 1e-6,
+    geom_tol: float = 1e-3,
+) -> None:
+    """Same columns, rows, CRS and ids; floats equal within abs_; coordinates equal within geom_tol.
+
+    geom_tol defaults to 1 mm — wide enough to absorb GEOS/PROJ floating-point differences
+    across platforms (Linux vs macOS builds) while still catching any real geometry change.
+    """
+    assert list(a.columns) == list(b.columns), f"{name}: columns"
+    assert len(a) == len(b), f"{name}: rows"
+    assert a.crs == b.crs, f"{name}: crs"
+    geom = a.geometry.name
+    for col in a.columns:
+        if col == geom:
+            assert shapely.equals_exact(a.geometry.values, b.geometry.values, tolerance=geom_tol).all(), f"{name}.{col}"
+        elif a[col].dtype.kind == "f":
+            np.testing.assert_allclose(
+                a[col].to_numpy(), b[col].to_numpy(), rtol=rel, atol=abs_, equal_nan=True, err_msg=f"{name}.{col}"
+            )
+        else:
+            assert a[col].equals(b[col]), f"{name}.{col}"
+
+
 def test_engine_fixture_bundle_is_current(tiny: Tiny, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    """Rebuild the committed fixture and compare; run make_tiny.py if this fails after a pipeline change."""
+    """Rebuild the committed fixture and compare within float tolerance.
+
+    Floats differ in the last digits across platforms (PROJ, GEOS and BLAS builds), so do not regenerate the
+    fixture to silence this. Run make_tiny.py only when the pipeline's output really changed.
+    """
     from ecozone_pipeline.steps import bundle
 
     monkeypatch.setenv("ECOZONE_PIPELINE_SHA", "tiny-fixture")
@@ -171,6 +224,8 @@ def test_engine_fixture_bundle_is_current(tiny: Tiny, monkeypatch: pytest.Monkey
     fresh_meta = json.loads((fresh / "meta.json").read_text())
     committed_meta = json.loads((committed / "meta.json").read_text())
     committed_meta["skipped_steps"] = [s for s in committed_meta["skipped_steps"] if s != "baselines"]
-    assert fresh_meta == committed_meta
+    assert_close(fresh_meta, committed_meta)
     for name in SCHEMA:
-        assert gpd.read_parquet(fresh / f"{name}.parquet").equals(gpd.read_parquet(committed / f"{name}.parquet")), name
+        fresh_table = gpd.read_parquet(fresh / f"{name}.parquet")
+        committed_table = gpd.read_parquet(committed / f"{name}.parquet")
+        assert_table_close(fresh_table, committed_table, name)
