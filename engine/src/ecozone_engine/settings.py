@@ -75,6 +75,7 @@ class EngineSettings:
     # ── Spatial radii (PLANNING.md §Terms, §Area rescoring) ──────────────────
     green_buffer_radius_m: float = 300.0
     wait_shade_radius_m: float = 30.0  # max dist from shade site to wait point
+    wait_cover_time: str = "15:00"  # time at which newly shaded footpath near a wait point counts as covering it
 
     # ── Canopy site rule (PLANNING.md Intervention library) ───────────────────
     canopy_hw_threshold: float = 1.0  # tree rows refused where H/W >= this

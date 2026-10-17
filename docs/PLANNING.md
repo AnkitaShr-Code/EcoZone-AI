@@ -253,6 +253,7 @@ Both Repair and build-out change many things in one area at once, so one area-re
 - **Area size:** about 30 candidate parcels for build-out, about 200 blocks for Repair (prototype limits, measured for speed).
 - **Build-out envelope:** the maximum the rules allow, typed in by the planner and labeled as planner input.
 - **Output:** per-block changes, area averages before and after, count of HIGH parcels, and how many existing blocks lose score.
+- **Waiting points covered:** a waiting point counts when a shade structure sits at it, or when footpath within 30 m of it is in the sun before and in shade after at 3 pm. Tree rows and other interventions count through the footpath they shade, so the number does not depend on the planner choosing shade structures.
 
 ## Gemini agents and tools
 
