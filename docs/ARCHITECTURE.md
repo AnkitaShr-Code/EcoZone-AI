@@ -22,7 +22,7 @@ How the product in [PLANNING.md](PLANNING.md) is built, in one place. This is th
   └──────────────┬──────────────────────────────────────┬───────────────────┘
                  │ REST (instant, no AI)                 │ SSE (agent runs)
   ┌──────────────▼──────────────────────┐   ┌────────────▼────────────────────┐
-  │  FastAPI routes                     │   │  ADK agent layer (Gemini on     │
+  │  FastAPI routes                     │   │  Agent layer    (Gemini on     │
   │  /areas /parcels /interventions     │   │  Vertex AI)                     │
   │  /shadows /buildout                 │   │  Code router → 4 agents         │
   └──────────────┬──────────────────────┘   │  LoopAgent searches             │
@@ -52,7 +52,7 @@ Two rules shape everything, and any future code change must preserve them:
 | `engine/` | Deterministic scoring: `AreaModel`, shadows, indices (VCI/HEI/GCS/PSS), interventions, incremental area rescoring, priority/ACS, greedy baseline, drivers | Area bundle (GeoParquet from GCS) loaded at service startup; no network calls, no randomness |
 | `api/` | FastAPI routes, Pydantic schemas, static serving of the React build, Firestore/BigQuery clients | `engine/` directly for REST routes; `agents/` for agent-run routes |
 | `contract/` | Pydantic API models; `openapi.json`, from which the app's TypeScript types are generated | pydantic only |
-| `agents/` | Code router, 4 ADK agents (Spatial Analyst, Repair Planner, Scenario Analyst, Planning Advisor), the shared `LoopAgent` search, the output guard | `engine/` through thin tool wrappers only — never computes a number itself |
+| `agents/` | Code router, the Repair Planner and Scenario Analyst search roles, the writer, the shared search loop, the output guard (plain asyncio over `google-genai`, not ADK) | `engine/` through thin tool wrappers only — never computes a number itself |
 | `app/` | React + TypeScript + deck.gl/MapLibre UI, SSE client, Repair/Protect panels | `api/` over REST and SSE |
 | `evals/` | pytest engine tests, agent eval scripts, heat-check validation, `REPORT.md` | Reads from `engine/`, `agents/`, and BigQuery `eval_results` |
 | `infra/` | Dockerfile, Cloud Build config, deploy notes, IAM roles | Builds `app/` and the Python services into one Cloud Run container |

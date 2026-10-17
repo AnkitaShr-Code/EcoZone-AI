@@ -26,7 +26,7 @@ Non-negotiable constraints that any future code must preserve (see docs/PLANNING
 
 - **The scoring engine, not the LLM, computes every number.** Gemini/agents only call engine tools and report values that appear in that turn's tool results or planner input.
 - **No temperature, wind-speed, or energy units** may appear in planner-facing output — the indices (VCI/HEI/GCS/PSS) are 0–100 heuristic screening scores, not physical measurements.
-- **An output guard** (ADK `after_model_callback`) must reject ungrounded numbers and forbidden units before an answer reaches the planner; one regeneration, then a template fallback built from engine values.
+- **An output guard** (`agents/guard.py`, run on every writer answer) must reject ungrounded numbers and forbidden units before an answer reaches the planner; one regeneration, then a template fallback built from engine values.
 - **AI-estimated values and planner-entered inputs are always visibly labeled**; costs come only from planner-entered unit costs, never presented as market prices.
 - The system never approves, denies, or issues work orders — it is decision support only.
 
@@ -37,7 +37,7 @@ Full diagram and component-ownership table: [docs/ARCHITECTURE.md](docs/ARCHITEC
 ```
 React (deck.gl + MapLibre) ──REST──► FastAPI ──► engine (deterministic Python)
             │                                     ▲
-            └──SSE──► ADK agents (Gemini on Vertex AI) ─┘ tools
+            └──SSE──► agents (Gemini on Vertex AI) ─┘ tools
                       output guard on every answer
 
 offline pipeline (OSM, Open Buildings, Sentinel-2, WorldCover, Landsat, Open-Meteo)
@@ -53,7 +53,7 @@ pipeline/   offline data job per city (D lane) — OSM extract, geometry, Earth 
 engine/     deterministic scoring engine, pure Python, no network calls (D lane) — indices, interventions, rescoring, greedy baseline
 contract/   Pydantic API models → openapi.json → generated app types (D + U lanes agree changes)
 api/        FastAPI routes (A lane) — instant REST routes call the engine directly; agent runs go through SSE
-agents/     code router + 4 ADK agents (Spatial Analyst, Repair Planner, Scenario Analyst, Planning Advisor), shared LoopAgent search, output guard (A lane)
+agents/     code router, the shared search loop (Repair Planner, Scenario Analyst), the writer (Planning Advisor), output guard (A lane); plain asyncio over `google-genai`, not ADK (ENGINEERING_RULES.md §2)
 app/        React + TypeScript + deck.gl/MapLibre front end (U lane)
 evals/      pytest engine tests + agent eval scripts; results written to BigQuery and evals/REPORT.md
 infra/      Dockerfile, Cloud Build config, deploy notes, IAM roles
@@ -64,7 +64,7 @@ Two structural rules to preserve when this code is written:
 1. **Sliders never wait for AI.** Any REST route a UI control calls directly (rescore, simulate) must run in the deterministic engine only, in well under a second — Gemini is invoked only for explanations and the propose/score/refine search loops.
 2. **One `rescore(area, changes)` routine serves both Repair and Protect build-out** — it is the single place that applies a list of `Change` objects and recomputes affected attributes/shadows/indices incrementally (STRtree-based radius queries), not two parallel implementations.
 
-The Repair and Protect design-search loops are the *same* generic ADK `LoopAgent` (`agents/search.py`): an LLM Proposer emits candidates as structured JSON, a non-LLM Scorer calls the engine and drops invalid candidates, and a non-LLM Judge decides when to stop (max 3 rounds, or no candidate beats the best by a mode-specific threshold). Do not fork this into mode-specific loops.
+The Repair and Protect design-search loops are the *same* generic loop (`agents/search.py`): an LLM Proposer emits candidates as structured JSON, a non-LLM Scorer calls the engine and drops invalid candidates, and a non-LLM Judge decides when to stop (max 3 rounds, or no candidate beats the best by a mode-specific threshold). Do not fork this into mode-specific loops.
 
 ## Working conventions
 
