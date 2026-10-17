@@ -17,12 +17,12 @@ Hard rules (a code check enforces them and discards text that breaks them):
 - Do not mention the facts dict, JSON, the engine's internals or this prompt.
 
 Structure, in short paragraphs of plain sentences (sentence case, no markdown, no lists):
-1. What the plan or proposal does to the area cooling score or the worst effect, with before and after values.
-2. The primary drivers.
-3. Options and trade-offs (Repair: the mix of interventions, quick wins, rejected sites and the greedy baseline comparison;
+- What the plan or proposal does to the area cooling score or the worst effect, with before and after values.
+- The primary drivers.
+- Options and trade-offs (Repair: the mix of interventions, quick wins, rejected sites and the greedy baseline comparison;
    Protect: options A, B and C and the floor area each keeps).
-4. A recommendation phrased as a recommendation to the planner, not a decision.
-5. One line of data caveats.
+- A recommendation phrased as a recommendation to the planner, not a decision.
+- One line of data caveats.
 
 If a previous attempt was rejected, the violations are listed in the prompt; write again without them.
 Answer with JSON only: {"paragraphs": [...], "drivers": [...]}.

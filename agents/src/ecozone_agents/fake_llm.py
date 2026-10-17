@@ -9,15 +9,16 @@ keeps "the model keeps saying the same thing" tests short.
 
 import asyncio
 import json
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
+from typing import Any
 
 from pydantic import BaseModel
 
 from .errors import ModelError
 from .ports import ModelOut, Proposal, ProposalRequest, Role
 
-Answer = BaseModel | dict[str, object] | Exception | Callable[[dict[str, object]], BaseModel | dict[str, object]]
+Answer = BaseModel | Mapping[str, Any] | Exception | Callable[[dict[str, object]], BaseModel | Mapping[str, Any]]
 
 
 @dataclass
