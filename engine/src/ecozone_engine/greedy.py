@@ -67,9 +67,9 @@ def greedy_baseline(
 
     # ── Phase 1: fill quick-win budget ───────────────────────────────────────
     for cost, site_id, kind, qty in quick_wins:
+        if quick_spent >= quick_win_budget:
+            break
         if site_id in used_ids:
-            continue
-        if quick_spent + cost > quick_win_budget:
             continue
         if spent + cost > budget_inr:
             continue
@@ -89,6 +89,11 @@ def greedy_baseline(
 
     # ── Phase 2: fill remaining budget with all sites ─────────────────────────
     for _g, cost, site_id, kind, qty in scored:
+        if quick_spent < quick_win_budget and not is_quick_win(
+            area,
+            Change(kind=kind, site_id=site_id, quantity=qty),  # type: ignore[arg-type]
+        ):
+            continue
         if site_id in used_ids:
             continue
         if spent + cost > budget_inr:
