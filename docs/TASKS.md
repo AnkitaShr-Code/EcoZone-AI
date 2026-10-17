@@ -28,20 +28,20 @@ Supersedes the dates in "Backend baseline (re-planned Oct 15)" below; the build 
 | 1 | Skeleton | Claude | Abhishek | `infra/skeleton` | — | uv workspace, five packages, engine API stubs, ruff, pyright, import-linter, pytest, `make check`, CI, Dockerfile serving the app with `/healthz` | Oct 16 | Done (#6) |
 | 2 | Contract and app types | Claude | Ankita (D), Abhishek (U sign-off) | `contract/models` | 1 | Pydantic models with the agreed changes, `openapi.json`, `generated.ts`, `types.ts` re-exports, mock validation | Oct 16 | Done (#7) |
 | 3 | Google Cloud setup | Abhishek | Ankita | `infra/gcp` | — | Project, APIs, Artifact Registry, bundle bucket, Firestore, Cloud Run service, service accounts, GitHub WIF, `gcloud` on every machine, Vertex Flash and Pro model ids verified, Earth Engine status | Oct 16 | In progress: setup steps 1–2 done, runbook in `infra/setup.md`; model ids in `cloudbuild.yaml` not yet verified |
-| 4 | Pipeline to bundle v1 (OSM only) | Dhananjay | Ankita | `pipeline/bundle-v1` | 1 (start the geometry code now) | `config/deccan.yaml`, OSM extract, blocks, 10 m chunks, height chain, parcels, sites with the canopy site rule, sun and wind, bundle writer, tiny fixture | Oct 16 night | In review (#11) |
+| 4 | Pipeline to bundle v1 (OSM only) | Dhananjay | Ankita | `pipeline/bundle-v1` | 1 (start the geometry code now) | `config/deccan.yaml`, OSM extract, blocks, 10 m chunks, height chain, parcels, sites with the canopy site rule, sun and wind, bundle writer, tiny fixture | Oct 16 night | Done (#11); tree-row rule and geometry checks fixed in #15; Deccan bundle to be rebuilt and uploaded |
 | 5a | Engine core | Ankita | Dhananjay | `engine/core` | 1, tiny fixture | Bundle load, shadows, chunk shading, PSS, VCI, HEI, GCS, priority, ACS, drivers; golden and property tests | Oct 16 night | Not started on GitHub |
 | 5b | Engine rescore and greedy | Ankita | Claude | `engine/rescore` | 5a | Five interventions, `building` change, risk label, `rescore`, single-site results, greedy with the quick-win share | Oct 17 13:00 | Not started on GitHub |
 | 6 | API routes and app on HTTP | Claude | Abhishek | `api/routes` | 2, engine stubs | Read routes, `rescore`, runs over SSE, explain, memory store, app HTTP adapter, `ecozone snapshot` | Oct 17 morning | Done (#10); engine interface additions (#9) |
-| 7 | Agents | Claude | Abhishek | `agents/search` | 2, 3 (model ids) | Shared search loop with fake-LLM tests, guard, templates, then live Gemini | Oct 17 | In progress (`agents/search`) |
+| 7 | Agents | Claude | Abhishek | `agents/search` | 2, 3 (model ids) | Shared search loop with fake-LLM tests, guard, templates, then live Gemini | Oct 17 | Done with the fake LLM (#13); live Gemini not yet run on Vertex |
 | 8 | Default unit costs | Claude | Ankita | `pipeline/unit-costs` | — | `pipeline/config/unit_costs.yaml` with a cited source per row | Oct 16 | Done (#8) |
-| 9 | Deploy and persistence | Abhishek | Claude | `infra/deploy` | 1, 3 | `cloudbuild.yaml`, Cloud Run deploy from `main`, Firestore store, BigQuery `runs` | Oct 17 | Started: `infra/cloudbuild.yaml` on main; Firestore store and BigQuery `runs` to do |
+| 9 | Deploy and persistence | Abhishek | Claude | `infra/deploy` | 1, 3 | `cloudbuild.yaml`, Cloud Run deploy from `main`, Firestore store, BigQuery `runs` | Oct 17 | Started: `infra/cloudbuild.yaml` on main (#14); Firestore store and BigQuery `runs` to do |
 | 10 | Evals subset | Dhananjay | Ankita | `evals/baseline` | 5b, 7 | Determinism, range, direction, Gemini vs greedy, speed; `evals/REPORT.md` | Oct 17 evening | Not started |
 | 11 | Submission | All (Abhishek and Claude lead video and deck) | Ankita | — | 10 | Video, deck PDF, public repo, live link | Oct 18 morning | Not started |
 
 **Checkpoints**
 
 - **Oct 16, end of day:** WP 1, 2, 3 and 8 merged; bundle v1 builds locally; engine indices and shadows pass on the tiny fixture.
-  - *Status Oct 17:* WP 1, 2 and 8 merged (and WP 6 early); WP 3 partly done; bundle v1 in review (#11); engine core not started on GitHub.
+  - *Status Oct 17 midday:* WP 1, 2, 4, 6, 7 and 8 merged; WP 3 and 9 partly done; engine core (5a, 5b) still not on GitHub, which blocks Gate 2.
 - **Oct 17, 13:00 (Gate 2):** real `rescore` and greedy; app runs on `VITE_API_MODE=http`; both modes work end to end locally with the fake LLM.
 - **Oct 17, 21:00 (Gate 3, feature freeze):** deployed on Cloud Run; live Gemini search; evals subset run.
 - **Oct 18 morning:** video, deck, submit.
@@ -60,7 +60,7 @@ Supersedes the dates in "Backend baseline (re-planned Oct 15)" below; the build 
 - [x] **All:** agree the API contracts: Pydantic schemas for `Change`, `AreaResult`, Protect simulate, and the SSE event types, so all lanes build against stubs from today
 - [ ] **D:** fill `pipeline/config/pune.yaml` (both candidate boxes, EPSG:32643, reference date 15 April, road-class widths)
 - [ ] **D:** OSM extract for both boxes; count buildings with heights, sidewalks and waiting points in each; freeze the better box
-- [ ] **D:** blocks from the road network; footpath segments (~50 m, sidewalks or derived road edges, clipped 10 m back from junctions)
+- [x] **D:** blocks from the road network; footpath segments (~50 m, sidewalks or derived road edges, clipped 10 m back from junctions)
 - [ ] **A:** chase the Earth Engine approval; meanwhile write the `ee_layers.py` scripts against the public datasets
 - [ ] **A:** confirm the current Gemini model name on Vertex AI; create the service account and roles (BigQuery, Firestore, Storage, Vertex AI)
 - [ ] **A:** deploy an empty FastAPI service on Cloud Run that serves a placeholder React build (proves the one-container path)
@@ -72,10 +72,10 @@ Supersedes the dates in "Backend baseline (re-planned Oct 15)" below; the build 
 Passes when blocks, footpaths and baseline indices including PSS exist for the frozen area, and the range and determinism tests pass. If it fails: OSM proxy indices and default roof albedo at once.
 
 - [ ] **D:** sun positions for 13:00, 15:00, 16:00 IST (pvlib); wind direction from Open-Meteo, checked against the data
-- [ ] **D:** heights per building (OSM levels × 3 m, else Open Buildings, else storey default, with source column)
+- [x] **D:** heights per building (OSM levels × 3 m, else Open Buildings, else storey default, with source column)
 - [ ] **D:** shadow engine and PSS per segment; shadow geometry test (known height → expected length and direction)
 - [ ] **D:** per-block attributes; VCI, HEI (with roof albedo term), GCS; driver tags
-- [ ] **D:** classification: Protect parcels, Repair candidate sites per site rule, built-form class, waiting-point weights
+- [x] **D:** classification: Protect parcels, Repair candidate sites per site rule, built-form class, waiting-point weights
 - [ ] **D:** priority and ACS; determinism and range tests
 - [ ] **A:** Earth Engine layers (if approved): heights, Sentinel-2 shares, roof albedo (choose and cite the coefficient set), WorldCover, Landsat LST, image clips
 - [ ] **A:** BigQuery schema and loader; GCS layout; baseline shadows exported as GeoJSON
@@ -88,9 +88,9 @@ Passes when blocks, footpaths and baseline indices including PSS exist for the f
 No backend code existed on Oct 15, so the D and A lanes follow the build order in [ENGINEERING_RULES.md](ENGINEERING_RULES.md#13-build-order-for-the-baseline). The dated lists below still describe the outcome each gate needs; this list is the order to get there. Each step is one or more PRs to `main`.
 
 - [x] **Oct 15:** 1 skeleton (uv workspace, CI, Dockerfile, `/healthz` on Cloud Run) · 2 contract (Pydantic models, `openapi.json`, generated TS, mock validation; changes agreed with U) — done Oct 16 (#6, #7); the Cloud Run deploy moved to WP 9
-- [ ] **Oct 16 morning:** 3 pipeline → Deccan bundle v1 (OSM, 10 m chunks, typology heights, sun, wind, sites, parcels) · 4 engine core with golden and property tests · 5 read routes; UI tries `VITE_API_MODE=http`
+- [ ] **Oct 16 morning:** 3 pipeline → Deccan bundle v1 (OSM, 10 m chunks, typology heights, sun, wind, sites, parcels; done, #11 and #15) · 4 engine core with golden and property tests (not on GitHub yet) · 5 read routes; UI tries `VITE_API_MODE=http` (done, #10)
 - [ ] **Oct 16 afternoon (Gate 2):** 6 interventions, `building` change, `rescore`, greedy; snapshot replaces the JS mock builder
-- [ ] **Oct 17 (Gate 3):** 7 agents, search loop, guard, runs over SSE · 8 Firestore store, BigQuery `runs` and `eval_results`, briefs · deploy
+- [ ] **Oct 17 (Gate 3):** 7 agents, search loop, guard, runs over SSE (done with the fake LLM, #10 and #13) · 8 Firestore store, BigQuery `runs` and `eval_results`, briefs · deploy
 - [ ] **If EE approval lands:** 9 Earth Engine layers as bundle v2; heat check
 
 ## Oct 15: Repair end to end
@@ -98,8 +98,8 @@ No backend code existed on Oct 15, so the D and A lanes follow the build order i
 - [ ] **D:** interventions (`tree_row`, `shade`, `depave`, `pocket_green`, `cool_roof`) and incremental `rescore`; ventilation check with canopy obstruction
 - [ ] **D:** greedy baseline; Repair direction tests; ventilation guard test; budget test
 - [x] **A:** `POST /rescore`, `/greedy`, `/sites`, `/shadows?portfolio=` (WP6, #10; shadows take `changes=`)
-- [ ] **A:** ADK agents and tool wrappers; generic `LoopAgent` search (Gemini proposer, code scorer, code judge); SSE progress events
-- [ ] **A:** output guard as `after_model_callback`; template fallback
+- [x] **A:** generic search loop (Gemini proposer, code scorer, code judge) and SSE progress events (WP7, #13; plain asyncio loop, ADK deliberately not used)
+- [x] **A:** output guard and template fallback (WP7, #13; a plain function, not an ADK callback)
 - [x] **U:** budget and unit-cost panel (planner-input badges); live search progress; plan table with rejected rows; shadow before/after
 - [x] **All:** set default unit costs from a cited public source (for example municipal tender rates), labeled planner input
 
