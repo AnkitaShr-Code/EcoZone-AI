@@ -14,6 +14,10 @@ dependencies = [
   "ecozone-api",
 ]
 
+[project.optional-dependencies]
+# `uv run --extra ee pipeline heat-check ...`: Earth Engine for the offline heat check only (pipeline/RULES.md).
+ee = ["ecozone-pipeline[ee]"]
+
 [dependency-groups]
 dev = [
   "ruff>=0.8",
