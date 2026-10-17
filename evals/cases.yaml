@@ -1,0 +1,100 @@
+# Fixed eval cases (evals/RULES.md): areas, Repair budgets, direction sites and Protect parcels.
+# They change only by PR. Ids are real ids from the bundle named under each area; the `tiny` block is the
+# CI fallback (engine/tests/fixtures/tiny). Money is in rupees; quick-win share is a percentage of the budget.
+#
+# The tune/test split is not listed here: it is read from the bundle (`tune_blocks` / `test_blocks` in meta.json when
+# the pipeline writes them, else the `split` column of blocks.parquet). `expected_split` only pins the block counts
+# of the bundle version these cases were written against, so a regenerated bundle is noticed.
+version: 1
+
+areas:
+  deccan:
+    bundle_version: v1
+    expected_split: { tune: 32, test: 33 }
+
+    # Repair: one case per budget. Greedy fills at most the quick-win share with quick wins first.
+    repair:
+      - { id: low, budget_inr: 1000000, quick_win_share_pct: 30 }        # 10 lakh
+      - { id: mid, budget_inr: 5000000, quick_win_share_pct: 30 }        # 50 lakh
+      - { id: mid_quick60, budget_inr: 5000000, quick_win_share_pct: 60 }
+      - { id: high, budget_inr: 20000000, quick_win_share_pct: 20 }      # 2 crore
+    # Search case used for the run-twice determinism check (the cheapest one).
+    determinism_case: low
+    # Case whose greedy time is reported as the "mid budget" speed number.
+    speed_case: mid
+
+    # Direction and cost checks: single sites, each at its minimum and maximum quantity.
+    direction_sites:
+      tree_row: [s_0013, s_0014]
+      shade: [s_0386, s_0381]
+      depave: [s_0414, s_0410]
+      pocket_green: [s_0417, s_0423]
+      cool_roof: [s_0457, s_0463]
+    # A typical Repair portfolio for the rescore speed number (sites at minimum quantity).
+    typical_portfolio: [s_0013, s_0386, s_0381, s_0414, s_0417, s_0457, s_0463, s_0389]
+
+    # Protect parcels: the proposal is the developer's design, `search` runs the fake-LLM design search.
+    protect:
+      - id: pc_017_wide_road
+        parcel_id: pc_017
+        proposal: { floors: 8, footprint_pct: 60, green_pct: 15, orientation_deg: 30 }
+        keep_floor_area_pct: 80
+        min_floor_area_pct: 50
+      - id: pc_004_narrow_lane
+        parcel_id: pc_004
+        proposal: { floors: 8, footprint_pct: 60, green_pct: 15, orientation_deg: 0 }
+        keep_floor_area_pct: 80
+        min_floor_area_pct: 50
+      - id: pc_010_mid_road
+        parcel_id: pc_010
+        proposal: { floors: 8, footprint_pct: 60, green_pct: 15, orientation_deg: 105 }
+        keep_floor_area_pct: 80
+        min_floor_area_pct: 50
+      - id: pc_001_small_plot
+        parcel_id: pc_001
+        proposal: { floors: 6, footprint_pct: 70, green_pct: 10, orientation_deg: 90 }
+        keep_floor_area_pct: 80
+        min_floor_area_pct: 50
+    protect_search_case: pc_017_wide_road
+    # Height ladder for the ventilation direction check, with the other design values held fixed.
+    floors_ladder: [1, 2, 4, 6, 8, 12]
+    # Tall designs a ventilation guard must flag. Orientation 30 puts the long side across Deccan's wind (from 303
+    # degrees, so its axis is 123): a long side along the wind can offset the height penalty, see the orientation
+    # sensitivity measure in test_ventilation.py.
+    guard_designs:
+      - { parcel_id: pc_017, floors: 12, footprint_pct: 80, green_pct: 5, orientation_deg: 30 }
+      - { parcel_id: pc_004, floors: 12, footprint_pct: 80, green_pct: 5, orientation_deg: 30 }
+      - { parcel_id: pc_010, floors: 12, footprint_pct: 80, green_pct: 5, orientation_deg: 30 }
+
+  tiny:
+    bundle_version: v1
+    expected_split: { tune: 3, test: 3 }
+    repair:
+      - { id: low, budget_inr: 150000, quick_win_share_pct: 30 }
+      - { id: mid, budget_inr: 400000, quick_win_share_pct: 30 }
+      - { id: high, budget_inr: 1500000, quick_win_share_pct: 20 }
+    determinism_case: low
+    speed_case: mid
+    direction_sites:
+      tree_row: [s_0003, s_0013]
+      shade: [s_0021, s_0022]
+      depave: [s_0023, s_0024]
+      pocket_green: [s_0025]
+      cool_roof: [s_0026]
+    typical_portfolio: [s_0003, s_0013, s_0021, s_0023, s_0025, s_0026]
+    protect:
+      - id: pc_003_wide_road
+        parcel_id: pc_003
+        proposal: { floors: 8, footprint_pct: 60, green_pct: 15, orientation_deg: 90 }
+        keep_floor_area_pct: 80
+        min_floor_area_pct: 50
+      - id: pc_001_mid_plot
+        parcel_id: pc_001
+        proposal: { floors: 6, footprint_pct: 60, green_pct: 15, orientation_deg: 0 }
+        keep_floor_area_pct: 80
+        min_floor_area_pct: 50
+    protect_search_case: pc_003_wide_road
+    floors_ladder: [1, 2, 4, 6, 8, 12]
+    guard_designs:
+      - { parcel_id: pc_003, floors: 12, footprint_pct: 80, green_pct: 5, orientation_deg: 0 }
+      - { parcel_id: pc_001, floors: 12, footprint_pct: 80, green_pct: 5, orientation_deg: 90 }
