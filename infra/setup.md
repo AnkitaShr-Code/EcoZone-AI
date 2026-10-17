@@ -256,6 +256,8 @@ Chosen on Oct 17 from the publisher catalog and Google's [model versions page](h
 | `_MODEL_WRITER` | `gemini-3.8-flash` | GA since Sep 2, 2026, retirement Sep 2, 2027 or later; explanations finished inside the 20 s limit. No GA Pro in 3.x |
 | `_GEMINI_LOC` | `global` | `asia-south1` lists only `gemini-2.5-flash` |
 
+Thinking: the agents call Gemini 3 with `thinking_level=low` (`ECOZONE_THINKING_LEVEL` to change). On the deployed service the default thinking took 100 s per proposal and the search ran out of time; with `low`, a 2-round Repair search on Deccan takes about 90 s locally (proposer about 25 s per round).
+
 Fallbacks: `gemini-3.5-flash` (until May 2027), `gemini-3.5-flash-lite`. Do not use `gemini-2.5-*` (retire Oct 20, 2026), `gemini-3.6-flash` (Nov 19, 2026) or `gemini-3.7-flash` (Jan 28, 2027).
 
 These ids come from the catalog, not from a call. Re-check them (`gcloud ai models list` shows only models you uploaded, so use the publisher API) and make one test call as an account with `roles/aiplatform.user`:

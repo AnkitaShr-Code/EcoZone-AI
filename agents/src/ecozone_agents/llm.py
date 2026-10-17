@@ -99,6 +99,9 @@ class GeminiClient:
             response_mime_type="application/json",
             response_schema=schema,
             temperature=s.proposer_temperature if role == "proposer" else s.writer_temperature,
+            thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel(s.thinking_level.upper()))
+            if s.thinking_level
+            else None,
         )
         try:
             response = await self._vertex().aio.models.generate_content(model=model, contents=prompt, config=config)
