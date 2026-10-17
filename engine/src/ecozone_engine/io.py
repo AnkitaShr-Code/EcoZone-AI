@@ -13,6 +13,7 @@ from pathlib import Path
 
 import geopandas as gpd
 from shapely import STRtree
+from shapely.ops import unary_union
 
 from .errors import InvalidBundleError
 from .indices import block_cooling, gcs, hei, vci
@@ -24,10 +25,21 @@ from .model import (
     ChunkRow,
     ParcelRow,
     Scores,
+    ShadeTime,
     SiteRow,
     SunEntry,
     WaitPointRow,
 )
+from .settings import SETTINGS as S
+
+_SHADE_TIMES: tuple[ShadeTime, ...] = ("13:00", "15:00", "16:00")
+
+
+def _opt_str(value: object) -> str | None:
+    """A text column value, or None for a missing one (None, NaN or the string 'None')."""
+    if value is None or (isinstance(value, float) and math.isnan(value)) or str(value) == "None":
+        return None
+    return str(value)
 
 
 def load_bundle(path: Path) -> AreaModel:
@@ -43,6 +55,8 @@ def load_bundle(path: Path) -> AreaModel:
     bundle_version = str(meta["bundle_version"])
     v_ref = float(str(meta.get("V_ref", 0.0)))
     wind_from_deg = float(str(meta.get("wind_from_deg", 270.0)))
+
+    shade_times = tuple(t for t in _SHADE_TIMES if t in meta.get("shade_times", _SHADE_TIMES))
 
     raw_sun: list[dict[str, object]] = meta.get("sun", [])  # type: ignore[assignment]
     sun_entries: list[SunEntry] = []
@@ -100,6 +114,7 @@ def load_bundle(path: Path) -> AreaModel:
                 geometry=row["geometry"],
                 height_m=float(row.get("height_m", 0.0)),
                 block_id=str(row.get("block_id", "")),
+                height_source=str(row.get("height_source", "typology")),
             )
         )
 
@@ -112,6 +127,8 @@ def load_bundle(path: Path) -> AreaModel:
                 block_id=str(row.get("block_id", "")),
                 length_m=float(row.get("length_m", 10.0)),
                 near_wait=bool(row.get("near_wait", False)),
+                road_name=_opt_str(row.get("road_name")),
+                road_class=str(row.get("road_class", "")),
             )
         )
 
@@ -125,7 +142,7 @@ def load_bundle(path: Path) -> AreaModel:
             str(block_id_raw) if block_id_raw is not None and str(block_id_raw) != "None" else None
         )
         wait_id_raw = row.get("wait_point_id")
-        wait_id_val: str | None = str(wait_id_raw) if wait_id_raw is not None and str(wait_id_raw) != "None" else None
+        wait_id_val: str | None = _opt_str(wait_id_raw)
         site_rows.append(
             SiteRow(
                 site_id=str(row["id"]),
@@ -139,6 +156,7 @@ def load_bundle(path: Path) -> AreaModel:
                 wait_point_id=wait_id_val,
                 H_W=hw_val,
                 time_to_benefit=str(row.get("time_to_benefit", "years")),
+                name=str(row.get("name", "")),
             )
         )
 
@@ -150,6 +168,7 @@ def load_bundle(path: Path) -> AreaModel:
                 geometry=row["geometry"],
                 kind=str(row.get("kind", "")),
                 weight=float(row.get("weight", 1.0)),
+                name=_opt_str(row.get("name")),
             )
         )
 
@@ -164,6 +183,8 @@ def load_bundle(path: Path) -> AreaModel:
                 street_bearing_deg=float(row.get("street_bearing_deg", 0.0)),
                 neighbour_height_m=float(row.get("neighbour_height_m", 0.0)),
                 geometry=row["geometry"],
+                name=str(row.get("name", "")),
+                road_name=_opt_str(row.get("road_name")),
             )
         )
 
@@ -174,7 +195,10 @@ def load_bundle(path: Path) -> AreaModel:
 
     # ── Compute baseline scores ───────────────────────────────────────────────
     from .shade import area_pss, block_pss, compute_chunk_shading
+    from .shadows import building_shadows_at
 
+    building_shadows = tuple((s.time, tuple(building_shadows_at(building_rows, s))) for s in sun_tuple)
+    shadow_unions = tuple((t, unary_union(list(polys))) for t, polys in building_shadows)
     chunk_shading = compute_chunk_shading(
         AreaModel(
             area_id=area_id,
@@ -188,6 +212,8 @@ def load_bundle(path: Path) -> AreaModel:
             sites=tuple(site_rows),
             wait_points=tuple(wait_rows),
             parcels=tuple(parcel_rows),
+            baseline_building_shadows=building_shadows,
+            baseline_shadow_unions=shadow_unions,
         )
     )
 
@@ -258,11 +284,31 @@ def load_bundle(path: Path) -> AreaModel:
         acs=max(0.0, min(100.0, area_acs)),
     )
 
+    # Meta facts for summary(); a bundle without them falls back to what the tables or settings give.
+    raw_bbox = meta.get("bbox_xy")
+    bbox_xy: tuple[float, float, float, float]
+    if isinstance(raw_bbox, list) and len(raw_bbox) == 4:
+        bbox_xy = (float(raw_bbox[0]), float(raw_bbox[1]), float(raw_bbox[2]), float(raw_bbox[3]))
+    else:
+        minx, miny, maxx, maxy = blocks_gdf.total_bounds
+        bbox_xy = (float(minx), float(miny), float(maxx), float(maxy))
+    skipped = meta.get("skipped_steps", [])
+    footpath_derived = meta.get("derived_footpath_chunks", 0)
+
     return AreaModel(
         area_id=area_id,
         bundle_version=bundle_version,
         V_ref=v_ref,
         wind_from_deg=wind_from_deg,
+        name=str(meta.get("name", area_id)),
+        city=str(meta.get("city", "")),
+        bbox_xy=bbox_xy,
+        reference_date=str(meta.get("reference_date", "")),
+        shade_times=shade_times,
+        metres_per_floor=float(str(meta.get("metres_per_floor", S.metres_per_floor))),
+        derived_footpath_chunks=int(str(footpath_derived)),
+        skipped_steps=tuple(str(x) for x in skipped) if isinstance(skipped, list) else (),
+        attribution=str(meta.get("attribution", "")),
         sun=sun_tuple,
         blocks=tuple(block_rows),
         buildings=tuple(building_rows),
@@ -272,6 +318,9 @@ def load_bundle(path: Path) -> AreaModel:
         parcels=tuple(parcel_rows),
         block_baselines=tuple(sorted(block_baselines, key=lambda x: x[0])),
         area_baseline=area_baseline,
+        baseline_building_shadows=building_shadows,
+        baseline_shadow_unions=shadow_unions,
+        baseline_shading=tuple(sorted(chunk_shading.items())),
         block_tree=block_tree,
         building_tree=building_tree,
         chunk_tree=chunk_tree,

@@ -92,7 +92,14 @@ def shadows(area: AreaModel, time: ShadeTime, changes: Sequence[Change] = ()) ->
         return []
 
     # Baseline building shadows
-    polys = building_shadows_at(area.buildings, sun_entry)
+    cached = dict(area.baseline_building_shadows).get(time)
+    polys = list(cached) if cached is not None else building_shadows_at(area.buildings, sun_entry)
+    return [*polys, *change_shadows(area, sun_entry, changes)]
+
+
+def change_shadows(area: AreaModel, sun_entry: SunEntry, changes: Sequence[Change]) -> list[Polygon]:
+    """Shadow polygons added by a change set at one sun position (no baseline building shadows)."""
+    polys: list[Polygon] = []
 
     # Build lookups
     site_by_id = {s.site_id: s for s in area.sites}

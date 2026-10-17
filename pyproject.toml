@@ -41,7 +41,7 @@ ecozone-api = { workspace = true }
 [tool.ruff]
 line-length = 120
 target-version = "py312"
-src = ["contract/src", "engine/src", "pipeline/src", "agents/src", "api/src"]
+src = ["contract/src", "engine/src", "pipeline/src", "agents/src", "api/src", "evals"]
 # fetch_sample.py is the legacy UI-mock fetcher, removed when the mock becomes an engine snapshot (pipeline/RULES.md).
 extend-exclude = ["app", "data", "docs", "*.md", "pipeline/fetch_sample.py"]
 
@@ -56,7 +56,7 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 # ---------- pyright: strict for engine and contract, standard elsewhere ----------
 [tool.pyright]
 pythonVersion = "3.12"
-include = ["contract", "engine", "pipeline", "agents", "api"]
+include = ["contract", "engine", "pipeline", "agents", "api", "evals"]
 exclude = ["**/.venv", "app", "data"]
 typeCheckingMode = "standard"
 strict = ["contract/src", "engine/src"]
@@ -116,5 +116,8 @@ forbidden_modules = ["ecozone_api", "ecozone_pipeline"]
 [tool.pytest.ini_options]
 testpaths = ["contract/tests", "engine/tests", "pipeline/tests", "agents/tests", "api/tests"]
 addopts = "-q --import-mode=importlib"
-pythonpath = ["pipeline/tests"]
-markers = ["cloud: needs live Google Cloud; skipped unless ECOZONE_CLOUD_TESTS=1"]
+pythonpath = ["pipeline/tests", "evals"]
+markers = [
+  "cloud: needs live Google Cloud; skipped unless ECOZONE_CLOUD_TESTS=1",
+  "live: needs live Gemini; run with ECOZONE_LLM=gemini and -m live, never part of the offline evals",
+]

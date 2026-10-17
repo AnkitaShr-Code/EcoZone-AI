@@ -63,6 +63,7 @@ def greedy_baseline(
     spent = 0.0
     quick_spent = 0.0
     used_ids: set[str] = set()
+    current_acs = area.area_baseline.acs
 
     # ── Phase 1: fill quick-win budget ───────────────────────────────────────
     for cost, site_id, kind, qty in quick_wins:
@@ -73,23 +74,15 @@ def greedy_baseline(
         if spent + cost > budget_inr:
             continue
         change = Change(kind=kind, site_id=site_id, quantity=qty)  # type: ignore[arg-type]
-        # Marginal check against current portfolio
+        # One rescore of the portfolio with the site added gives the marginal gain and the ventilation check.
         try:
-            current = rescore(area, chosen, unit_costs).after.acs if chosen else area.area_baseline.acs
-            new_acs = rescore(area, [*chosen, change], unit_costs).after.acs
-            marginal = new_acs - current
+            trial = rescore(area, [*chosen, change], unit_costs)
         except Exception:
             continue
-        if marginal <= S.greedy_min_gain:
-            continue
-        # Ventilation check
-        try:
-            r = rescore(area, [*chosen, change], unit_costs)
-            if not r.ventilation_ok:
-                continue
-        except Exception:
+        if trial.after.acs - current_acs <= S.greedy_min_gain or not trial.ventilation_ok:
             continue
         chosen.append(change)
+        current_acs = trial.after.acs
         spent += cost
         quick_spent += cost
         used_ids.add(site_id)
@@ -102,20 +95,13 @@ def greedy_baseline(
             continue
         change = Change(kind=kind, site_id=site_id, quantity=qty)  # type: ignore[arg-type]
         try:
-            current = rescore(area, chosen, unit_costs).after.acs if chosen else area.area_baseline.acs
-            new_acs = rescore(area, [*chosen, change], unit_costs).after.acs
-            marginal = new_acs - current
+            trial = rescore(area, [*chosen, change], unit_costs)
         except Exception:
             continue
-        if marginal <= S.greedy_min_gain:
-            continue
-        try:
-            r = rescore(area, [*chosen, change], unit_costs)
-            if not r.ventilation_ok:
-                continue
-        except Exception:
+        if trial.after.acs - current_acs <= S.greedy_min_gain or not trial.ventilation_ok:
             continue
         chosen.append(change)
+        current_acs = trial.after.acs
         spent += cost
         used_ids.add(site_id)
 
