@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import replace
+from typing import get_args
 
 from .building import apply_building
 from .costs import portfolio_costs
@@ -24,11 +25,43 @@ from .model import (
     RiskInfo,
     Scores,
     ShadeByTime,
+    ShadeTime,
     UnitCosts,
 )
 from .priority import area_weighted_scores, risk_label
 from .settings import SETTINGS as S
 from .shade import area_pss, block_pss, compute_chunk_shading
+
+
+def _covered_wait_points(
+    area: AreaModel,
+    changes: Sequence[Change],
+    before: dict[str, ShadeByTime],
+    after: dict[str, ShadeByTime],
+) -> set[str]:
+    """Waiting points the change set shades: a shade structure at the point, or footpath within
+    `wait_shade_radius_m` of it that is in the sun before and in shade after at `wait_cover_time`
+    (PLANNING.md "Shade structure": within 30 m of a waiting point)."""
+    covered: set[str] = set()
+    sites = {s.site_id: s for s in area.sites}
+    for change in changes:
+        site = sites.get(change.site_id)
+        if change.kind == "shade" and site is not None and site.wait_point_id is not None:
+            covered.add(site.wait_point_id)
+
+    time_index = get_args(ShadeTime).index(S.wait_cover_time)
+    newly_shaded = [
+        chunk
+        for chunk in area.chunks
+        if after.get(chunk.chunk_id, (False, False, False))[time_index]
+        and not before.get(chunk.chunk_id, (False, False, False))[time_index]
+    ]
+    for point in area.wait_points:
+        if point.wait_id in covered:
+            continue
+        if any(chunk.geometry.distance(point.geometry) <= S.wait_shade_radius_m for chunk in newly_shaded):
+            covered.add(point.wait_id)
+    return covered
 
 
 def _validate(area: AreaModel, change: Change) -> None:
@@ -191,13 +224,7 @@ def rescore(area: AreaModel, changes: Sequence[Change], unit_costs: UnitCosts) -
     total_cost, quick_win_cost = portfolio_costs(area, changes_list, unit_costs)
 
     # ── 11. Wait points covered ───────────────────────────────────────────────
-    covered_wait_ids: set[str] = set()
-    for change in sorted(changes_list, key=lambda c: c.site_id):
-        if change.kind == "shade":
-            site = next((s for s in area.sites if s.site_id == change.site_id), None)
-            if site is not None and site.wait_point_id is not None:
-                covered_wait_ids.add(site.wait_point_id)
-    wait_points_covered = len(covered_wait_ids)
+    wait_points_covered = len(_covered_wait_points(area, changes_list, base_chunk_shading, new_chunk_shading))
 
     # ── 12. Blocks worse ──────────────────────────────────────────────────────
     blocks_worse = sum(
