@@ -12,7 +12,7 @@ areas:
     bundle_version: v1
     expected_split: { tune: 32, test: 33 }
 
-    # Repair: one case per budget. Greedy fills at most the quick-win share with quick wins first.
+    # Repair: one case per budget. Greedy adds quick wins first until their spend is at least the quick-win share.
     repair:
       - { id: low, budget_inr: 1000000, quick_win_share_pct: 30 }        # 10 lakh
       - { id: mid, budget_inr: 5000000, quick_win_share_pct: 30 }        # 50 lakh
