@@ -81,7 +81,7 @@ def layer(area: AreaModel, name: LayerName) -> list[Feature]:
             for st in sorted(_block_stats(area), key=lambda st: st.block.block_id)
         ]
     if name == "segments":
-        shading = compute_chunk_shading(area)
+        shading = dict(area.baseline_shading) or compute_chunk_shading(area)
         return [
             Feature(
                 c.chunk_id,

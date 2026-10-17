@@ -194,7 +194,9 @@ def load_bundle(path: Path) -> AreaModel:
 
     # ── Compute baseline scores ───────────────────────────────────────────────
     from .shade import area_pss, block_pss, compute_chunk_shading
+    from .shadows import building_shadows_at
 
+    building_shadows = tuple((s.time, tuple(building_shadows_at(building_rows, s))) for s in sun_tuple)
     chunk_shading = compute_chunk_shading(
         AreaModel(
             area_id=area_id,
@@ -208,6 +210,7 @@ def load_bundle(path: Path) -> AreaModel:
             sites=tuple(site_rows),
             wait_points=tuple(wait_rows),
             parcels=tuple(parcel_rows),
+            baseline_building_shadows=building_shadows,
         )
     )
 
@@ -312,6 +315,8 @@ def load_bundle(path: Path) -> AreaModel:
         parcels=tuple(parcel_rows),
         block_baselines=tuple(sorted(block_baselines, key=lambda x: x[0])),
         area_baseline=area_baseline,
+        baseline_building_shadows=building_shadows,
+        baseline_shading=tuple(sorted(chunk_shading.items())),
         block_tree=block_tree,
         building_tree=building_tree,
         chunk_tree=chunk_tree,

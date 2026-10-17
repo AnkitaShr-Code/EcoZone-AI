@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from shapely import STRtree
+from shapely.geometry import Polygon
 from shapely.geometry.base import BaseGeometry
 
 from .settings import SETTINGS
@@ -154,6 +155,14 @@ class AreaModel:
     # ── Baseline scores keyed by block_id ─────────────────────────────────────
     block_baselines: tuple[tuple[str, Scores], ...] = ()
     area_baseline: AreaScores = field(default_factory=lambda: AreaScores(vci=0.0, hei=0.0, gcs=0.0, pss=0.0, acs=0.0))
+
+    # ── Baseline shadows and shading, computed once at load so rescore does not rebuild them ────────────
+    baseline_building_shadows: tuple[tuple[ShadeTime, tuple[Polygon, ...]], ...] = field(
+        default=(), hash=False, compare=False, repr=False
+    )
+    """Shadow polygon of every building per reference time; empty on a hand-built model (rebuilt on demand)."""
+    baseline_shading: tuple[tuple[str, ShadeByTime], ...] = field(default=(), hash=False, compare=False, repr=False)
+    """Chunk id → shade state with no changes applied; empty on a hand-built model (rebuilt on demand)."""
 
     # ── STRtrees: excluded from hash and comparison ───────────────────────────
     block_tree: STRtree = field(default_factory=lambda: STRtree([]), hash=False, compare=False, repr=False)
