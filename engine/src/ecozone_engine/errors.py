@@ -27,3 +27,11 @@ class QuantityOutOfRangeError(EngineInputError):
 
 class InvalidChangeError(EngineInputError):
     """A change the engine refuses for a domain reason, for example a tree row on a street with H/W ≥ 1."""
+
+
+class InvalidBundleError(ValueError):
+    """Bundle directory is missing a required field or table (not an input error from the planner)."""
+
+    def __init__(self, field: str, path: str) -> None:
+        self.field = field
+        super().__init__(f"Bundle at {path!r} is missing required field {field!r}.")

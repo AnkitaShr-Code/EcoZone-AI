@@ -76,7 +76,7 @@ def load_areas(engine: EnginePort, bundle_root: Path | None) -> dict[str, e.Area
     for directory in dirs:
         try:
             area = engine.load_bundle(directory)
-        except e.NotImplementedYetError as exc:
+        except (e.NotImplementedYetError, e.InvalidBundleError, FileNotFoundError) as exc:
             log.warning("Bundle %s not loaded: %s", directory.name, exc)
             continue
         areas[area.area_id] = area

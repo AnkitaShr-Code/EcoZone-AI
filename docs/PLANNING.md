@@ -210,10 +210,10 @@ Priority ranks where to act; it is a ranking, never shown as a measurement.
 ```latex
 P_b = HEI_b \cdot \left(1 - \frac{PSS_b}{100}\right) \cdot E_b \cdot V_b
 
-E_b = 1 + \min\left(2,\ \frac{\sum_{k \in \text{waiting points within 150 m}} w_k}{3}\right) \qquad V_b = \begin{cases}1.25 & \text{dense low-rise}\\ 1.0 & \text{otherwise}\end{cases}
+E_b = 1 + \min\left(2,\ \frac{\sum_{k \in \text{waiting points whose nearest point is within 150 m of the block boundary}} w_k}{3}\right) \qquad V_b = \begin{cases}1.25 & \text{dense low-rise}\\ 1.0 & \text{otherwise}\end{cases}
 ```
 
-Waiting-point weights `w_k`: school 3, hospital 3, market 2, bus stop 1 (prototype settings). Dense low-rise: building coverage of 50% or more, median footprint 60 m² or less, median height 2 floors or fewer (prototype settings).
+Waiting-point weights `w_k`: school 3, hospital 3, clinic 2, college 2, market 2, bus stop 1 (prototype settings). Dense low-rise: building coverage of 50% or more, median footprint 60 m² or less, median height 2 floors or fewer (prototype settings).
 
 The **Area Cooling Score** is what the Repair search maximizes:
 
