@@ -1,0 +1,109 @@
+{
+  "V_ref": 23094.81385641134,
+  "area_id": "tiny",
+  "attribution": "\u00a9 OpenStreetMap contributors, ODbL 1.0",
+  "bbox_wgs84": [
+    73.84,
+    18.518,
+    73.84227366844996,
+    18.5201704921591
+  ],
+  "bbox_xy": [
+    377556.18,
+    2047888.75,
+    377797.74,
+    2048130.48
+  ],
+  "buildings_by_height_source": {
+    "open_buildings": 0,
+    "osm_height": 1,
+    "osm_levels": 8,
+    "typology": 15
+  },
+  "bundle_version": "v1",
+  "city": "Test",
+  "counts": {
+    "blocks": 6,
+    "buildings": 24,
+    "parcels": 3,
+    "segments": 123,
+    "sites": 26,
+    "wait_points": 3
+  },
+  "crs": "EPSG:32643",
+  "data_gaps": {
+    "buildings_height_from_typology": 15,
+    "buildings_total": 24,
+    "canyon_axis_from_block_shape": 0,
+    "chunks_total": 123,
+    "chunks_width_from_road_class": 123,
+    "chunks_without_block": 0,
+    "footpath_chunks_derived_from_road_edge": 115,
+    "roof_albedo_default_buildings": 24,
+    "vegetation_and_impervious_from_osm_proxy": 6
+  },
+  "derived_footpath_chunks": 115,
+  "metres_per_floor": 3.0,
+  "name": "Tiny synthetic area (tests)",
+  "pipeline_git_sha": "tiny-fixture",
+  "reference_date": "2026-04-15",
+  "schema_version": 1,
+  "settings_hash": "273667f9e6b49e4e467b38f15bb636bec09715bb15ba37d2073c8ec19b93e48d",
+  "shade_times": [
+    "13:00",
+    "15:00",
+    "16:00"
+  ],
+  "skipped_steps": [
+    "earth_engine",
+    "baselines"
+  ],
+  "sources": [
+    {
+      "fetched_at": null,
+      "licence": "ODbL 1.0",
+      "name": "OpenStreetMap (Overpass API)",
+      "query_sha256": null,
+      "snapshot": null,
+      "url": "https://www.openstreetmap.org/copyright",
+      "use": "buildings, roads, sidewalks, green, water, waiting points, public land"
+    },
+    {
+      "fetched_at": null,
+      "licence": "CC BY 4.0",
+      "name": "Open-Meteo historical weather API (ERA5)",
+      "period": "2025-03-01 to 2025-05-31",
+      "url": "https://open-meteo.com/en/docs/historical-weather-api",
+      "use": "prevailing afternoon wind direction"
+    },
+    {
+      "licence": "BSD-3-Clause",
+      "name": "pvlib solar position",
+      "url": "https://pvlib-python.readthedocs.io/",
+      "use": "sun altitude and azimuth at the reference times (computed, clear sky)"
+    }
+  ],
+  "sun": [
+    {
+      "altitude_deg": 79.3454,
+      "azimuth_deg": 215.9799,
+      "time": "13:00"
+    },
+    {
+      "altitude_deg": 53.7919,
+      "azimuth_deg": 261.2205,
+      "time": "15:00"
+    },
+    {
+      "altitude_deg": 39.641,
+      "azimuth_deg": 267.5202,
+      "time": "16:00"
+    }
+  ],
+  "timezone": "Asia/Kolkata",
+  "wind_from_deg": 300.0,
+  "wind_provenance": {
+    "from_deg": 300.0,
+    "source": "config override"
+  }
+}

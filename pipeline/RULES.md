@@ -43,13 +43,16 @@ All geometry in EPSG:32643. Ids are stable strings prefixed by type (`b_`, `blk_
 
 | Table | Key columns |
 | --- | --- |
-| `buildings` | id, geometry, height_m, height_source, building_tag, block_id, roof_albedo, roof_albedo_source |
-| `blocks` | id, geometry, area_m2, coverage, built_form, I_s, G_c, G_buf, d_green, d_water, H_W, canyon_axis_deg, L_built, V, roof_albedo, wait_weight, split (tune/test), plus attribute source columns |
-| `chunks` | id, geometry, run_id, block_id, road_name, road_class, bearing_deg, side, length_m, H_W, near_wait, footpath_source (osm/derived) |
+| `buildings` | id, geometry, height_m, height_source, building_tag, footprint_m2, block_id, roof_albedo, roof_albedo_source |
+| `blocks` | id, geometry, area_m2, coverage, built_form (`dense_low_rise`/`other`), I_s, G_c, G_buf (all 0–100), d_green, d_water (m, capped), H_W, canyon_axis_deg (0–180), L_built (m), V (m³), roof_albedo, wait_weight (Σ weights within 150 m), split (tune/test), building_count, median_footprint_m2, median_floors, and one `*_source` column per attribute |
+| `chunks` | id, geometry, run_id, block_id, road_name, road_class, road_width_m, width_source, bearing_deg (0–360, direction of the run), side (left/right of the road's direction), length_m, H_W, near_wait, footpath_source (osm/derived) |
 | `wait_points` | id, geometry, kind, name, weight |
-| `parcels` | id, geometry, block_id, area_m2, road_name, road_width_m, street_bearing_deg, neighbour_height_m |
-| `sites` | id, geometry, kind, quantity_min, quantity_max, rule, wait_point_id, H_W |
-| `meta.json` | area id and name, bbox, reference date, sun table, wind_from_deg, V_ref, settings hash, pipeline git SHA, sources, data_gaps |
+| `parcels` | id, geometry, block_id, area_m2, road_name, road_width_m, street_bearing_deg (0–180), neighbour_height_m, vacant_tag, name |
+| `sites` | id, geometry, kind, name, quantity_min, quantity_max, rule, rejected, wait_point_id, H_W, block_id, time_to_benefit (weeks/season/years). A rejected tree row has `rejected` true and `rule` `CANOPY_OBSTRUCTION` |
+| `meta.json` | area id and name, city, bbox (WGS84 and UTM), reference date, shade times, sun table, wind_from_deg, V_ref, metres_per_floor, counts, buildings_by_height_source, derived_footpath_chunks, settings hash, pipeline git SHA, sources, data_gaps, skipped_steps, attribution |
+| `baselines.parquet` (optional) | block_id, vci, hei, gcs, pss; written by `baselines.py` once the engine can compute them, with `baseline_area` in `meta.json` |
+
+Tables carry a few columns beyond the minimum the engine needs (`name`, `*_source`, `rejected`); the engine ignores what it doesn't use. Dropping or renaming a column is a bundle-schema change and its own PR.
 
 ## Tests
 
