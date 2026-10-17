@@ -8,7 +8,7 @@ import geopandas as gpd
 import numpy as np
 import pytest
 import shapely
-from shapely import Point
+from shapely import MultiLineString, Point
 from tiny_area import FIXTURES, Tiny
 from typer.testing import CliRunner
 
@@ -108,6 +108,15 @@ def test_validation_catches_each_kind_of_problem(tiny: Tiny) -> None:
     assert any("missing values" in e for e in broken(blocks=lambda g: g.assign(I_s=float("nan"))))
     assert any("infinite" in e for e in broken(blocks=lambda g: g.assign(I_s=float("inf"))))
     assert any("CRS" in e for e in broken(blocks=lambda g: g.set_crs(4326, allow_override=True)))
+    assert any("not served by the API" in e for e in broken(blocks=lambda g: g.set_geometry(g.geometry.centroid)))
+
+    def split_tree_row(g: Any) -> Any:
+        first = g.index[g["kind"] == "tree_row"][0]
+        g = g.copy()
+        g.loc[first, "geometry"] = MultiLineString([[(0, 0), (1, 0)], [(10, 0), (11, 0)]])
+        return g
+
+    assert any("not a single LineString" in e for e in broken(sites=split_tree_row))
 
 
 def test_baselines_are_skipped_until_the_engine_can_compute_them(tiny: Tiny, tmp_path: Path) -> None:
