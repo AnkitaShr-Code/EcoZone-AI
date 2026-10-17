@@ -8,25 +8,13 @@ import statistics
 import time
 from collections.abc import Callable
 
-import pytest
-
 import ecozone_engine as e
-from ecozone_engine.shade import compute_chunk_shading
 from evalkit.bench import Bench, building_change
 from evalkit.cases import AreaCases
 from evalkit.results import Recorder
 
 RUNS = 20
 
-RESCORE_SLOW = pytest.mark.xfail(
-    reason=(
-        "Understood, not fixed here (engine is out of scope): rescore recomputes the shadows of every building twice "
-        "per call, once for the baseline (rescore.py step 5) and once for the change set (step 4), however little "
-        "changes, so the cost is the same with no changes at all (see 'no_changes' and the shading measure). The "
-        "incremental STRtree-based update that engine/RULES.md describes is not in place. Reported as a finding."
-    ),
-    strict=False,
-)
 
 TARGET_START_MS = 10_000
 TARGET_REPAIR_RESCORE_MS = 200
@@ -64,9 +52,8 @@ def test_service_start_bundle_load(bench: Bench, rec: Recorder) -> None:
     assert ms < TARGET_START_MS
 
 
-@RESCORE_SLOW
 def test_repair_rescore_latency(bench: Bench, cases: AreaCases, rec: Recorder) -> None:
-    bench.ensure_precomputed()  # worker processes finish first so they do not load the machine
+    bench.ensure_precomputed()  # the slow setup finishes first
     changes = [bench.change(sid) for sid in cases.typical_portfolio]
     stats = time_ms(lambda: e.rescore(bench.area, changes, bench.costs))
     stats["sites"] = len(changes)
@@ -81,13 +68,6 @@ def test_empty_rescore_latency(bench: Bench, rec: Recorder) -> None:
     rec.measure("speed.rescore", "no_changes", stats)
 
 
-def test_rescore_time_is_shading(bench: Bench, rec: Recorder) -> None:
-    """Diagnostic: the engine's baseline chunk-shading pass alone, which rescore runs twice per call."""
-    stats = time_ms(lambda: compute_chunk_shading(bench.area), runs=10)
-    rec.measure("speed.diagnosis", "baseline_chunk_shading_once", stats, "rescore runs this pass twice per call")
-
-
-@RESCORE_SLOW
 def test_protect_rescore_latency(bench: Bench, cases: AreaCases, rec: Recorder) -> None:
     pc = cases.protect[0]
     change = building_change(pc.parcel_id, pc.proposal)
@@ -105,25 +85,38 @@ def test_shadows_with_portfolio_latency(bench: Bench, cases: AreaCases, rec: Rec
     assert stats["p95_ms"] <= TARGET_SHADOWS_MS, stats
 
 
+GREEDY_RUNS = 5
+
+
 def test_greedy_mid_budget_time(bench: Bench, cases: AreaCases, rec: Recorder) -> None:
-    """Greedy at the mid budget. One run per case: it takes minutes on the real bundle, so there is no p50 or p95.
-    The runs share the machine with other worker processes, so the numbers are an upper bound."""
+    """Greedy at the mid budget, repeated; there is no target for it in the rules. Every Repair case is also timed
+    once, in an otherwise idle process."""
     case = cases.repair_case(cases.speed_case)
-    run = bench.greedy_for(case)
+
+    def run() -> object:
+        return e.greedy_baseline(bench.area, case.budget_inr, bench.costs, case.quick_win_share_pct)
+
+    samples: list[float] = []
+    for _ in range(GREEDY_RUNS):
+        t0 = time.perf_counter()
+        run()
+        samples.append(time.perf_counter() - t0)
     rec.measure(
         "speed.greedy",
         case.id,
         {
             "budget_inr": case.budget_inr,
-            "seconds": round(run.seconds, 1),
-            "sites_chosen": len(run.portfolio.changes),
-            "concurrent_workers": run.workers,
+            "runs": GREEDY_RUNS,
+            "p50_ms": round(statistics.median(samples) * 1000),
+            "p95_ms": round(percentile(samples, 0.95) * 1000),
+            "min_ms": round(min(samples) * 1000),
+            "max_ms": round(max(samples) * 1000),
         },
-        "single run, measured while other worker processes were running; no target in the rules",
+        "wall time of greedy_baseline, repeated, after the first (warm) run",
     )
     for rc in cases.repair:
         r = bench.greedy_for(rc)
-        rec.measure("speed.greedy", f"all:{rc.id}", {"seconds": round(r.seconds, 1), "concurrent_workers": r.workers})
+        rec.measure("speed.greedy", f"first run:{rc.id}", {"seconds": round(r.seconds, 1)})
 
 
 def test_search_three_rounds_time(bench: Bench, cases: AreaCases, rec: Recorder) -> None:

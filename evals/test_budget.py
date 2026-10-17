@@ -3,6 +3,7 @@
 import json
 
 from ecozone_contract import InterventionChange
+from ecozone_engine.settings import SETTINGS
 from evalkit.bench import Bench
 from evalkit.cases import AreaCases
 from evalkit.results import Recorder
@@ -77,3 +78,35 @@ def test_search_returns_a_valid_plan(bench: Bench, cases: AreaCases, rec: Record
             invalid.append(f"{rc.id}: {best.invalid_reason}")
     rec.measure("budget.search_validity", "best_plan", rows, "fake LLM")
     assert not invalid, invalid
+
+
+def test_quick_win_gap_of_the_greedy_plan(bench: Bench, cases: AreaCases, rec: Recorder) -> None:
+    """Diagnostic for the validity check: how far under the quick-win share the greedy plan ends, and whether a site
+    that would close the gap was left out. Informational, no assertion."""
+    for rc in cases.repair:
+        run = bench.greedy_for(rc)
+        r = run.portfolio.result
+        target = rc.budget_inr * rc.quick_win_share_pct / 100
+        chosen = {ch.site_id for ch in run.portfolio.changes}
+        spare = rc.budget_inr - r.cost_inr
+        left = sorted(
+            (s.quantity_min * bench.costs[s.kind].inr, s.site_id)  # pyright: ignore[reportArgumentType]
+            for s in bench.area.sites
+            if not s.rejected and s.site_id not in chosen and s.time_to_benefit in SETTINGS.quick_win_ttb
+        )
+        gap = max(0.0, target - r.quick_win_cost_inr)
+        closes = [sid for cost, sid in left if cost >= gap and cost <= spare]
+        rec.measure(
+            "budget.quick_win_gap",
+            rc.id,
+            {
+                "target_inr": round(target),
+                "quick_win_cost_inr": round(r.quick_win_cost_inr),
+                "shortfall_inr": round(gap),
+                "spare_budget_inr": round(spare),
+                "unchosen_quick_win_sites": len(left),
+                "cheapest_unchosen_quick_win_inr": round(left[0][0]) if left else None,
+                "unchosen_sites_that_fit_the_spare_budget_and_close_the_gap": len(closes),
+            },
+            "greedy at these inputs",
+        )

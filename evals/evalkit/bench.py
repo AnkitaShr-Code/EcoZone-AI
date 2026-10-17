@@ -13,10 +13,17 @@ import ecozone_engine as e
 from ecozone_agents import AgentSettings, build_runner
 from ecozone_contract.runs import DoneEvent, ProtectSearchRequest, RepairSearchRequest
 
-from . import pool
 from .adapter import CostsKey, EvalEngine, costs_key
 from .bundle import BundleInfo
 from .cases import AreaCases, Design, ProtectCase, RepairCase, unit_cost_rows
+
+CostRows = dict[str, tuple[str, float, str]]
+"""kind -> (unit, inr, source)"""
+
+
+def to_costs(rows: CostRows) -> e.UnitCosts:
+    return {kind: e.UnitCost(unit=u, inr=inr, source=src) for kind, (u, inr, src) in rows.items()}  # pyright: ignore[reportReturnType]
+
 
 KINDS: tuple[e.InterventionKind, ...] = ("tree_row", "shade", "depave", "pocket_green", "cool_roof")
 
@@ -30,7 +37,6 @@ def canon(obj: object) -> str:
 class GreedyRun:
     portfolio: e.PortfolioData
     seconds: float
-    workers: int
 
 
 @dataclass
@@ -51,7 +57,7 @@ class Bench:
     cases: AreaCases
     area: e.AreaModel
     load_seconds: float
-    rows: pool.CostRows
+    rows: CostRows
     costs: e.UnitCosts
     contract_costs: c.UnitCosts
     greedy: dict[str, GreedyRun] = field(default_factory=dict[str, GreedyRun])
@@ -63,7 +69,6 @@ class Bench:
         default_factory=dict[tuple[str, CostsKey], e.SingleSiteData]
     )
     precompute_seconds: float = 0.0
-    workers: int = 0
     _precomputed: bool = False
     _searches: dict[tuple[str, int], SearchRun] = field(default_factory=dict[tuple[str, int], SearchRun])
     _rescored: dict[str, e.AreaResultData] = field(default_factory=dict[str, e.AreaResultData])
@@ -74,11 +79,11 @@ class Bench:
         area = e.load_bundle(info.path)
         load_seconds = time.perf_counter() - t0
         raw = unit_cost_rows()
-        rows: pool.CostRows = {k: (str(v["unit"]), float(v["inr"]), str(v["source"])) for k, v in raw.items()}
+        rows: CostRows = {k: (str(v["unit"]), float(v["inr"]), str(v["source"])) for k, v in raw.items()}
         contract_costs = c.UnitCosts.model_validate(
             {k: {"unit": u, "inr": inr, "source": src} for k, (u, inr, src) in rows.items()}
         )
-        return cls(info, cases, area, load_seconds, rows, pool.to_costs(rows), contract_costs)
+        return cls(info, cases, area, load_seconds, rows, to_costs(rows), contract_costs)
 
     # ---------- sites, changes and cached single rescores ----------
 
@@ -104,34 +109,28 @@ class Bench:
     # ---------- slow engine results, computed once across processes ----------
 
     def ensure_precomputed(self) -> None:
+        """Greedy for every Repair case (and the determinism case a second time) and every offered site on its own,
+        in this process, one after the other, so the timings are of an otherwise idle process."""
         if self._precomputed:
             return
         t0 = time.perf_counter()
-        self.workers = pool.worker_count()
-        valid_sites = sorted(s.site_id for s in self.area.sites if not s.rejected)
-        n_chunks = max(1, self.workers * 3)
-        chunks = [valid_sites[i::n_chunks] for i in range(n_chunks) if valid_sites[i::n_chunks]]
-        with pool.make_pool(self.info.path, self.workers) as ex:
-            greedy_jobs = {
-                rc.id: ex.submit(pool.run_greedy, rc.budget_inr, rc.quick_win_share_pct, self.rows)
-                for rc in self.cases.repair
-            }
-            det = self.cases.repair_case(self.cases.determinism_case)
-            repeat_job = ex.submit(pool.run_greedy, det.budget_inr, det.quick_win_share_pct, self.rows)
-            single_jobs = [ex.submit(pool.run_singles, ch, self.rows) for ch in chunks]
-            key = costs_key(self.costs)
-            for cid, fut in greedy_jobs.items():
-                portfolio, secs = fut.result()
-                self.greedy[cid] = GreedyRun(portfolio, secs, self.workers)
-                rc = self.cases.repair_case(cid)
-                self.greedy_cache[(rc.budget_inr, rc.quick_win_share_pct, key)] = portfolio
-            portfolio, secs = repeat_job.result()
-            self.greedy_repeat = GreedyRun(portfolio, secs, self.workers)
-            for fut in single_jobs:
-                for single in fut.result():
-                    self.single_cache[(single.site_id, key)] = single
+        key = costs_key(self.costs)
+        for rc in self.cases.repair:
+            self.greedy[rc.id] = self._greedy_run(rc)
+            self.greedy_cache[(rc.budget_inr, rc.quick_win_share_pct, key)] = self.greedy[rc.id].portfolio
+        self.greedy_repeat = self._greedy_run(self.cases.repair_case(self.cases.determinism_case))
+        for s in sorted(self.area.sites, key=lambda s: s.site_id):
+            if s.rejected:
+                continue
+            single = e.single_site(self.area, s.site_id, self.costs)
+            self.single_cache[(s.site_id, key)] = single
         self.precompute_seconds = time.perf_counter() - t0
         self._precomputed = True
+
+    def _greedy_run(self, rc: RepairCase) -> GreedyRun:
+        t0 = time.perf_counter()
+        portfolio = e.greedy_baseline(self.area, rc.budget_inr, self.costs, rc.quick_win_share_pct)
+        return GreedyRun(portfolio, time.perf_counter() - t0)
 
     def greedy_for(self, case: RepairCase) -> GreedyRun:
         self.ensure_precomputed()

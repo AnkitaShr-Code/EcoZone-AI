@@ -8,7 +8,7 @@ Cross-package tests that need the real bundle or live Gemini, and the report tha
 evals/
   cases.yaml          fixed cases per area (budgets, direction sites, Protect parcels); changes only by PR
   conftest.py         bundle choice, session workbench, outcome rows
-  evalkit/            bundle choice, cases loader, engine adapter, worker pool, comparison, JSONL recorder
+  evalkit/            bundle choice, cases loader, engine adapter, comparison, JSONL recorder
   test_determinism.py test_range.py test_direction.py test_ventilation.py test_budget.py
   test_gemini_vs_greedy.py   offline rule proposer ("fake" LLM): win, tie or loss per case with both ACS values
   test_live_gemini.py        live Gemini, marker `live`, skipped without ECOZONE_LLM=gemini and Vertex settings

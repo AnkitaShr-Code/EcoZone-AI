@@ -11,7 +11,7 @@ Implemented (WP10 subset): determinism, range, direction, ventilation guard, bud
 ## Run
 
 ```
-uv run pytest evals -m "not live"            # offline evals; on the Deccan bundle this takes about 15 minutes
+uv run pytest evals -m "not live"            # offline evals; on the Deccan bundle this takes a few minutes
 uv run python evals/report.py                # the same run, then writes REPORT.md from its rows
 uv run python evals/report.py --from evals/results/final.jsonl   # rebuild REPORT.md from saved rows
 ECOZONE_LLM=gemini uv run pytest evals -m live                   # live Gemini (Vertex credentials needed)
@@ -19,5 +19,4 @@ ECOZONE_LLM=gemini uv run pytest evals -m live                   # live Gemini (
 
 The bundle is `ECOZONE_EVAL_BUNDLE` if set (an invalid path is an error), else `data/areas/deccan/v1` in this checkout or
 in the main checkout, else the tiny fixture. The pytest header and REPORT.md say which one ran, so the suite never
-silently does nothing. Cases are in [cases.yaml](cases.yaml); greedy takes minutes on the real bundle, so the evals
-compute the greedy portfolios and single-site results once in worker processes (`ECOZONE_EVAL_WORKERS`, default up to 6).
+silently does nothing. Cases are in [cases.yaml](cases.yaml).

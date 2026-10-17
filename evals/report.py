@@ -198,6 +198,13 @@ def build(rows: list[Row]) -> str:
                 f"- `{m['subject']}`: AI candidates not valid: {fmt(reasons) if reasons else 'none'}; "
                 f"rounds run: {m['value']['rounds']}; greedy plan cost {m['value']['greedy_cost_inr']:,} INR"
             )
+        gaps = measures(rows, "budget.quick_win_gap")
+        if gaps:
+            out.append("")
+            out.append("Greedy's quick-win spend against the share, per case:")
+            out.append("")
+            for m in gaps:
+                out.append(f"- `{m['subject']}`: {fmt(m['value'])}")
     else:
         out.append("Not run.")
     out.append("")
@@ -239,11 +246,12 @@ def build(rows: list[Row]) -> str:
     out.append(
         "Wall time with `time.perf_counter`, 20 repeated runs after one warm-up (10 for shadows and the empty "
         "rescore); "
-        "targets are the numbers in docs/ENGINEERING_RULES.md section 8. Greedy and the search are single runs."
+        "targets are the numbers in docs/ENGINEERING_RULES.md section 8. Greedy: 5 runs at the mid budget. The search "
+        "is one run."
     )
     out.append("")
     sp = [m for m in rows if m["result"] == "measured" and m["test"].startswith("speed.rescore")]
-    sp += measures(rows, "speed.shadows") + measures(rows, "speed.diagnosis")
+    sp += measures(rows, "speed.shadows")
     srows: list[list[str]] = []
     for m in sp:
         v = m["value"]
@@ -257,11 +265,28 @@ def build(rows: list[Row]) -> str:
                 ("within" if v["p95_ms"] <= v["target_ms"] else "over") if "target_ms" in v else "",
             ]
         )
+    other: list[list[str]] = []
+    for m in measures(rows, "speed.greedy"):
+        v = m["value"]
+        if "p50_ms" in v:
+            srows.append(
+                [
+                    f"greedy: {m['subject']} budget ({v['budget_inr']:,.0f} INR)",
+                    f"{v['p50_ms']:,.0f}",
+                    f"{v['p95_ms']:,.0f}",
+                    f"{v['min_ms']:,.0f} to {v['max_ms']:,.0f}",
+                    "none",
+                    "",
+                ]
+            )
     if srows:
         out += table(["Step", "p50 (ms)", "p95 (ms)", "Range (ms)", "Target (ms)", "p95 vs target"], srows)
     out.append("")
-    other: list[list[str]] = []
-    for m in measures(rows, "speed.load_bundle") + measures(rows, "speed.greedy") + measures(rows, "speed.search"):
+    for m in (
+        measures(rows, "speed.load_bundle")
+        + measures(rows, "speed.search")
+        + [m for m in measures(rows, "speed.greedy") if "p50_ms" not in m["value"]]
+    ):
         other.append([f"{m['test'].split('.')[1]}: {m['subject']}", fmt(m["value"]), str(m.get("detail") or "")])
     if other:
         out += table(["Step", "Measured", "Note"], other)
@@ -302,14 +327,11 @@ def build(rows: list[Row]) -> str:
     out.append("## How the search was driven")
     out.append("")
     out.append(
-        "The agents' search loop calls `summary` and `layer`, which are not implemented on this branch, and the evals "
-        "must not call them. `evals/evalkit/adapter.py` answers those two reads from the loaded area and meta.json and "
-        "passes everything else to the engine's public API unchanged. `rescore` is never cached. Greedy and the "
-        "per-site results are computed once in worker processes by the same engine functions, to save wall time; "
-        "sites the canopy rule rejects are reported to the loop as not usable (the engine's own `single_site` "
-        "raises InvalidChangeError for them, checked on the tiny fixture, which the loop's site catalog does not "
-        "expect). Search runs use a long time limit so "
-        "the wall clock cannot change what a run does."
+        "`evals/evalkit/adapter.py` hands the agents' search loop the engine's own public API (`summary`, `layer`, "
+        "`single_site`, `rescore`, `greedy_baseline`). `rescore` is never cached. Greedy for each case and every "
+        "offered site's single-site result are computed once in this process with the same engine functions and "
+        "reused by the search runs, to save wall time. Search runs use a long time limit so the wall clock cannot "
+        "change what a run does."
     )
     out.append("")
     return "\n".join(out) + "\n"
@@ -317,17 +339,13 @@ def build(rows: list[Row]) -> str:
 
 ANALYSIS = {
     "test_search_returns_a_valid_plan": (
-        "engine/greedy.py stops adding quick wins at the quick-win share in its first phase and only ends above the "
-        "share if later additions happen to be quick wins, so it can finish a fraction of a percent under; "
-        "agents/repair.py then marks that plan invalid ('Below the quick-win share') because it requires the full "
-        "share. When the greedy plan is invalid the loop needs a valid AI plan; the offline proposer's candidates are "
-        "dropped as repeats of greedy's own site set or fall under the share too. The shortfall is in the engine's "
-        "greedy or in how the loop reads the share, which is an engine/agents decision, not something this eval "
-        "should relax."
-    ),
-    "test_repair_rescore_latency": (
-        "baseline chunk shading alone takes about half of an empty rescore (see the diagnosis row in Speed), and "
-        "rescore runs it twice."
+        "see the quick-win gap rows below: the greedy plan's quick-win spend ends under the share by a sum smaller "
+        "than any left-out quick-win site, so the loop (which requires the full share) marks it invalid. "
+        "engine/greedy.py phase 1 refuses any quick win that would take the quick-win spend over the share "
+        "(`quick_spent + cost > quick_win_budget`), takes minimum quantities only and never tops up past the share, "
+        "so it reaches the share only by luck; agents/repair.py `_invalid_reason` is a plain `>=` check against the "
+        "planner's share, which matches PLANNING.md ('at least the share'). The gap is therefore in greedy's phase "
+        "logic, not in how the loop reads the share."
     ),
 }
 
