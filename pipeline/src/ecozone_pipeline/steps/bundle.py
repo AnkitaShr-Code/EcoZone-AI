@@ -104,6 +104,17 @@ def git_sha() -> str:
     return f"{sha}-dirty" if dirty else sha
 
 
+# Geometry the API's contract can serve (contract/geo.py); a bundle with anything else fails here, not in the API.
+GEOMETRY_TYPES: dict[str, set[str]] = {
+    "blocks": {"Polygon"},
+    "buildings": {"Polygon"},
+    "chunks": {"LineString"},
+    "wait_points": {"Point"},
+    "parcels": {"Polygon"},
+    "sites": {"LineString", "Polygon", "MultiPolygon"},
+}
+
+
 def validate_tables(tables: dict[str, gpd.GeoDataFrame], crs: str) -> list[str]:
     """Return every schema problem found; an empty list means the bundle is valid."""
     errors: list[str] = []
@@ -140,6 +151,17 @@ def validate_tables(tables: dict[str, gpd.GeoDataFrame], crs: str) -> list[str]:
             errors.append(f"{name}: invalid geometries")
         if gdf.geometry.is_empty.any() or gdf.geometry.isna().any():
             errors.append(f"{name}: empty or missing geometries")
+        wrong = sorted(set(gdf.geometry.geom_type.dropna()) - GEOMETRY_TYPES[name])
+        if wrong:
+            errors.append(
+                f"{name}: geometry types {wrong} are not served by the API (allowed {sorted(GEOMETRY_TYPES[name])})"
+            )
+        if name == "sites" and "kind" in gdf.columns:
+            rows = gdf[(gdf["kind"] == "tree_row") & (gdf.geometry.geom_type != "LineString")]
+            if len(rows):
+                errors.append(
+                    f"sites: {len(rows)} tree rows are not a single LineString (ids {sorted(rows['id'])[:3]})"
+                )
         if not gdf["id"].is_unique:
             errors.append(f"{name}: duplicate ids")
         prefix = ID_PREFIX[name]
