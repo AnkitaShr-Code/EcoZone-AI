@@ -11,6 +11,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Literal
 
+from shapely import STRtree
 from shapely.geometry.base import BaseGeometry
 
 ShadeTime = Literal["13:00", "15:00", "16:00"]
@@ -24,16 +25,128 @@ ShadeByTime = tuple[bool, bool, bool]
 """Shade state per reference time, in the order of the area's shade times."""
 
 
+# ── Per-row data loaded from the bundle (WP5a) ────────────────────────────────
+
+@dataclass(frozen=True)
+class SunEntry:
+    time: ShadeTime
+    altitude_deg: float
+    azimuth_deg: float
+
+
+@dataclass(frozen=True)
+class BlockRow:
+    block_id: str
+    geometry: BaseGeometry
+    area_m2: float
+    building_count: int
+    coverage: float
+    median_footprint_m2: float
+    median_floors: float
+    built_form: str
+    I_s: float          # impervious share 0-100
+    G_c: float          # green cover share 0-100
+    G_buf: float        # green share in 300 m buffer 0-100
+    d_green: float      # distance to nearest green patch (m)
+    d_water: float      # distance to nearest upwind water/park (m)
+    H_W: float          # street height-to-width ratio
+    canyon_axis_deg: float
+    L_built: float      # longest built-up run along wind line (m)
+    V: float            # building volume (m³)
+    roof_albedo: float  # area-weighted roof albedo
+
+
+@dataclass(frozen=True)
+class BuildingRow:
+    building_id: str
+    geometry: BaseGeometry
+    height_m: float
+    block_id: str
+
+
+@dataclass(frozen=True)
+class ChunkRow:
+    chunk_id: str
+    geometry: BaseGeometry  # LineString (10 m footpath chunk)
+    block_id: str
+    length_m: float
+    near_wait: bool
+
+
+@dataclass(frozen=True)
+class SiteRow:
+    site_id: str
+    kind: str             # InterventionKind literal
+    geometry: BaseGeometry
+    block_id: str | None
+    quantity_min: float
+    quantity_max: float
+    rule: str
+    rejected: bool
+    wait_point_id: str | None
+    H_W: float | None
+    time_to_benefit: str  # 'weeks', 'season', or 'years'
+
+
+@dataclass(frozen=True)
+class WaitPointRow:
+    wait_id: str
+    geometry: BaseGeometry
+    kind: str
+    weight: float
+
+
+@dataclass(frozen=True)
+class ParcelRow:
+    parcel_id: str
+    block_id: str
+    area_m2: float
+    road_width_m: float
+    street_bearing_deg: float
+    neighbour_height_m: float
+    geometry: BaseGeometry
+
+
+# ── AreaModel (WP5a adds arrays and STRtree indexes) ──────────────────────────
+
 @dataclass(frozen=True)
 class AreaModel:
-    """One area loaded from a bundle. Immutable; never mutated by scoring (engine/RULES.md, "Pure").
-
-    The engine owner (WP5a) adds the arrays and STRtree indexes; fields below are the minimum
-    the API needs to identify the area.
-    """
+    """One area loaded from a bundle. Immutable; never mutated by scoring (engine/RULES.md, "Pure")."""
 
     area_id: str
     bundle_version: str
+
+    # ── Scalar meta ───────────────────────────────────────────────────────────
+    V_ref: float = 0.0
+    wind_from_deg: float = 0.0
+
+    # ── Sun table (sorted by time) ────────────────────────────────────────────
+    sun: tuple[SunEntry, ...] = ()
+
+    # ── Row data (sorted by id) ───────────────────────────────────────────────
+    blocks: tuple[BlockRow, ...] = ()
+    buildings: tuple[BuildingRow, ...] = ()
+    chunks: tuple[ChunkRow, ...] = ()
+    sites: tuple[SiteRow, ...] = ()
+    wait_points: tuple[WaitPointRow, ...] = ()
+    parcels: tuple[ParcelRow, ...] = ()
+
+    # ── Baseline scores keyed by block_id ─────────────────────────────────────
+    block_baselines: tuple[tuple[str, Scores], ...] = ()
+    area_baseline: AreaScores = field(
+        default_factory=lambda: AreaScores(vci=0.0, hei=0.0, gcs=0.0, pss=0.0, acs=0.0)
+    )
+
+    # ── STRtrees: excluded from hash and comparison ───────────────────────────
+    block_tree: STRtree = field(
+        default_factory=lambda: STRtree([]), hash=False, compare=False, repr=False
+    )
+    building_tree: STRtree = field(
+        default_factory=lambda: STRtree([]), hash=False, compare=False, repr=False
+    )
+    chunk_tree: STRtree = field(
+        default_factory=lambda: STRtree([]), hash=False, compare=False, repr=False
+    )
 
 
 @dataclass(frozen=True)

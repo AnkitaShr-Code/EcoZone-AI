@@ -7,6 +7,7 @@ from .model import (
     AreaModel,
     AreaSummaryData,
     BaselineData,
+    Change,
     Feature,
     HotspotData,
     LayerName,
@@ -28,7 +29,34 @@ def hotspots(area: AreaModel, top: int) -> list[HotspotData]:
 
 
 def single_site(area: AreaModel, site_id: str, unit_costs: UnitCosts) -> SingleSiteData:
-    raise NotImplementedYetError("single_site", "WP5b")
+    """Score a site applied alone (WP5b). Calls rescore() — the one code path."""
+    from .costs import site_cost
+    from .errors import UnknownSiteError
+    from .rescore import rescore
+
+    site = next((s for s in area.sites if s.site_id == site_id), None)
+    if site is None:
+        raise UnknownSiteError(site_id)
+
+    quantity = site.quantity_min  # default to minimum quantity for single-site scoring
+    change = Change(kind=site.kind, site_id=site_id, quantity=quantity)  # type: ignore[arg-type]
+
+    result = rescore(area, [change], unit_costs)
+    acs_gain = result.after.acs - result.before.acs
+    cost = site_cost(area, change, unit_costs)
+
+    reason: str | None = None
+    if not result.ventilation_ok:
+        reason = f"VCI drops by {result.worst_vci_drop:.1f} points"
+
+    return SingleSiteData(
+        site_id=site_id,
+        acs_gain=acs_gain,
+        cost_inr=cost,
+        drivers=result.drivers,
+        ventilation_ok=result.ventilation_ok,
+        ventilation_reason=reason,
+    )
 
 
 def compute_baselines(area: AreaModel) -> BaselineData:
