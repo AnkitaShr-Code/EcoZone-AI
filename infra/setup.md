@@ -263,13 +263,13 @@ Record the exact model IDs and update `cloudbuild.yaml` substitutions and `.env`
 
 ```bash
 # Pipeline produces the bundle at data/bundles/deccan/
-gsutil -m cp -r data/bundles/deccan gs://$BUNDLE_BUCKET/deccan
+gcloud storage cp -r data/bundles/deccan/* gs://$BUNDLE_BUCKET/areas/deccan/v1/
 
 # Re-deploy with the bundle URI set
 gcloud run services update ecozone \
   --region=$REGION \
   --project=$PROJECT \
-  --update-env-vars="ECOZONE_BUNDLE_URI=gs://${BUNDLE_BUCKET}/deccan"
+  --update-env-vars="ECOZONE_BUNDLE_URI=gs://${BUNDLE_BUCKET}/areas/deccan/v1"
 ```
 
 ---

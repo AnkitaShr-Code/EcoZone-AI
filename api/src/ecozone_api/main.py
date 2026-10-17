@@ -1,5 +1,6 @@
 """App factory: API routes under /api, the built React app at / (api/RULES.md)."""
 
+import tempfile
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -13,6 +14,7 @@ import ecozone_engine
 from ecozone_agents import AgentSettings, build_runner
 
 from . import errors
+from .bundles import Fetcher, fetch_gcs, resolve_root
 from .deps import EnginePort, Services, load_areas, load_unit_costs
 from .routes import areas, health, rescore, runs
 from .run_manager import RunManager, SearchRunner, UnavailableRunner
@@ -27,27 +29,30 @@ def create_app(
     runner: SearchRunner | None = None,
     store: Store | None = None,
     agent_settings: AgentSettings | None = None,
+    fetch_bundle: Fetcher = fetch_gcs,
 ) -> FastAPI:
     """`engine`, `runner` and `store` default to the real engine, the agents runner and the memory store.
 
     The default runner comes from the agent settings: `ECOZONE_LLM=fake` runs the offline proposer, and
     Gemini needs its Vertex settings. With neither, `UnavailableRunner` answers runs with NOT_IMPLEMENTED.
+    `fetch_bundle` downloads a `gs://` bundle location at startup; tests pass a fake.
     """
     settings = settings or Settings()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         port: EnginePort = engine or ecozone_engine  # pyright: ignore[reportAssignmentType]
-        bundle_root = Path(settings.bundle_uri) if settings.bundle_uri else None
         unit_cost_defaults = load_unit_costs(settings.unit_costs)
         search_runner = runner or build_runner(port, unit_cost_defaults, agent_settings) or UnavailableRunner()
-        app.state.services = Services(
-            engine=port,
-            areas=load_areas(port, bundle_root),
-            unit_cost_defaults=unit_cost_defaults,
-            runs=RunManager(search_runner, store or MemoryStore()),
-        )
-        yield
+        with tempfile.TemporaryDirectory(prefix="ecozone-bundles-") as scratch:
+            bundle_root = resolve_root(settings.bundle_uri, Path(scratch), fetch_bundle)
+            app.state.services = Services(
+                engine=port,
+                areas=load_areas(port, bundle_root),
+                unit_cost_defaults=unit_cost_defaults,
+                runs=RunManager(search_runner, store or MemoryStore()),
+            )
+            yield
 
     app = FastAPI(
         title="EcoZone AI",

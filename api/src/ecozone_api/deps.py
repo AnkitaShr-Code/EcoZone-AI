@@ -19,6 +19,7 @@ import ecozone_contract as c
 import ecozone_engine as e
 
 from . import to_contract
+from .bundles import bundle_dirs
 from .errors import ApiError
 from .run_manager import RunManager
 
@@ -67,13 +68,12 @@ def load_unit_costs(path: Path) -> c.UnitCosts:
 
 
 def load_areas(engine: EnginePort, bundle_root: Path | None) -> dict[str, e.AreaModel]:
-    """Each subdirectory of the bundle root is one area bundle. Stubs or a missing root load nothing."""
+    """Each bundle directory under the root (or the root itself) is one area. Stubs or no root load nothing."""
     if bundle_root is None:
         log.warning("ECOZONE_BUNDLE_URI is not set; no areas loaded")
         return {}
-    dirs = [d for d in sorted(bundle_root.iterdir()) if d.is_dir()] if bundle_root.is_dir() else []
     areas: dict[str, e.AreaModel] = {}
-    for directory in dirs:
+    for directory in bundle_dirs(bundle_root):
         try:
             area = engine.load_bundle(directory)
         except e.NotImplementedYetError as exc:
