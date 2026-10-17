@@ -29,7 +29,7 @@ These override older wording in DESIGN.md and PLANNING.md where they differ (bot
 | Persistence | `Store` protocol with an in-memory implementation (local, tests) and a Firestore one (prod) | Sessions and plans survive restarts without making every test need cloud |
 | API contract | Pydantic in `contract/` → `openapi.json` → `openapi-typescript` for the app | One source; generated TS can't drift |
 | Protect preview | Discrete slider levels kept; every preview is a live `rescore` with a `building` change. The per-parcel shade lookup leaves the contract | One scoring path |
-| Agent routing | The API chooses the agent by route (deterministic). The four agents and the shared search `LoopAgent` are ADK. No LLM orchestrator hop | The UI never sends free-form chat; routing by LLM adds latency and nondeterminism |
+| Agent routing | The API chooses the agent by route (deterministic). The search loop (Proposer → Scorer → Judge) and the writer are plain asyncio code calling Gemini through `google-genai` on Vertex AI; **not ADK** (changed in WP7, reasons below). No LLM orchestrator hop | The UI never sends free-form chat; routing by LLM adds latency and nondeterminism. ADK 2.12 deprecates `LoopAgent` for `Workflow`, which cannot yet be a sub-agent; it adds about 35 locked packages and downgrades fastapi, opentelemetry and websockets in the shared lock; and the loop must emit an event per candidate, keep the best result on cancellation and call the engine in threads, which is simpler as code than as session state. A fake `BaseLlm` did run a loop offline (checked), so an ADK-backed `ModelClient` can be added later without touching the loop |
 | Models | Gemini Flash tier for the search proposer, Pro tier for explanations and briefs. Exact Vertex model IDs set by env, verified against the Vertex model list before first use | Search speed vs prose quality |
 | Python packaging | uv workspace, Python 3.12, one package per folder, import boundaries enforced by import-linter | The engine physically can't import a cloud SDK |
 | Workflow | Short-lived branches, PR to `main`, CI must pass, squash merge; `main` deploys to Cloud Run | Several people and agents committing at once |
@@ -53,7 +53,7 @@ Pinned in `uv.lock`; upgrade only in a PR that does nothing else.
 | Earth Engine (optional step) | `earthengine-api` | pipeline |
 | API models | `pydantic` v2, `pydantic-settings` | contract, api |
 | HTTP | `fastapi`, `uvicorn`, `sse-starlette` | api |
-| Agents | `google-adk`, `google-genai` (Vertex AI backend) | agents |
+| Agents | `google-genai` (Vertex AI backend), `pydantic-settings` | agents |
 | Google Cloud | `google-cloud-storage`, `google-cloud-firestore`, `google-cloud-bigquery` | api (store), pipeline (load) |
 | Tests | `pytest`, `hypothesis` (property tests), `pytest-benchmark` (speed) | all |
 | Lint and format | `ruff` (lint + format) | all |
@@ -72,7 +72,7 @@ uv.lock
 contract/   ecozone_contract   Pydantic API models, openapi.json export          deps: pydantic
 engine/     ecozone_engine     AreaModel, shadows, indices, rescore, greedy       deps: shapely, numpy, geopandas*, pyarrow*
 pipeline/   ecozone_pipeline   offline job → area bundle (+ BigQuery copy)       deps: engine, osmnx, pvlib, …
-agents/     ecozone_agents     ADK agents, tools, search loop, output guard       deps: engine, contract, google-adk
+agents/     ecozone_agents     search loop, proposers, writer, output guard     deps: engine, contract, google-genai
 api/        ecozone_api        FastAPI app, store, snapshot CLI, static serving   deps: engine, contract, agents
 evals/                         pytest suites that span packages, agent evals, REPORT.md
 infra/                         Dockerfile, cloudbuild.yaml, deploy notes, IAM
@@ -158,7 +158,7 @@ Measured with `pytest-benchmark` on the Deccan bundle and reported in `evals/REP
 - **CI** (GitHub Actions, on every PR): Python checks, app checks, contract freshness (`openapi.json`, `generated.ts`, mock validation). All must pass to merge.
 - **Deploy**: merge to `main` → Cloud Build builds one image (app build copied into the Python image) → Cloud Run in `asia-south1`. Min instances 1 and session affinity during judging. GitHub authenticates to GCP through Workload Identity Federation.
 - **Region**: Cloud Run, GCS, Firestore and BigQuery in `asia-south1`; Vertex Gemini through the location the model is offered in (set by env).
-- **Config** comes from environment variables read by one `pydantic-settings` class per service (`ECOZONE_BUNDLE_URI`, `ECOZONE_STORE=memory|firestore`, `GOOGLE_CLOUD_PROJECT`, `ECOZONE_GEMINI_LOCATION`, `ECOZONE_MODEL_PROPOSER`, `ECOZONE_MODEL_WRITER`). `.env.example` is committed; `.env` is gitignored.
+- **Config** comes from environment variables read by one `pydantic-settings` class per service (`ECOZONE_BUNDLE_URI`, `ECOZONE_STORE=memory|firestore`, `GOOGLE_CLOUD_PROJECT`, `ECOZONE_GEMINI_LOCATION`, `ECOZONE_MODEL_PROPOSER`, `ECOZONE_MODEL_WRITER`; the agents also read `ECOZONE_LLM=gemini|fake`). `.env.example` is committed; `.env` is gitignored.
 - **Logging**: structured JSON to stdout; every line in a request or run carries `run_id` / `request_id`.
 
 ## 11. Workflow
