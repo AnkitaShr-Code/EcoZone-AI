@@ -7,6 +7,7 @@ may compute a score (CLAUDE.md §Hard rules, principle 2).
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import replace
 
 from .building import apply_building
 from .costs import portfolio_costs
@@ -116,26 +117,11 @@ def rescore(area: AreaModel, changes: Sequence[Change], unit_costs: UnitCosts) -
             updated_blocks.append(b)
 
     # ── 4. Compute new chunk shading with change set applied ──────────────────
-    # Create a temporary AreaModel with updated buildings for shadow computation
-    from .model import AreaModel
-
-    tmp_area = AreaModel(
-        area_id=area.area_id,
-        bundle_version=area.bundle_version,
-        V_ref=area.V_ref,
-        wind_from_deg=area.wind_from_deg,
-        sun=area.sun,
-        blocks=tuple(updated_blocks),
-        buildings=area.buildings,
-        chunks=area.chunks,
-        sites=area.sites,
-        wait_points=area.wait_points,
-        parcels=area.parcels,
-    )
+    tmp_area = replace(area, blocks=tuple(updated_blocks))
     new_chunk_shading = compute_chunk_shading(tmp_area, changes_list)
 
     # ── 5. Baseline chunk shading (already stored, or recompute) ─────────────
-    base_chunk_shading = compute_chunk_shading(area)
+    base_chunk_shading = dict(area.baseline_shading) or compute_chunk_shading(area)
 
     # ── 6. Compute before/after scores per block ──────────────────────────────
     baseline_dict = dict(area.block_baselines)

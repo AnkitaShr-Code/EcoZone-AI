@@ -10,10 +10,11 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from shapely.geometry import MultiPolygon, Polygon
+from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
 from .model import AreaModel, Change, ChunkRow, ShadeByTime, ShadeTime
-from .shadows import shade_shadow_polys, shadows
+from .shadows import change_shadows, shade_shadow_polys, shadows
 
 
 def chunk_shaded_at(chunk: ChunkRow, shadow_union: Polygon | MultiPolygon | None) -> bool:
@@ -24,9 +25,13 @@ def chunk_shaded_at(chunk: ChunkRow, shadow_union: Polygon | MultiPolygon | None
     return bool(shadow_union.contains(midpoint))
 
 
+ShadowParts = tuple[BaseGeometry, ...]
+"""Geometries whose union is the shadow at one reference time. A point is shaded when any part contains it."""
+
+
 def chunk_shade_state(
     chunk: ChunkRow,
-    shadow_unions: dict[ShadeTime, Polygon | MultiPolygon | None],
+    shadow_unions: dict[ShadeTime, ShadowParts],
     always_on_polys: list[Polygon],
 ) -> ShadeByTime:
     """Shade state at each reference time for one chunk.
@@ -45,27 +50,31 @@ def chunk_shade_state(
     times: tuple[ShadeTime, ...] = ("13:00", "15:00", "16:00")
     state: list[bool] = []
     for t in times:
-        sun_shadow = shadow_unions.get(t)
         if always_shaded:
             state.append(True)
-        elif sun_shadow is None or sun_shadow.is_empty:
-            state.append(False)
         else:
-            state.append(bool(sun_shadow.contains(midpoint)))
+            state.append(any(part.contains(midpoint) for part in shadow_unions.get(t, ())))
     return (state[0], state[1], state[2])
 
 
-def build_shadow_unions(area: AreaModel, changes: Sequence[Change]) -> dict[ShadeTime, Polygon | MultiPolygon | None]:
-    """Build shadow unions (sun-position-dependent) at each reference time."""
+def build_shadow_unions(area: AreaModel, changes: Sequence[Change]) -> dict[ShadeTime, ShadowParts]:
+    """Build the shadow at each reference time as parts whose union is the shadow.
+
+    With the baseline union stored on the model, the change set's own shadows are unioned among themselves and kept
+    beside it, so a rescore never re-unions the whole city's building shadows.
+    """
     times: tuple[ShadeTime, ...] = ("13:00", "15:00", "16:00")
-    result: dict[ShadeTime, Polygon | MultiPolygon | None] = {}
+    baseline_unions = dict(area.baseline_shadow_unions)
+    result: dict[ShadeTime, ShadowParts] = {}
     for t in times:
-        polys = shadows(area, t, changes)
-        if not polys:
-            result[t] = None
-        else:
-            u = unary_union(polys)
-            result[t] = u if isinstance(u, (Polygon, MultiPolygon)) else None
+        sun_entry = next((s for s in area.sun if s.time == t), None)
+        base = baseline_unions.get(t)
+        if sun_entry is None or base is None:
+            polys = shadows(area, t, changes)
+            result[t] = (unary_union(polys),) if polys else ()
+            continue
+        extra = change_shadows(area, sun_entry, changes)
+        result[t] = (base, unary_union(extra)) if extra else (base,)
     return result
 
 
