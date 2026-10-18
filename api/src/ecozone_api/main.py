@@ -19,7 +19,7 @@ from .deps import EnginePort, Services, load_areas, load_unit_costs
 from .routes import areas, health, rescore, runs
 from .run_manager import RunManager, SearchRunner, UnavailableRunner
 from .settings import Settings
-from .store import MemoryStore, Store
+from .store import FirestoreStore, MemoryStore, Store
 
 log = logging.getLogger(__name__)
 
@@ -45,7 +45,12 @@ def create_app(
         bundle_root = resolve_bundle_root(settings.bundle_uri)
         unit_cost_defaults = load_unit_costs(settings.unit_costs)
         search_runner = runner or build_runner(port, unit_cost_defaults, agent_settings) or UnavailableRunner()
-        active_store = store or MemoryStore()
+        if store is not None:
+            active_store = store
+        elif settings.store == "firestore":
+            active_store = FirestoreStore()
+        else:
+            active_store = MemoryStore()
         ai_status = "unavailable" if isinstance(search_runner, UnavailableRunner) else "active"
         log.info(
             "startup ECOZONE_LLM=%s store=%s ai_search=%s",
