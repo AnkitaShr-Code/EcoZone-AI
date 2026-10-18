@@ -13,7 +13,7 @@ Documentation lives in `docs/`. Read in this order when picking up work:
 3. **docs/PLANNING.md** — the source of truth: problem statement, scoring formulas (VCI, HEI, GCS, PSS, ACS, priority, risk label), agent/tool contracts, data pipeline, trust/grounding rules, build plan, locked decisions. Formulas are defined here once; other docs reference this file rather than repeating them.
 4. **docs/DESIGN.md** — component-level design built on PLANNING.md: repository layout, per-component responsibilities (pipeline, engine, API, agents, front end, data stores, eval harness, deployment), key flows, performance budget, effort estimate, risks.
 5. **docs/TASKS.md** — day-by-day checklist by lane (D = data/engine, A = agents/cloud, U = front end, All = whole team), gate criteria, and the cut order to apply if a gate slips.
-6. **docs/PITCH_DECK_PLAN.md** — slide-by-slide plan for `Submission Template _ AI Builder Cup.pptx` / the working copy `NeuralNodes - AI Builder Cup Submission.pptx`.
+6. **docs/PITCH_DECK_PLAN.md** — slide-by-slide plan for `Submission Template _ AI Builder Cup.pptx`; the filled deck is built by `submission/deck/build_pptx.py` and submitted outside the repo.
 
 ## Core product concept (for context when code lands)
 

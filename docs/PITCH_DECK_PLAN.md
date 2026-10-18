@@ -1,6 +1,6 @@
 # Pitch deck plan: EcoZone AI
 
-Plan for filling **Submission Template _ AI Builder Cup.pptx** (16 slides, template order kept). The working copy is `NeuralNodes - AI Builder Cup Submission.pptx`. Content comes from [PLANNING.md](PLANNING.md) and [DESIGN.md](DESIGN.md). The deck is exported to PDF and must cover problem, solution, feasibility and scalability, with the theme stated as **Sustainability & Social Impact**.
+Plan for filling **Submission Template _ AI Builder Cup.pptx** (16 slides, template order kept). The filled copy is built by `submission/deck/build_pptx.py` (sources in `submission/`) and is submitted outside the repo. Content comes from [PLANNING.md](PLANNING.md) and [DESIGN.md](DESIGN.md). The deck is exported to PDF and must cover problem, solution, feasibility and scalability, with the theme stated as **Sustainability & Social Impact**.
 
 **Story order:** Repair leads ("fix the streets people already wait on"), Protect follows ("don't undo it with the next building"). One line to repeat: *Repair and protect a city's cooling network.*
 
