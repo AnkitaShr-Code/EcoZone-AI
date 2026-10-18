@@ -16,9 +16,11 @@ evals/
   report.py           runs the evals and writes REPORT.md from the rows
   REPORT.md           generated, committed
   results/            local run rows (JSONL); only final.jsonl is committed
+  heat_check/         README.md and `data/<area>_block_lst.csv` (+ `.meta.json`) made by `pipeline heat-check`; `test_heat_check.py` reads them (heat index vs Landsat surface temperature on the held-out blocks, no pass mark; skips with the command when the CSV is missing)
+  tests/              unit tests of the heat-check statistics, the eval on a synthetic table and its report section (run by `make py-check`, not part of the report)
 ```
 
-Still to come: `heat_check/` (heat index vs Landsat LST on held-out blocks, only if Earth Engine lands) and a BigQuery sink for the rows.
+Still to come: a BigQuery sink for the rows. The heat check code is built and tested offline; its result is in REPORT.md only once the live Earth Engine export has been run and its CSV committed.
 
 ## Rules
 

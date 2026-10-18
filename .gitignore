@@ -9,6 +9,8 @@ __pycache__/
 
 # Local data: bundles and pipeline cache (ENGINEERING_RULES.md §4)
 data/
+# ...except the heat-check surface temperature table the evals read (evals/heat_check/README.md)
+!evals/heat_check/data/
 
 # Secrets and local config (ENGINEERING_RULES.md principle 8)
 .env
