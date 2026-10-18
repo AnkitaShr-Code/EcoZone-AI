@@ -1,0 +1,60 @@
+{
+  "area_id": "deccan",
+  "band": "ST_B10",
+  "block_reducer": "median",
+  "blocks_dropped": [],
+  "blocks_requested": 65,
+  "blocks_with_lst": 65,
+  "bundle_settings_hash": "7160c54edb4c6ecf59b67246aeaefbb676d49a947a263d6c7f8337b1f3d4265d",
+  "bundle_version": "v1",
+  "composite": "per-pixel median over unmasked values",
+  "crs": "EPSG:32643",
+  "datasets": [
+    "LANDSAT/LC08/C02/T1_L2",
+    "LANDSAT/LC09/C02/T1_L2"
+  ],
+  "earth_engine_project": "ecozone-ai-2026",
+  "earthengine_api_version": "1.7.48",
+  "fallback_year_used": false,
+  "fetch_date": "2026-10-18",
+  "kind": "block_lst",
+  "min_scenes": 5,
+  "min_scenes_met": true,
+  "native_thermal_resolution_m": 100,
+  "offset": 149.0,
+  "output_units": "kelvin, internal and derived; never displayed",
+  "pixel_count": "valid_pixels is the coverage-weighted count of unmasked 30 m pixels in the block (partly covered pixels count in part), 2 decimals",
+  "qa_pixel_masked": {
+    "bits": {
+      "cirrus": 2,
+      "cloud": 3,
+      "cloud_shadow": 4,
+      "dilated_cloud": 1
+    },
+    "mask": 30
+  },
+  "scale_factor": 0.00341802,
+  "scale_m": 30,
+  "scene_max_cloud_cover_pct": 30.0,
+  "scenes_total": 10,
+  "st_qa_max_uncertainty_k": 5.0,
+  "st_qa_note": "screening limit chosen by us before the run; USGS publishes no pass value",
+  "st_qa_scale_k_per_count": 0.01,
+  "valid_pixels_max": 178.0,
+  "valid_pixels_median": 13.0,
+  "valid_pixels_min": 3.0,
+  "windows": [
+    {
+      "end": "2026-05-31",
+      "scenes": {
+        "LANDSAT/LC08/C02/T1_L2": 5,
+        "LANDSAT/LC09/C02/T1_L2": 5
+      },
+      "start": "2026-03-01",
+      "year": 2026
+    }
+  ],
+  "years_used": [
+    2026
+  ]
+}

@@ -14,6 +14,10 @@ dependencies = [
   "ecozone-api",
 ]
 
+[project.optional-dependencies]
+# `uv run --extra ee pipeline heat-check ...`: Earth Engine for the offline heat check only (pipeline/RULES.md).
+ee = ["ecozone-pipeline[ee]"]
+
 [dependency-groups]
 dev = [
   "ruff>=0.8",
@@ -114,7 +118,7 @@ forbidden_modules = ["ecozone_api", "ecozone_pipeline"]
 
 # ---------- pytest ----------
 [tool.pytest.ini_options]
-testpaths = ["contract/tests", "engine/tests", "pipeline/tests", "agents/tests", "api/tests"]
+testpaths = ["contract/tests", "engine/tests", "pipeline/tests", "agents/tests", "api/tests", "evals/tests"]
 addopts = "-q --import-mode=importlib"
 pythonpath = ["pipeline/tests", "evals"]
 markers = [
