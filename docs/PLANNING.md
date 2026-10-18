@@ -17,7 +17,7 @@ Build decisions taken before backend coding started; full list and reasons in [E
 | Building heights | OSM height, then OSM levels, then Open Buildings (if EE), then labeled typology defaults |
 | Footpaths | 10 m chunks with a shaded flag per reference time |
 | Area load | Versioned GeoParquet bundle on Cloud Storage; BigQuery holds an analytics copy |
-| Agent routing | Plain code by API route; four ADK agents and one shared search loop |
+| Agent routing | Plain code by API route; role-based agents and one shared search loop, built without ADK |
 | Models | Flash tier for the search proposer, Pro tier for explanations and briefs |
 | Protect preview | Live engine `rescore` at discrete slider levels; no precomputed lookup |
 
@@ -152,7 +152,7 @@ Every mode ends in a brief, and every answer passes the output guard before the 
 
 ## System architecture
 
-React app → FastAPI service on Cloud Run → (deterministic API calls go straight to the engine; questions and searches go through the ADK agent layer, whose tools call the engine) → area data loaded into memory from a GeoParquet bundle on Cloud Storage (BigQuery holds an analytics copy) → output guard on every Gemini answer. Sessions and plans are stored in Firestore, images and area bundles in Cloud Storage, and Gemini runs on Vertex AI with a service account, so there are no API keys in the code. Full component design: [DESIGN.md](DESIGN.md).
+React app → FastAPI service on Cloud Run → (deterministic API calls go straight to the engine; questions and searches go through the agent layer (plain asyncio code over `google-genai`, no ADK), whose tools call the engine) → area data loaded into memory from a GeoParquet bundle on Cloud Storage (BigQuery holds an analytics copy) → output guard on every Gemini answer. Sessions and plans are stored in Firestore, images and area bundles in Cloud Storage, and Gemini runs on Vertex AI with a service account, so there are no API keys in the code. Full component design: [DESIGN.md](DESIGN.md).
 
 ## Scoring engine
 
@@ -261,7 +261,7 @@ Gemini does the jobs the engine cannot: it searches for good portfolios and desi
 
 ### Agents
 
-Four agents, built with the Agent Development Kit (ADK), each with its own tools. Plain code picks the agent from the API route (decided Oct 15: the UI never sends free-form chat, so an LLM routing hop adds latency without value).
+Four agent roles, built as plain asyncio code over `google-genai` (the Agent Development Kit was evaluated and not used; see ENGINEERING_RULES.md), each with its own tools. Plain code picks the agent from the API route (decided Oct 15: the UI never sends free-form chat, so an LLM routing hop adds latency without value).
 
 | Agent | Job | Tools |
 | --- | --- | --- |
@@ -406,7 +406,7 @@ One screen, a mode switch (Repair first), and one map.
 | 1:25 to 1:40 | Shadows before and after; cooling plan brief | Shade where people wait, phased by season |
 | 1:40 to 2:20 | Protect: a large proposal on a vacant parcel; preview; options A, B, C | Don't undo the repair with the next building |
 | 2:20 to 2:35 | Build-out on one street | The cumulative effect |
-| 2:35 to 3:00 | Architecture, heat check, Gemini vs greedy benchmark | Every score from the engine; checked against satellite; one job onboards a city |
+| 2:35 to 3:00 | Architecture, the evaluation report, Gemini vs greedy as measured | Every score from the engine; measured evals; the satellite check of the heat index only if it has run (otherwise stated as next); one job onboards a city |
 
 Do not write any scores into the script in advance. Record from real output and keep a backup recording.
 
@@ -417,7 +417,7 @@ Trust rests on one rule that code and tests enforce: every number shown comes fr
 ### How the rule is enforced
 
 - Gemini's only numeric sources are the engine tools.
-- An output guard (an ADK after-model callback) rejects any number not present in that turn's tool results or planner inputs, and any forbidden unit. A rejected answer is regenerated once; if it fails again, the planner sees a plain template built from engine values.
+- An output guard (a plain function applied to every model answer) rejects any number not present in that turn's tool results or planner inputs, and any forbidden unit. A rejected answer is regenerated once; if it fails again, the planner sees a plain template built from engine values.
 - AI-estimated values and planner inputs carry visible labels wherever they appear.
 
 ### Tests
@@ -477,7 +477,7 @@ Capacity: 100 to 130 person-hours across three builders. Estimated scope: about 
 | Lane | Owns |
 | --- | --- |
 | D: Data and engine | OSM pipeline, geometry, shadows, engine, greedy baseline, engine tests |
-| A: Agents and cloud | Earth Engine layers, ADK agents, tools, output guard, FastAPI, BigQuery loading, Cloud Run, agent evals |
+| A: Agents and cloud | Earth Engine layers, agent roles, tools, output guard, FastAPI, BigQuery loading, Cloud Run, agent evals |
 | U: Front end | React app, deck.gl layers, panels, brief view, accessibility; helps with deck and video |
 
 | Gate | Day | Passes when | If it fails |
@@ -516,7 +516,7 @@ Repair with all five interventions, the shade score, and the Protect preview are
 | Canopy on deep streets | Site rule: no dense tree rows where height-to-width is 1 or more | One clear rule a planner can check on site |
 | Vulnerability | Built-form proxy, labeled as built form | Targets cool roofs without stigmatizing labels |
 | Data | Real OSM geometry, satellite-derived indices, Open Buildings heights, preprocessed | Credibility; no live raster processing |
-| Stack | React + deck.gl + MapLibre; FastAPI; ADK on Vertex AI Gemini; BigQuery; Firestore; Cloud Storage; one Cloud Run service serving UI and API | Team skills cover all four areas; one URL, no proxy timeouts on live search streams |
+| Stack | React + deck.gl + MapLibre; FastAPI; plain asyncio agent code on Vertex AI Gemini; BigQuery; Firestore; Cloud Storage; one Cloud Run service serving UI and API | Team skills cover all four areas; one URL, no proxy timeouts on live search streams |
 | Imagery rule | Data layers primary; Gemini cross-checks and fills gaps, labeled AI-estimated | Keeps the trust story honest |
 | Scalability | One preprocessing job per city | Buildable, not just claimed |
 | Validation | Heat index against Landsat on held-out blocks, reported whatever it is | Evidence, not only labels |
@@ -525,7 +525,7 @@ Repair with all five interventions, the shade score, and the Protect preview are
 
 | Criterion (weight) | How the design meets it | Proof to show |
 | --- | --- | --- |
-| Technical merit and Gen AI (40%) | Two propose-score-refine searches over a tested engine; shade geometry; ADK multi-agent with an output guard; Gemini vs greedy benchmark; deployed on Cloud Run | Live searches in the demo, evals with measured results, heat check, live URL |
+| Technical merit and Gen AI (40%) | Two propose-score-refine searches over a tested engine; shade geometry; propose-score-judge agent roles with an output guard; Gemini vs greedy benchmark; deployed on Cloud Run | Live searches in the demo, evals with measured results, heat check, live URL |
 | Problem alignment and impact (25%) | Targets where heat, missing shade and waiting people overlap; names who pays; fits heat action planning | Evidence list; priority map |
 | Innovation and creativity (25%) | AI designs a costed cooling plan and knows when trees backfire; one network for repair and protection | Rejected tree row in the demo; two modes on one map |
 | User experience (10%) | One screen, mode switch, shadows over time, arrows and text as well as color | Video and live app |
