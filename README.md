@@ -89,9 +89,10 @@ The evals live in `evals/` and run against the real engine and the Deccan v1 bun
 | Direction | Protect: more height or footprint never helps; more green never hurts. Repair: trees and shade never lower shade; depaving and cool roofs never raise heat | Measured, pass |
 | Ventilation guard | A plan or building that drops ventilation too far is flagged; the Protect risk label follows the parcel's own block | Measured, pass |
 | Budget and quick wins | Every shown portfolio is within budget and meets the quick-win share | Measured, pass |
-| Speed | Engine and search times | Measured (rescore of a plan about 64 ms; greedy at the 50 lakh budget about 19 s; bundle load about 0.6 s) |
-| Gemini vs greedy | Win, tie or loss per test area at the same budget | Run with the offline rule proposer only; **live Gemini not yet reported** |
-| Grounding, design search | No number outside tool results; B and C come from scored candidates | Covered by agent unit tests; **live runs not yet reported** |
+| Speed | Engine and search times | Measured (Repair rescore p50 66 ms; Protect rescore p50 32 ms; greedy at the 50 lakh budget p50 19 s; bundle load 0.61 s) |
+| Gemini vs greedy | Win, tie or loss per test area at the same budget | Live Vertex results: one win and three losses across four single-run cases. Outcomes vary between runs; see [evals/REPORT.md](evals/REPORT.md) |
+| Protect design search | Options B and C against A on fixed parcels | Live Gemini options measured on four parcels. For `pc_004`, worst change goes from 34.0 (HIGH) for A to 20.1 (MODERATE) for B and 10.4 (MODERATE) for C; one run, not a pass mark |
+| Grounding and tool order | No number outside tool results; tools run before explanation | Guard and order covered by agent unit tests; **live Gemini grounding/tool-order evals not run** |
 | Heat check | Spearman correlation between the heat index and Landsat surface temperature on held-out blocks | **Measured, weak.** On the 33 held-out blocks the baseline heat index and Landsat surface temperature have a Spearman rho of +0.187 (permutation p 0.30, not significant); on all 65 blocks rho is +0.295 (p 0.015). The index ranks blocks in the same direction but the held-out agreement is weak, so we do not call it validated. The report lists the other indices and the caveats |
 
 Shadow geometry and the ventilation site rule (no tree row where height-to-width is 1 or more) are covered by engine and pipeline unit tests.

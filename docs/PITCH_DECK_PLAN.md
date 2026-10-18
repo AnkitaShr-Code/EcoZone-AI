@@ -40,13 +40,13 @@ Delete before export.
 | USP | (1) AI designs the plan, an engine scores it, and it knows when trees backfire. (2) Shade measured as geometry where people actually wait. (3) Gemini benchmarked against a greedy baseline, reported honestly. (4) Every number traceable; AI-estimated inputs labeled. |
 
 ### 5. List of features
-**Repair:** priority map (heat × missing shade × waiting points × dense low-rise) · budget and unit costs · Gemini portfolio search with live progress · five intervention types · ventilation check with rejected options · shadow comparison at 1, 3 and 4 pm · phased cooling plan with field check lists.
+**Repair:** priority map (heat × missing shade × waiting points × dense low-rise) · budget and unit costs · Gemini portfolio search with live progress (up to two rounds) · five intervention types · ventilation check with rejected options · shadow comparison at 1, 3 and 4 pm · phased cooling plan with field check lists.
 **Protect:** proposal preview with risk label · Gemini design search (options A, B, C) · area build-out.
 **Trust strip:** output guard · no temperatures or wind speeds · AI-estimated labels · never approves or orders work.
 
 ### 6. Process flow
 Two rows on one map:
-- **Repair:** select area → priority map → set budget → Gemini proposes portfolios → engine scores (shade, heat, green, ventilation, cost) → refine ×3 → plan and shadows → cooling plan brief.
+- **Repair:** select area → priority map → set budget → Gemini proposes portfolios → engine scores (shade, heat, green, ventilation, cost) → refine for up to 2 rounds → plan and shadows → cooling plan brief.
 - **Protect:** select parcel → enter proposal → engine scores → Gemini explains → design search → options A/B/C → build-out → planning brief.
 Small inset: the search loop (Gemini proposer → code scorer → code judge; stop at 2 rounds or no gain).
 
@@ -54,22 +54,22 @@ Small inset: the search loop (Gemini proposer → code scorer → code judge; st
 Real screenshot of the Repair screen if ready by Oct 17; otherwise the annotated mockup. Callouts: rejected tree row with reason, live search progress, planner-input and AI-estimated badges, arrows and text with color.
 
 ### 8. Architecture
-Redraw section 1 of DESIGN.md: offline pipeline → BigQuery and Cloud Storage; one Cloud Run service with React, FastAPI, the agent layer (code router, role-based agents, one propose-score-judge search loop in plain asyncio, output guard) and the engine; Firestore; Gemini on Vertex AI. Dashed path: Landsat → heat check only.
+Show the shipped path: React served with FastAPI on Cloud Run; the HTTP app calls the deterministic engine, and Gemini's search loop calls the same engine; the engine loads the Deccan v1 GeoParquet bundle from Cloud Storage. BigQuery analytics, Firestore persistence and Earth Engine score layers are not built. Earth Engine was used separately for the Landsat heat check. Agents use plain asyncio and google-genai, not ADK.
 
 ### 9. Technologies
 | Area | Technology |
 | --- | --- |
-| AI | Gemini on Vertex AI (model name confirmed on day 1), Google Agent Development Kit (LlmAgent, LoopAgent, callbacks) |
+| AI | Gemini on Vertex AI: gemini-3.5-flash proposer and gemini-3.8-flash writer; plain asyncio and google-genai, not ADK |
 | Backend | Python, FastAPI, shapely, geopandas, pvlib |
 | Front end | React, TypeScript, deck.gl, MapLibre GL |
-| Cloud | Cloud Run, BigQuery (GEOGRAPHY), Firestore, Cloud Storage, Cloud Build, Earth Engine |
+| Cloud | Cloud Run and Cloud Storage are live; Cloud Build deploys; BigQuery analytics, Firestore persistence and Earth Engine score layers are not built |
 | Data | OpenStreetMap, Open-Meteo wind (ERA5), computed sun position; Landsat 8/9 for the heat check only. Open Buildings, Sentinel-2 and WorldCover are future layers, not in the shipped bundle |
 
 Note on the slide: Google Maps tiles are not used because of the Maps Platform AI-use terms.
 
 ### 10. Estimated implementation cost
 - **Free by design:** all data sources open; Earth Engine noncommercial.
-- **Measured after deployment:** Gemini calls per search (at most 3), Cloud Run, BigQuery, Firestore. **TBD**
+- **Measured after deployment:** Gemini request counts and Cloud Run cost are not reported. Searches are limited to two proposer rounds; BigQuery and Firestore are not wired.
 - **Intervention costs:** planner unit costs, with defaults from a cited public source. Never presented as market prices.
 - **Per new city:** one pipeline run plus storage; no code changes.
 
@@ -77,15 +77,15 @@ Note on the slide: Google Maps tiles are not used because of the Maps Platform A
 Five real screenshots: priority map with shadows at 3 pm; search mid-run; plan with a rejected tree row; shadows before and after; Protect options A/B/C. No pre-written scores.
 
 ### 12. Performance report / benchmarking
-Report only measured results.
+Report only measured results from `evals/REPORT.md` (Deccan v1; all 49 evals passed. Live Gemini comparisons are single runs, not averages).
 | Test | Report |
 | --- | --- |
-| Determinism, range, direction (both modes) | pass/fail |
-| Shadow geometry, ventilation guard, budget | pass/fail |
-| Gemini vs greedy | win/tie/loss per test area, with ACS gain and cost |
-| Grounding violations | count |
-| Speed: rescore, simulate, full search | measured times |
-| Heat check | As measured in REPORT.md: Spearman correlation, p-value and block count on held-out blocks (the headline), all-blocks for context, scatter plot, caveats. Say plainly that held-out agreement is weak and not significant |
+| Determinism, range, direction, ventilation guard, budget | Passed on Deccan v1 |
+| Gemini vs greedy | One live run per case: one win at 10 lakh and three losses at 50 lakh (two quick-win shares) and 2 crore; include costs and candidate validity from the report |
+| Protect design search | Live Gemini results on four parcels; for `pc_004`, A is HIGH (34.0), B MODERATE (20.1, keeps 80% floor area), and C MODERATE (10.4, keeps 50%) |
+| Grounding violations | Live grounding and tool-order evals were not run; agent unit tests cover the guard and search flow |
+| Speed: rescore, greedy, bundle load | Repair p50 66.1 ms; Protect p50 32.3 ms; greedy p50 18.8 s at 50 lakh; bundle load 609 ms |
+| Heat check | Held-out HEI Spearman rho +0.187, permutation p=0.2997, 33 blocks; weak and not statistically significant. Show all-block result only as context; do not call the index validated |
 
 If a result is poor, say so and why.
 
@@ -104,7 +104,7 @@ If a result is poor, say so and why.
 | Final product | Cloud Run URL, opens without login |
 
 ### 15–16. Closing
-Slide 15: *Repair and protect a city's cooling network*, with three proof points (engine-scored AI plans, shade where people wait, engine-scored plans checked by tests and evals; heat index checked against Landsat as measured: weak agreement, stated plainly). Slide 16: contact and thanks. Delete if unused.
+Slide 15: *Repair and protect a city's cooling network*, with three proof points (engine-scored AI plans, shade where people wait, live Gemini compared with greedy; heat index checked against Landsat with weak, not statistically significant held-out agreement). Slide 16: contact and thanks. Delete if unused.
 
 ## Mapping to judging criteria
 
