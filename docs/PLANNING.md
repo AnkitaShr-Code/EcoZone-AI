@@ -406,7 +406,7 @@ One screen, a mode switch (Repair first), and one map.
 | 1:25 to 1:40 | Shadows before and after; cooling plan brief | Shade where people wait, phased by season |
 | 1:40 to 2:20 | Protect: a large proposal on a vacant parcel; preview; options A, B, C | Don't undo the repair with the next building |
 | 2:20 to 2:35 | Build-out on one street | The cumulative effect |
-| 2:35 to 3:00 | Architecture, the evaluation report, Gemini vs greedy as measured | Every score from the engine; measured evals; the satellite check of the heat index only if it has run (otherwise stated as next); one job onboards a city |
+| 2:35 to 3:00 | Architecture, the evaluation report, Gemini vs greedy as measured | Every score from the engine; measured evals; the satellite check of the heat index as measured in REPORT.md (weak positive agreement on held-out blocks, stated plainly, not called validated); one job onboards a city |
 
 Do not write any scores into the script in advance. Record from real output and keep a backup recording.
 

@@ -9,7 +9,7 @@ EcoZone AI helps a city cool the streets people already live and work on, and st
 
 Built by team **NeuralNodes** for the **Google Cloud AI Builder Cup 2026**, theme **Sustainability & Social Impact**. Prototype due Oct 18, 2026.
 
-> **Status: working prototype, deployed.** Live: <https://ecozone-451227459430.asia-south1.run.app/> (no login). Both modes run on a real Deccan Gymkhana (Pune) bundle built from OpenStreetMap. Every measured number is in [evals/REPORT.md](evals/REPORT.md); this README quotes only what that report contains. Not built yet: saved plans and history, Earth Engine data layers, and the satellite check of the heat index (see [Evaluation](#evaluation)).
+> **Status: working prototype, deployed.** Live: <https://ecozone-451227459430.asia-south1.run.app/> (no login). Both modes run on a real Deccan Gymkhana (Pune) bundle built from OpenStreetMap. Every measured number is in [evals/REPORT.md](evals/REPORT.md); this README quotes only what that report contains. Not built yet: saved plans and history, and Earth Engine data layers for the scores (Earth Engine is used only for the heat check below).
 
 | Document | Contents |
 | --- | --- |
@@ -75,7 +75,7 @@ offline pipeline (OpenStreetMap, Open-Meteo wind, computed sun position)
 - **Engine:** the only place a score is computed. Indices on a 0 to 100 scale: Ventilation Corridor Index, Heat Exposure Index (with a roof albedo term), Green Connectivity Score and Pedestrian Shade Score. Repair maximizes an exposure-weighted Area Cooling Score within the budget, with a quick-win share that must help this summer; dense tree rows are kept off deep, narrow streets, and no block may lose 10 or more ventilation points. Formulas: [docs/PLANNING.md](docs/PLANNING.md#scoring-engine).
 - **Agents:** plain code picks the role from the API route. Both searches run as one propose, score, judge loop in plain `asyncio` over `google-genai` on Vertex AI (ADK is deliberately not used; see [docs/ENGINEERING_RULES.md](docs/ENGINEERING_RULES.md)): Gemini proposes, the engine scores every candidate, and plain code decides when to stop (two rounds at most). A greedy baseline always runs alongside. A writer role explains plans from engine values, with a template as fallback. Models: `gemini-3.5-flash` proposes and `gemini-3.8-flash` writes, on the `global` endpoint with low thinking.
 - **Trust:** an output guard rejects any number not found in the turn's tool results or planner inputs, and any temperature, wind or energy unit. AI-estimated values are labeled.
-- **Data in the shipped bundle:** OpenStreetMap (buildings, roads, footpaths, waiting points, green, water), Open-Meteo wind direction (ERA5, Mar to May), and computed sun position. Building heights come from OSM where tagged and otherwise from a block typology default (most Deccan buildings use the default, counted in the bundle's `meta.json`). Roof albedo is a labeled default. Open Buildings, Sentinel-2, WorldCover and Landsat are not used in this bundle; Landsat surface temperature is planned only to check the heat index. Google Maps tiles are not used.
+- **Data in the shipped bundle:** OpenStreetMap (buildings, roads, footpaths, waiting points, green, water), Open-Meteo wind direction (ERA5, Mar to May), and computed sun position. Building heights come from OSM where tagged and otherwise from a block typology default (most Deccan buildings use the default, counted in the bundle's `meta.json`). Roof albedo is a labeled default. Open Buildings, Sentinel-2 and WorldCover are not used in this bundle. Landsat 8 and 9 surface temperature is used only to check the heat index, never to compute a score. Google Maps tiles are not used.
 
 Full component design: [docs/DESIGN.md](docs/DESIGN.md). System shape and component ownership: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -92,11 +92,11 @@ The evals live in `evals/` and run against the real engine and the Deccan v1 bun
 | Speed | Engine and search times | Measured (rescore of a plan about 64 ms; greedy at the 50 lakh budget about 19 s; bundle load about 0.6 s) |
 | Gemini vs greedy | Win, tie or loss per test area at the same budget | Run with the offline rule proposer only; **live Gemini not yet reported** |
 | Grounding, design search | No number outside tool results; B and C come from scored candidates | Covered by agent unit tests; **live runs not yet reported** |
-| Heat check | Spearman correlation between the heat index and Landsat surface temperature on held-out blocks | **Not run yet; no result is claimed** |
+| Heat check | Spearman correlation between the heat index and Landsat surface temperature on held-out blocks | **Measured, weak.** On the 33 held-out blocks the baseline heat index and Landsat surface temperature have a Spearman rho of +0.187 (permutation p 0.30, not significant); on all 65 blocks rho is +0.295 (p 0.015). The index ranks blocks in the same direction but the held-out agreement is weak, so we do not call it validated. The report lists the other indices and the caveats |
 
 Shadow geometry and the ventilation site rule (no tree row where height-to-width is 1 or more) are covered by engine and pipeline unit tests.
 
-Limits stated openly: the indices are heuristic screening indicators and none has been checked against measurements yet; the shade score is clear-sky geometry; roof albedo is a block-level estimate; parcels are road-network blocks; wind is one seasonal direction; trees take years to grow the canopy the plan assumes.
+Limits stated openly: the indices are heuristic screening indicators and the heat index agrees only weakly with Landsat surface temperature on held-out blocks (see the table) and the other indices are not validated; the shade score is clear-sky geometry; roof albedo is a block-level estimate; parcels are road-network blocks; wind is one seasonal direction; trees take years to grow the canopy the plan assumes.
 
 ## Repository layout
 
