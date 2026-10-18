@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><script src="_boot.js"></script>
+<style>body{background:transparent}
+#bg{position:absolute;inset:0;background:rgba(10,20,40,.9);animation:fadeIn .8s ease both}
+#w{position:absolute;left:150px;right:150px;top:110px}
+h2{font-size:58px;font-weight:800;letter-spacing:-1px;animation:inUp .7s var(--ease) .2s both}
+.sub{font-size:28px;color:var(--mute);margin-top:8px;animation:fadeIn .7s ease .5s both}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:46px}
+.card{background:var(--navy2);border:2px solid #2a4170;border-radius:22px;padding:28px 32px}
+.card h4{font-size:22px;letter-spacing:1.4px;text-transform:uppercase;color:var(--amber);font-weight:800}
+.card p{font-size:30px;font-weight:600;margin-top:10px;line-height:1.28}
+.card small{display:block;font-size:22px;color:var(--mute);margin-top:10px;line-height:1.35;font-weight:500}
+.c1{animation:inUp .6s var(--ease) var(--d1) both}.c2{animation:inUp .6s var(--ease) var(--d2) both}
+.c3{animation:inUp .6s var(--ease) var(--d3) both}.c4{animation:inUp .6s var(--ease) var(--d4) both}
+.end{position:absolute;left:150px;right:150px;bottom:86px;display:flex;align-items:center;justify-content:space-between;animation:fadeIn .8s ease var(--d5) both}
+.brand{display:flex;align-items:center;gap:16px;font-size:46px;font-weight:800}.leaf{width:40px;height:40px;border-radius:0 50% 0 50%;background:var(--amber)}
+.brand span.t{font-size:30px;font-weight:600;color:#e8eefa;margin-left:12px}
+.url{font-size:25px;color:var(--amber-soft);text-align:right;line-height:1.45}.url .who{color:#fff;font-weight:600}</style></head><body>
+<div id="bg"></div><div id="w"><h2>Every number comes from one engine</h2><div class="sub">Measured results from evals/REPORT.md, stated as measured</div>
+<div class="grid">
+<div class="card c1"><h4>The engine scores, Gemini proposes</h4><p>Gemini never computes a score</p><small>An output guard rejects any number not in the engine's results or the planner's inputs, and any temperature, wind or energy unit.</small></div>
+<div class="card c2"><h4>Gemini vs greedy, live</h4><p id="gvg"></p><small id="gvgs"></small></div>
+<div class="card c3"><h4>Engine evals</h4><p id="ev"></p><small>Determinism, 0 to 100 range, direction of change, budget and quick-win share, ventilation guard, speed.</small></div>
+<div class="card c4"><h4>Heat check vs Landsat</h4><p id="hc"></p><small id="hcs"></small></div>
+</div></div>
+<div class="end"><div class="brand"><span class="leaf"></span>EcoZone AI<span class="t">Repair and protect a city's cooling network</span></div><div class="url" id="url"></div></div>
+<script>function build(P){const s=P.cues||[1.2,4.0,9.0,13.5,P.dur-6];['--d1','--d2','--d3','--d4','--d5'].forEach((k,i)=>document.documentElement.style.setProperty(k,s[i]+'s'));
+ document.getElementById('gvg').textContent=P.gvg;document.getElementById('gvgs').textContent=P.gvgs;
+ document.getElementById('ev').textContent=P.evals;document.getElementById('hc').textContent=P.heat;document.getElementById('hcs').textContent=P.heats;
+ document.getElementById('url').innerHTML=(P.urls||[]).map((u,i)=>i===0&&!/\./.test(u)?`<span class="who">${esc(u)}</span>`:esc(u)).join('<br>')}</script></body></html>

@@ -1,0 +1,54 @@
+<section id="architecture" data-transition="fade" style="background:#ffffff;color:#111111;font-family:'Inter', Arial, sans-serif;padding:132px 96px 92px;display:flex;flex-direction:column;gap:26px">
+<img src="/_blob/6ee351f8e14716c1f9cda3fad726ef9e" alt="Google Cloud, AI Builder Cup and H2S logos" style="position:absolute;left:0;top:0;width:1920px;height:106px;object-fit:cover">
+<div style="position:absolute;left:0;top:1066px;width:1920px;height:14px;background:#000000"></div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:44px;font-weight:600;line-height:1.1;letter-spacing:-0.5px;color:#111111">Architecture diagram of the proposed solution</h2>
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:34px;font-weight:500;line-height:1.25;color:#0f1e3a">One Cloud Run service. The engine is the only place a number is made.</p>
+</div>
+<div style="position:relative;width:1728px;height:690px">
+<svg aria-label="Arrows: React app to FastAPI to engine; React app to and from the output guard and search loop; search loop to engine and to and from Gemini on Vertex AI; Cloud Storage bundle loaded into the engine; offline pipeline writes the bundle; Cloud Build deploys the service" style="position:absolute;left:0;top:0" width="1728" height="690" viewBox="0 0 1728 690"><defs><marker id="ah" viewBox="0 0 6 6" refX="6" refY="3" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L6 3 L0 6 Z" fill="#3d4a63"/></marker></defs><rect x="1" y="1" width="1270" height="438" rx="22" fill="#f4f6fa" stroke="#9aa8c2" stroke-width="2" stroke-dasharray="10 8"/><g stroke="#3d4a63" stroke-width="3" fill="none"><line x1="408" y1="150" x2="446" y2="150" marker-end="url(#ah)"/><line x1="824" y1="150" x2="862" y2="150" marker-end="url(#ah)"/><line x1="220" y1="222" x2="220" y2="268" marker-start="url(#ah)" marker-end="url(#ah)"/><line x1="410" y1="340" x2="446" y2="340" marker-start="url(#ah)" marker-end="url(#ah)"/><line x1="824" y1="340" x2="862" y2="340" marker-end="url(#ah)"/><line x1="636" y1="412" x2="636" y2="518" marker-start="url(#ah)" marker-end="url(#ah)"/><line x1="1052" y1="520" x2="1052" y2="412" marker-end="url(#ah)"/><line x1="1340" y1="600" x2="1242" y2="600" marker-end="url(#ah)"/><line x1="1340" y1="245" x2="1274" y2="245" marker-end="url(#ah)"/></g></svg>
+<p style="position:absolute;left:32px;top:22px;width:1200px;font-family:'JetBrains Mono', 'Courier New', monospace;font-size:24px;font-weight:600;letter-spacing:1px;color:#3d4a63">CLOUD RUN · ASIA-SOUTH1 · MIN 1 INSTANCE · 2 vCPU · 2 GiB</p>
+<div style="position:absolute;left:32px;top:80px;width:376px;height:140px;background:#ffffff;border:2px solid #c9c2b4;border-radius:14px;padding:18px 22px;display:flex;flex-direction:column;gap:4px">
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:28px;font-weight:600;color:#0f1e3a">React app</p>
+<p style="font-size:24px;line-height:1.3;color:#3d4a63">deck.gl + MapLibre map, Repair and Protect</p>
+</div>
+<div style="position:absolute;left:448px;top:80px;width:376px;height:140px;background:#ffffff;border:2px solid #c9c2b4;border-radius:14px;padding:18px 22px;display:flex;flex-direction:column;gap:4px">
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:28px;font-weight:600;color:#0f1e3a">FastAPI routes</p>
+<p style="font-size:24px;line-height:1.3;color:#3d4a63">REST rescore in milliseconds, no AI</p>
+</div>
+<div style="position:absolute;left:864px;top:80px;width:376px;height:330px;background:#0f1e3a;border-radius:14px;padding:22px 24px;display:flex;flex-direction:column;gap:8px">
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:28px;font-weight:600;color:#e89828">Deterministic engine</p>
+<p style="font-size:24px;line-height:1.35;color:#f6f3ec">The only place a number is made: footpath shadows at 1, 3, 4 pm; four 0–100 indices; area cooling score; costs; greedy baseline</p>
+</div>
+<div style="position:absolute;left:32px;top:270px;width:376px;height:140px;background:#ffffff;border:2px solid #c9c2b4;border-radius:14px;padding:18px 22px;display:flex;flex-direction:column;gap:4px">
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:28px;font-weight:600;color:#0f1e3a">Output guard</p>
+<p style="font-size:24px;line-height:1.3;color:#3d4a63">Every number must come from a tool result</p>
+</div>
+<div style="position:absolute;left:448px;top:270px;width:376px;height:140px;background:#ffffff;border:2px solid #c9c2b4;border-radius:14px;padding:18px 22px;display:flex;flex-direction:column;gap:4px">
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:28px;font-weight:600;color:#0f1e3a">Search loop</p>
+<p style="font-size:24px;line-height:1.3;color:#3d4a63">Plain asyncio: propose, score, judge</p>
+</div>
+<div style="position:absolute;left:1340px;top:80px;width:388px;height:330px;background:#ffffff;border:2px solid #c9c2b4;border-radius:14px;padding:22px 24px;display:flex;flex-direction:column;gap:8px">
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:28px;font-weight:600;color:#0f1e3a">Cloud Build</p>
+<p style="font-size:24px;line-height:1.35;color:#3d4a63">Push to main builds one image, stores it in Artifact Registry and deploys it. Service-account identity: no keys in the repo.</p>
+</div>
+<div style="position:absolute;left:32px;top:520px;width:376px;height:160px;background:#ffffff;border:2px dashed #9aa8c2;border-radius:14px;padding:18px 22px;display:flex;flex-direction:column;gap:4px">
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:28px;font-weight:600;color:#0f1e3a">Heat check only</p>
+<p style="font-size:24px;line-height:1.3;color:#3d4a63">Landsat 8/9 via Earth Engine, in evals; never feeds a score</p>
+</div>
+<div style="position:absolute;left:448px;top:520px;width:376px;height:160px;background:#e89828;border-radius:14px;padding:18px 22px;display:flex;flex-direction:column;gap:4px">
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:28px;font-weight:600;color:#0f1e3a">Gemini on Vertex AI</p>
+<p style="font-size:24px;line-height:1.3;color:#0f1e3a">3.5 Flash proposes, 3.8 Flash writes; low thinking</p>
+</div>
+<div style="position:absolute;left:864px;top:520px;width:376px;height:160px;background:#ffffff;border:2px solid #c9c2b4;border-radius:14px;padding:18px 22px;display:flex;flex-direction:column;gap:4px">
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:28px;font-weight:600;color:#0f1e3a">Cloud Storage</p>
+<p style="font-size:24px;line-height:1.3;color:#3d4a63">GeoParquet area bundle, loaded into memory at start</p>
+</div>
+<div style="position:absolute;left:1340px;top:520px;width:388px;height:160px;background:#ffffff;border:2px solid #c9c2b4;border-radius:14px;padding:18px 22px;display:flex;flex-direction:column;gap:4px">
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:28px;font-weight:600;color:#0f1e3a">Offline pipeline</p>
+<p style="font-size:24px;line-height:1.3;color:#3d4a63">Once per city: OpenStreetMap, Open-Meteo wind, sun position</p>
+</div>
+</div>
+<p style="position:absolute;right:96px;bottom:30px;width:100px;text-align:right;font-family:'JetBrains Mono', 'Courier New', monospace;font-size:24px;color:#5d6880">07</p>
+<aside>Everything online runs in one Cloud Run service: the React app, FastAPI, the search loop and the engine. Sliders call the engine over REST and never wait for AI; searches stream progress over server-sent events, and Gemini on Vertex AI only proposes and explains. The area bundle is built offline once per city from OpenStreetMap, Open-Meteo wind and computed sun positions, stored in Cloud Storage and loaded at start. Landsat surface temperature is used only to check the heat index in our evals.</aside>
+</section>

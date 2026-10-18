@@ -1,0 +1,20 @@
+<section id="tech" data-transition="fade" style="background:#ffffff;color:#111111;font-family:'Inter', Arial, sans-serif;padding:132px 96px 92px;display:flex;flex-direction:column;gap:28px">
+<img src="/_blob/6ee351f8e14716c1f9cda3fad726ef9e" alt="Google Cloud, AI Builder Cup and H2S logos" style="position:absolute;left:0;top:0;width:1920px;height:106px;object-fit:cover">
+<div style="position:absolute;left:0;top:1066px;width:1920px;height:14px;background:#000000"></div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:44px;font-weight:600;line-height:1.1;letter-spacing:-0.5px;color:#111111">Technologies to be used in the solution</h2>
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:34px;font-weight:500;line-height:1.25;color:#0f1e3a">All of it is in use in the deployed prototype.</p>
+</div>
+<table style="font-size:29px;color:#111111;font-family:'Inter', Arial, sans-serif">
+<tr style="background:#0f1e3a"><th style="width:18%;color:#f6f3ec">Area</th><th style="width:82%;color:#f6f3ec">Technology</th></tr>
+<tr><td style="color:#9a5800">AI</td><td>Gemini on Vertex AI: gemini-3.5-flash proposes, gemini-3.8-flash writes; google-genai SDK; the search loop is plain asyncio, no agent framework</td></tr>
+<tr style="background:#f6f3ec"><td style="color:#9a5800">Backend</td><td>Python 3.12, FastAPI, Pydantic contract, shapely, geopandas, pvlib, GeoParquet</td></tr>
+<tr><td style="color:#9a5800">Front end</td><td>React, TypeScript, deck.gl, MapLibre GL, OpenFreeMap tiles (Google Maps tiles not used: Maps Platform AI-use terms)</td></tr>
+<tr style="background:#f6f3ec"><td style="color:#9a5800">Google Cloud</td><td>Cloud Run (asia-south1), Cloud Storage, Cloud Build, Artifact Registry, Vertex AI; Earth Engine for the heat check only</td></tr>
+<tr><td style="color:#9a5800">Data</td><td>OpenStreetMap (ODbL), Open-Meteo ERA5 wind (CC BY 4.0), computed sun position; Landsat 8/9 surface temperature for the heat check only</td></tr>
+<tr style="background:#f6f3ec"><td style="color:#9a5800">Quality</td><td>uv workspace, ruff, pyright, import-linter, pytest; 49 evals in evals/REPORT.md</td></tr>
+</table>
+<p style="font-size:26px;line-height:1.35;color:#5d6880">Not in the shipped bundle: Open Buildings, Sentinel-2 and WorldCover layers. Firestore and BigQuery were planned; the service keeps sessions in memory.</p>
+<p style="position:absolute;right:96px;bottom:30px;width:100px;text-align:right;font-family:'JetBrains Mono', 'Courier New', monospace;font-size:24px;color:#5d6880">08</p>
+<aside>Gemini on Vertex AI does the proposing and the writing; we call it through the google-genai SDK from a small loop in plain asyncio rather than an agent framework, so every step is testable. The engine is Python with shapely, geopandas and pvlib, the front end is React with deck.gl and MapLibre, and it all runs on Cloud Run built by Cloud Build. Earth Engine and Landsat appear only in the heat check, never in a score.</aside>
+</section>

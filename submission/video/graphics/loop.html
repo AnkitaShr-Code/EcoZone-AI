@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><script src="_boot.js"></script>
+<style>#d{position:absolute;right:60px;top:190px;width:760px;padding:30px 34px 34px;border-radius:26px;background:rgba(15,30,58,.95);box-shadow:0 22px 60px rgba(8,16,34,.35)}
+h3{font-size:24px;letter-spacing:1.5px;text-transform:uppercase;color:var(--amber);font-weight:800;margin-bottom:22px}
+.flow{display:flex;flex-direction:column;gap:0}
+.node{display:flex;align-items:center;gap:18px;padding:18px 22px;border-radius:16px;background:var(--navy2);border:2px solid #2a4170;font-size:30px;font-weight:650}
+.node b{font-weight:800}.node small{display:block;font-size:21px;color:var(--mute);font-weight:500;margin-top:2px}
+.ic{flex:none;width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:26px;font-weight:800;color:var(--navy);background:var(--amber)}
+.ic.alt{background:#cfd8ea}
+.arr{height:34px;margin-left:44px;width:3px;background:var(--amber);position:relative}
+.arr::after{content:"";position:absolute;bottom:-2px;left:-7px;border-left:8.5px solid transparent;border-right:8.5px solid transparent;border-top:12px solid var(--amber)}
+.n1{animation:pop .5s var(--ease) .3s both}.a1{animation:fadeIn .3s ease .75s both}
+.n2{animation:pop .5s var(--ease) .95s both}.a2{animation:fadeIn .3s ease 1.4s both}
+.n3{animation:pop .5s var(--ease) 1.6s both}
+.rep{margin-top:14px;font-size:23px;color:var(--amber-soft);display:flex;align-items:center;gap:10px;animation:fadeIn .5s ease 2.1s both}
+.side{margin-top:22px;padding-top:20px;border-top:2px dashed #2a4170;animation:fadeIn .6s ease 2.6s both}
+.n2 .ic{animation:pulse 1.6s ease-in-out 1.5s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 10px rgba(232,152,40,.18)}}</style></head><body>
+<div id="d" class="life"><h3>One search loop</h3><div class="flow">
+<div class="node n1"><span class="ic">G</span><div><b>Gemini</b> proposes whole plans<small>structured JSON, no scores</small></div></div>
+<div class="arr a1"></div>
+<div class="node n2"><span class="ic">E</span><div><b>Engine</b> scores every plan<small>deterministic: shade, heat, green, ventilation, cost</small></div></div>
+<div class="arr a2"></div>
+<div class="node n3"><span class="ic">J</span><div><b>Plain code</b> judges: stop or refine<small>at most two rounds</small></div></div>
+</div><div class="rep">↻ repeat with the scores as feedback</div>
+<div class="side"><div class="node"><span class="ic alt">B</span><div><b>Greedy baseline</b>, always computed<small>best gain per rupee; the better plan is shown</small></div></div></div></div>
+</body></html>

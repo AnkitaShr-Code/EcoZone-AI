@@ -1,0 +1,16 @@
+import { createRequire } from 'module';
+import fs from 'fs';
+const require = createRequire('/Users/abhi/work/EcoZone-AI/demo-video/package.json');
+const { chromium } = require('playwright-core');
+const W = '/Users/abhi/work/EcoZone-AI/deck-work';
+let html = fs.readFileSync(`${W}/render/preview.html`, 'utf8');
+html = html.replace('</style>', '@page{size:1920px 1080px;margin:0} @media print{body{background:none} .frame{break-after:page;page-break-after:always} .frame:last-child{break-after:auto;page-break-after:auto} video{display:block}}</style>');
+fs.writeFileSync(`${W}/render/print.html`, html);
+const browser = await chromium.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', args: ['--allow-file-access-from-files'] });
+const p = await (await browser.newContext({ viewport: { width: 1920, height: 1080 } })).newPage();
+await p.goto(`file://${W}/render/print.html`);
+await p.evaluate(() => document.fonts.ready);
+await p.waitForTimeout(2500);
+await p.pdf({ path: `${W}/NeuralNodes-AI-Builder-Cup-Submission.pdf`, width: '1920px', height: '1080px', printBackground: true, preferCSSPageSize: true });
+await browser.close();
+console.log('pdf written');

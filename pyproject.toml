@@ -47,7 +47,8 @@ line-length = 120
 target-version = "py312"
 src = ["contract/src", "engine/src", "pipeline/src", "agents/src", "api/src", "evals"]
 # fetch_sample.py is the legacy UI-mock fetcher, removed when the mock becomes an engine snapshot (pipeline/RULES.md).
-extend-exclude = ["app", "data", "docs", "*.md", "pipeline/fetch_sample.py"]
+# submission/ holds one-off build scripts for the deck and demo video (submission/README.md), not product code.
+extend-exclude = ["app", "data", "docs", "*.md", "pipeline/fetch_sample.py", "submission"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "N", "PTH", "DTZ", "T20"]

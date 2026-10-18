@@ -1,0 +1,6 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><script src="_boot.js"></script>
+<style>#s{position:absolute;top:78px;left:calc(456px + (1920px - 456px)/2);transform:translateX(-50%)}
+.pill{gap:16px;white-space:nowrap}.chev{display:inline-flex;gap:2px}.chev i{width:0;height:0;border-left:16px solid var(--amber);border-top:11px solid transparent;border-bottom:11px solid transparent;
+ animation:blink 1s steps(1) infinite}.chev i:nth-child(2){animation-delay:.5s}
+@keyframes blink{50%{opacity:.35}}</style></head><body><div id="s"><div class="life"><span class="pill"><span class="chev"><i></i><i></i></span><span id="t"></span></span></div></div>
+<script>function build(P){document.getElementById('t').textContent=P.text}</script></body></html>
