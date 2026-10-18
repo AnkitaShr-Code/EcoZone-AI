@@ -64,7 +64,7 @@ export function AreaStepContent() {
                     <span className="size-2.5 rounded-sm" style={{ background: cssVar(PRIORITY_META[h.priorityClass].color) }} aria-hidden />
                     {formatBlock(h.blockId)} · {PRIORITY_META[h.priorityClass].label}
                   </span>
-                  <span className="block truncate text-xs text-muted-foreground">{h.drivers.map(driverLabel).join(' · ')}</span>
+                  <span className="block line-clamp-2 text-xs text-muted-foreground">{h.drivers.map(driverLabel).join(' · ')}</span>
                 </span>
               </button>
             </li>

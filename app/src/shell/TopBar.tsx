@@ -22,9 +22,10 @@ export function TopBar() {
 
   return (
     <header className="flex h-12 shrink-0 items-center gap-4 border-b bg-background px-4">
-      <span className="flex items-center gap-2 font-semibold">
+      <span className="flex items-center gap-2">
         <Leaf className="size-4 text-data-shade" aria-hidden />
-        EcoZone AI
+        <span className="font-semibold">EcoZone AI</span>
+        <span className="hidden text-xs text-muted-foreground xl:inline">Cooling analytics for urban heat</span>
       </span>
 
       <ToggleGroup
@@ -45,7 +46,7 @@ export function TopBar() {
       </ToggleGroup>
 
       <Select value={areaId} disabled={!area}>
-        <SelectTrigger size="sm" className="w-80" aria-label="Area">
+        <SelectTrigger size="sm" className="min-w-0 w-64 sm:w-80 lg:w-96" aria-label="Area">
           <SelectValue placeholder="Loading area…" />
         </SelectTrigger>
         <SelectContent>

@@ -12,7 +12,7 @@ export function renderShadows({ data, shadeTime }: LayerContext) {
       data: shadows,
       filled: true,
       stroked: false,
-      getFillColor: rgba('map-shadow', 55),
+      getFillColor: rgba('map-shadow', 90),
       parameters: GROUND_PARAMETERS,
     }),
   ]

@@ -39,7 +39,7 @@ export function MapView() {
       style: BASEMAP,
       center: [73.843, 18.5205],
       zoom: 15.6,
-      pitch: 40,
+      pitch: 45,
       attributionControl: { compact: true },
     })
     map.addControl(new NavigationControl({ visualizePitch: true }), 'top-left')
@@ -47,6 +47,8 @@ export function MapView() {
       for (const layer of map.getStyle().layers) {
         if (HIDDEN_BASEMAP_LAYERS.test(layer.id)) map.setLayoutProperty(layer.id, 'visibility', 'none')
       }
+      // Wash the basemap so priority blocks stand out (UI_RULES.md §4).
+      map.addLayer({ id: 'basemap-dim', type: 'background', paint: { 'background-color': 'rgba(255,255,255,0.45)' } }, map.getStyle().layers[0]?.id)
     })
     const deckOverlay = new MapboxOverlay({ interleaved: false, layers: [] })
     map.addControl(deckOverlay)
