@@ -17,6 +17,10 @@ dependencies = [
   "pvlib>=0.11",
 ]
 
+[project.optional-dependencies]
+# Offline validation only (pipeline/RULES.md, steps/earth_engine.py). Never part of the api image or `pipeline all`.
+ee = ["earthengine-api>=1.0"]
+
 [project.scripts]
 pipeline = "ecozone_pipeline.cli:app"
 

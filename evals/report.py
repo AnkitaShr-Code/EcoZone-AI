@@ -30,7 +30,7 @@ def read_rows(path: Path) -> list[Row]:
 
 def run_pytest(results: Path, extra: list[str]) -> int:
     env = {**os.environ, "ECOZONE_EVAL_RESULTS": str(results)}
-    cmd = ["uv", "run", "pytest", "evals", "-m", "not live", "-rxXs", *extra]
+    cmd = ["uv", "run", "pytest", "evals", "--ignore=evals/tests", "-m", "not live", "-rxXs", *extra]
     sys.stdout.write("running: " + " ".join(cmd) + "\n")
     return subprocess.run(cmd, cwd=REPO, env=env, check=False).returncode
 
@@ -353,9 +353,11 @@ def build(rows: list[Row]) -> str:
         out += table(["Step", "Measured", "Note"], other)
         out.append("")
 
+    out += heat_check_section(rows, outcomes, str(bundle.get("area_id")))
+
     out.append("## Other measured values")
     out.append("")
-    skip_groups = ("session", "gemini_vs_greedy", "protect_search", "speed")
+    skip_groups = ("session", "gemini_vs_greedy", "protect_search", "speed", "heat_check")
     groups: dict[str, list[Row]] = defaultdict(list)
     for m in rows:
         if m["result"] == "measured" and not m["test"].startswith(skip_groups):
@@ -380,15 +382,10 @@ def build(rows: list[Row]) -> str:
             "- **Live Gemini evals** (Gemini vs greedy with the real model, grounding and tool-order runs on "
             "Gemini): need Vertex AI credentials; not run here."
         )
-    skipped = (bundle.get("skipped_steps")) or []
-    out.append(
-        "- **Heat check** (`pipeline/validate.py`: heat index against measured surface temperature on the held-out "
-        "blocks): not run. The bundle's pipeline skipped steps "
-        f"`{', '.join(skipped) or 'none'}`, so there is no surface "
-        "temperature layer in it, and Earth Engine access is not available here. No correlation is reported."
-    )
+    if not measures(rows, "heat_check."):
+        out.append("- **Heat check**: not run; see the Heat check section. No correlation is reported.")
     skips = [o for o in outcomes if o["result"] == "skip"]
-    for o in skips:
+    for o in (o for o in skips if "test_heat_check" not in o["test"]):
         out.append(f"- `{short(o['test'])}` was skipped: {o.get('detail') or 'no reason recorded'}")
     out.append("")
     out.append("## How the search was driven")
@@ -402,6 +399,142 @@ def build(rows: list[Row]) -> str:
     )
     out.append("")
     return "\n".join(out) + "\n"
+
+
+HEAT_CAVEATS = [
+    "Surface temperature is not the air temperature people feel.",
+    "The heat index shares inputs with what drives surface temperature (paving, green cover, built volume, roof "
+    "reflectance), so agreement "
+    "shows that the index ranks blocks sensibly, not that its weights are right.",
+    "Landsat sees the top of a shade structure, not the shaded ground under it, so satellite data can never confirm "
+    "that shade structures work.",
+    "Landsat thermal bands are collected at 100 m and resampled to 30 m; a block of only a few pixels is a mixed "
+    "measurement, and each block's valid pixel count is recorded.",
+    "Each scene is one overpass in the late morning, not the afternoon peak.",
+    "The test half is a small sample; read the block count and the p-value with it, not the correlation alone.",
+]
+
+
+def heat_check_section(rows: list[Row], outcomes: list[Row], area_id: str) -> list[str]:
+    """The heat check section. Every number comes from rows the heat-check eval wrote; nothing here is typed in."""
+    out = ["## Heat check", ""]
+    primary = {m["subject"]: m["value"] for m in measures(rows, "heat_check.primary")}
+    secondary = {m["subject"]: m["value"] for m in measures(rows, "heat_check.secondary")}
+    prov = next((m["value"] for m in measures(rows, "heat_check.provenance")), None)
+    if not primary or prov is None:
+        ran = [o for o in outcomes if "test_heat_check" in o["test"]]
+        reason = next((str(o.get("detail") or "") for o in ran if o["result"] in ("skip", "fail")), "")
+        if any(o["result"] == "fail" for o in ran):
+            out.append(
+                "**Heat check: ran but failed its well-formedness checks, so no correlation is reported.** "
+                "See Failures and findings."
+            )
+        else:
+            prefix = "heat check: not run. "
+            why = reason[len(prefix) :] if reason.startswith(prefix) else ""
+            how = why or (
+                f"Create the surface temperature table with `uv run --extra ee pipeline heat-check --area {area_id}` "
+                "(needs Earth Engine access; see evals/heat_check/README.md)."
+            )
+            out.append(f"**Heat check: not run.** {how} Then rerun the evals. No correlation is reported.")
+        out.append("")
+        return out
+
+    perms, seed = primary[next(iter(primary))]["permutations"], primary[next(iter(primary))]["seed"]
+    out.append(
+        "Does the baseline heat index (no changes applied) rank blocks the way measured satellite surface "
+        "temperature does? Each block's median land surface temperature comes from cloud-free Landsat 8 and 9 scenes "
+        "in March to May. The statistic is the Spearman rank correlation (ties share the average rank); the p-value "
+        f"is two-sided from {perms:,} random re-pairings with a fixed seed ({seed}). A positive correlation means "
+        "blocks with a higher heat index tend to have hotter surfaces. There is no pass mark: the result is reported "
+        "as measured, and no weight, index or setting was changed or tuned after seeing it. The test half of the "
+        "blocks is the held-out half and the headline."
+    )
+    out.append("")
+
+    def split_rows(table: dict[str, Any], index: str, label: str) -> list[list[str]]:
+        names = {"test": "test (held out, headline)", "all": "all blocks", "tune": "tune (context)"}
+        return [
+            [
+                label,
+                names[s],
+                f"{v['n']} of {v['blocks_in_bundle']}",
+                f"{v['rho']:+.3f}",
+                f"{v['p_value']:.4f}",
+            ]
+            for s in ("test", "all", "tune")
+            if (v := table.get(f"{index}:{s}"))
+        ]
+
+    out.append("### Heat index (primary)")
+    out.append("")
+    out += table(
+        ["Index", "Blocks", "Count (of bundle blocks)", "Spearman rho", "Permutation p"],
+        split_rows(primary, "hei", "HEI"),
+    )
+    out.append("")
+    if secondary:
+        out.append("### Other indices (secondary)")
+        out.append("")
+        out.append(
+            "Declared before the first run and reported for context only. The heat index is the one the check is "
+            "about; only it is described as validated here. These are not corrected for multiple comparisons."
+        )
+        out.append("")
+        srows: list[list[str]] = []
+        for idx in ("vci", "gcs", "pss"):
+            srows += split_rows(secondary, idx, idx.upper())
+        out += table(["Index", "Blocks", "Count (of bundle blocks)", "Spearman rho", "Permutation p"], srows)
+        out.append("")
+
+    out.append("### Satellite data")
+    out.append("")
+    out.append(
+        "- **Datasets:** " + ", ".join(f"`{d}`" for d in prov["datasets"]) + ", band ST_B10 (surface temperature)"
+    )
+    for w in prov["windows"]:
+        per = ", ".join(f"`{d}` {n}" for d, n in w["scenes"].items())
+        out.append(f"- **Window {w['year']}:** {w['start']} to {w['end']}; scenes: {per}")
+    years = ", ".join(str(y) for y in prov["years_used"])
+    extra = (
+        " (the year before was added because the reference year had too few scenes)"
+        if len(prov["years_used"]) > 1
+        else ""
+    )
+    out.append(f"- **Years used:** {years}{extra}")
+    met = "met" if prov["min_scenes_met"] else "NOT met"
+    out.append(
+        f"- **Scenes used:** {prov['scenes_total']} scenes (minimum {prov['min_scenes']}: {met}); "
+        "per-pixel median over the window"
+    )
+    out.append(
+        f"- **Screening:** scenes over {prov['scene_max_cloud_cover_pct']:g}% cloud cover excluded; cloud, cloud "
+        "shadow, dilated cloud and cirrus pixels masked; pixels the product's own per-pixel uncertainty band marks "
+        "as unreliable masked (the limit is our own choice, set before the run and recorded in the data file's "
+        "provenance)"
+    )
+    out.append(
+        f"- **Aggregation:** median over each block at {prov['scale_m']} m "
+        f"(native thermal resolution {prov['native_thermal_resolution_m']} m)"
+    )
+    out.append(
+        f"- **Blocks:** {prov['blocks_with_lst']} of {prov['blocks_requested']} blocks had a valid pixel "
+        f"({prov['blocks_dropped']} dropped); valid pixels per block "
+        f"(coverage-weighted): minimum {prov['valid_pixels_min']:g}, median {prov['valid_pixels_median']:g}, "
+        f"maximum {prov['valid_pixels_max']:g}"
+    )
+    out.append(f"- **Fetched:** {prov['fetch_date']} from Earth Engine project `{prov['earth_engine_project']}`")
+    if not (prov["bundle_version_matches"] and prov["bundle_settings_hash_matches"]):
+        out.append(
+            "- **Warning:** the surface temperature table was made from a different bundle build than the one scored "
+            "here (version or settings hash differ); block ids matched, but the geometry may not."
+        )
+    out.append("")
+    out.append("### Caveats")
+    out.append("")
+    out += [f"- {c}" for c in HEAT_CAVEATS]
+    out.append("")
+    return out
 
 
 ANALYSIS = {

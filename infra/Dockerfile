@@ -7,6 +7,8 @@ WORKDIR /src/app
 COPY app/package.json app/package-lock.json ./
 RUN npm ci
 COPY app/ ./
+ARG VITE_API_MODE=http
+ENV VITE_API_MODE=$VITE_API_MODE
 RUN npm run build
 
 # ---- stage 2: Python service ----
