@@ -208,12 +208,59 @@ def build(rows: list[Row]) -> str:
     else:
         out.append("Not run.")
     out.append("")
-    live = measures(rows, "gemini_vs_greedy.live")
+    live = [m for m in measures(rows, "gemini_vs_greedy.live") if m["test"] == "gemini_vs_greedy.live"]
     out.append("### Live Gemini")
     out.append("")
     if live:
+        used = measures(rows, "gemini_vs_greedy.live_settings")
+        intro = (
+            "Real Gemini on Vertex AI through the same loop and scorer. No pass mark. Each case is a single run and "
+            "Gemini's output differs between runs (a repeat of the same case scored differently in testing), so the "
+            "table says nothing about averages."
+        )
+        if used:
+            intro += " Settings the run used: " + fmt(used[0]["value"]) + "."
+        out.append(intro)
+        out.append("")
+        ltrs: list[list[str]] = []
         for m in live:
-            out.append(f"- `{m['subject']}`: {fmt(m['value'])}")
+            v = m["value"]
+            ltrs.append(
+                [
+                    f"`{m['subject']}`",
+                    f"{v['budget_inr']:,.0f}",
+                    f"{v['quick_win_share_pct']:g}%",
+                    f"{v['baseline_acs']:.2f}",
+                    f"{v['greedy_acs']:.2f}"
+                    + ("" if v["greedy_valid"] else f" (invalid: {v['greedy_invalid_reason']})"),
+                    "none valid" if v["ai_acs"] is None else f"{v['ai_acs']:.2f}",
+                    "n/a" if v["delta"] is None else f"{v['delta']:+.2f}",
+                    v["outcome"],
+                    f"{v['ai_valid_candidates']}/{v['ai_candidates']}",
+                    "n/a" if v["ai_cost_inr"] is None else f"{v['ai_cost_inr']:,.0f}",
+                    f"{v['greedy_cost_inr']:,.0f}",
+                ]
+            )
+        out += table(
+            [
+                "Case",
+                "Budget (INR)",
+                "Quick-win share",
+                "Baseline ACS",
+                "Greedy ACS",
+                "Gemini ACS",
+                "Delta",
+                "Outcome",
+                "Valid/all Gemini candidates",
+                "Gemini plan cost (INR)",
+                "Greedy plan cost (INR)",
+            ],
+            ltrs,
+        )
+        out.append("")
+        for m in live:
+            reasons = m["value"].get("ai_invalid_reasons") or {}
+            out.append(f"- `{m['subject']}`: Gemini candidates not valid: {fmt(reasons) if reasons else 'none'}")
     else:
         out.append(
             "**Not run.** The live Gemini evals (`evals/test_live_gemini.py`, marker `live`) need Vertex AI "
@@ -221,6 +268,20 @@ def build(rows: list[Row]) -> str:
             "and `ECOZONE_LLM=gemini`; this run was offline. No Gemini number is reported."
         )
     out.append("")
+
+    lprot = measures(rows, "protect_search.live")
+    if lprot:
+        out.append("### Protect design search (live Gemini)")
+        out.append("")
+        out.append("Worst change for each option (lower is better) and the share of floor area kept. No pass mark.")
+        out.append("")
+        lptr = [
+            [f"`{m['subject']}`"]
+            + [f"{m['value'][k]['worst_change']:.1f}, {m['value'][k]['floor_area_pct']:.0f}% floor area" for k in "ABC"]
+            for m in lprot
+        ]
+        out += table(["Parcel", "A (as proposed)", "B", "C"], lptr)
+        out.append("")
 
     prot = measures(rows, "protect_search.fake")
     if prot:
@@ -309,10 +370,16 @@ def build(rows: list[Row]) -> str:
 
     out.append("## Not run")
     out.append("")
-    out.append(
-        "- **Live Gemini evals** (Gemini vs greedy with the real model, grounding and tool-order runs on Gemini): "
-        "need Vertex AI credentials; not run here."
-    )
+    if measures(rows, "gemini_vs_greedy.live"):
+        out.append(
+            "- **Live grounding and tool-order runs on Gemini**: not run. Only Gemini vs greedy and the Protect "
+            "options were run live."
+        )
+    else:
+        out.append(
+            "- **Live Gemini evals** (Gemini vs greedy with the real model, grounding and tool-order runs on "
+            "Gemini): need Vertex AI credentials; not run here."
+        )
     skipped = (bundle.get("skipped_steps")) or []
     out.append(
         "- **Heat check** (`pipeline/validate.py`: heat index against measured surface temperature on the held-out "

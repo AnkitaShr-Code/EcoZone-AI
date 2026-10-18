@@ -27,8 +27,27 @@ def _live_settings() -> AgentSettings:
     return settings
 
 
+def _record_settings(rec: Recorder, settings: AgentSettings) -> None:
+    rec.measure(
+        "gemini_vs_greedy.live_settings",
+        "gemini",
+        {
+            "proposer": settings.model_proposer,
+            "writer": settings.model_writer,
+            "location": settings.gemini_location,
+            "thinking_level": settings.thinking_level,
+            "max_rounds": settings.max_rounds,
+            "proposals_per_round": settings.proposals_per_round,
+            "proposer_timeout_s": settings.proposer_timeout_s,
+            "search_time_limit_s": settings.search_time_limit_s,
+        },
+        "settings the live runs used",
+    )
+
+
 def test_live_gemini_vs_greedy_per_case(bench: Bench, cases: AreaCases, rec: Recorder) -> None:
     settings = _live_settings()
+    _record_settings(rec, settings)
     for rc in cases.repair:
         run = bench._drive(bench.repair_request(rc), settings)  # pyright: ignore[reportPrivateUsage]
         row = compare(bench, rc, run)
