@@ -5,6 +5,7 @@ template fallback is filled from it, so the three can never disagree. Scores are
 and rupees to whole rupees, as the API does, so the planner sees the same numbers everywhere.
 """
 
+import re
 from collections import Counter
 from collections.abc import Mapping, Sequence
 
@@ -16,6 +17,22 @@ from .catalog import ParcelInfo, SiteBrief
 from .text import DRIVER_LABEL, INDEX_WORDS
 
 Facts = dict[str, object]
+
+_BLOCK_ID = re.compile(r"\b(?:block\s+)?blk_(\d+)\b", re.IGNORECASE)
+
+
+def _plain(name: str) -> str:
+    """A name the planner can read: `blk_0006` and `block blk_0006` both become `Block 0006`, as in the app."""
+    return _BLOCK_ID.sub(r"Block \1", name)
+
+
+def _rupees(value: float) -> int:
+    """Whole rupees as an int, so the writer never copies a trailing `.0`."""
+    return int(tc.inr(value))
+
+
+def _block_scores(s: e.Scores) -> dict[str, float]:
+    return {"pss": tc.score(s.pss), "hei": tc.score(s.hei), "gcs": tc.score(s.gcs), "vci": tc.score(s.vci)}
 
 
 def _scores(s: e.AreaScores) -> dict[str, float]:
@@ -77,7 +94,7 @@ def repair_facts(
         {
             "site_id": ch.site_id,
             "kind": ch.kind,
-            "name": sites[ch.site_id].name if ch.site_id in sites else ch.site_id,
+            "name": _plain(sites[ch.site_id].name) if ch.site_id in sites else ch.site_id,
             "quantity": ch.quantity,
             "time_to_benefit": sites[ch.site_id].time_to_benefit if ch.site_id in sites else None,
         }
@@ -89,8 +106,8 @@ def repair_facts(
         "mode": "repair",
         "before": _scores(result.before),
         "after": _scores(result.after),
-        "cost_inr": tc.inr(result.cost_inr),
-        "quick_win_cost_inr": tc.inr(result.quick_win_cost_inr),
+        "cost_inr": _rupees(result.cost_inr),
+        "quick_win_cost_inr": _rupees(result.quick_win_cost_inr),
         "wait_points_covered": result.wait_points_covered,
         "blocks_worse": result.blocks_worse,
         "ventilation_ok": result.ventilation_ok,
@@ -100,13 +117,13 @@ def repair_facts(
         "driver_labels": _driver_labels(drivers),
     }
     if budget_inr is not None:
-        facts["budget_inr"] = tc.inr(budget_inr)
+        facts["budget_inr"] = _rupees(budget_inr)
     if quick_win_share_pct is not None:
         facts["quick_win_share_pct"] = quick_win_share_pct
     if unit_costs is not None:
-        facts["unit_costs_inr"] = {kind: tc.inr(getattr(unit_costs, kind).inr) for kind in tc.KINDS}
+        facts["unit_costs_inr"] = {kind: _rupees(getattr(unit_costs, kind).inr) for kind in tc.KINDS}
     if greedy is not None:
-        facts["greedy"] = {"acs": tc.score(greedy[0]), "cost_inr": tc.inr(greedy[1])}
+        facts["greedy"] = {"acs": tc.score(greedy[0]), "cost_inr": _rupees(greedy[1])}
     if plan_source is not None:
         facts["plan_source"] = plan_source
     if gemini_beat_greedy is not None:
@@ -153,6 +170,14 @@ def protect_facts(
         "drivers": drivers,
         "driver_labels": _driver_labels(drivers),
     }
+    block = next((b for b in result.blocks if parcel is not None and b.block_id == parcel.block_id), None)
+    if block is not None:
+        # The risk label is measured on the parcel's own block, so the writer is given that block's scores to lead with.
+        facts["parcel_block"] = {
+            "name": _plain(block.block_id),
+            "before": _block_scores(block.before),
+            "after": _block_scores(block.after),
+        }
     if options:
         facts["options"] = [
             {
