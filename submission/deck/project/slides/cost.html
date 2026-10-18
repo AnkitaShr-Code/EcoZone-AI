@@ -1,0 +1,47 @@
+<section id="cost" data-transition="fade" style="background:#ffffff;color:#111111;font-family:'Inter', Arial, sans-serif;padding:132px 96px 92px;display:flex;flex-direction:column;gap:28px">
+<img src="/_blob/6ee351f8e14716c1f9cda3fad726ef9e" alt="Google Cloud, AI Builder Cup and H2S logos" style="position:absolute;left:0;top:0;width:1920px;height:106px;object-fit:cover">
+<div style="position:absolute;left:0;top:1066px;width:1920px;height:14px;background:#000000"></div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:44px;font-weight:600;line-height:1.1;letter-spacing:-0.5px;color:#111111">Estimated implementation cost (optional)</h2>
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:34px;font-weight:500;line-height:1.25;color:#0f1e3a">An estimate, not a bill: open data and one small service. <span style="color:#9a5800">Gemini cost per search is not measured yet.</span></p>
+</div>
+<div style="display:flex;gap:36px;flex:1">
+<div style="flex:1;display:grid;grid-template-columns:repeat(2, 1fr);gap:22px;align-self:flex-start">
+<div style="display:flex;flex-direction:column;gap:8px;background:#f6f3ec;border-radius:16px;padding:26px 28px">
+<p style="font-family:'JetBrains Mono', 'Courier New', monospace;font-size:24px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#9a5800">Data</p>
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:40px;font-weight:600;line-height:1.1;color:#0f1e3a">₹0 licence fees</p>
+<p style="font-size:26px;line-height:1.35;color:#3d4a63">OpenStreetMap, Open-Meteo wind, computed sun position. Landsat via Earth Engine only for the heat check.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px;background:#f6f3ec;border-radius:16px;padding:26px 28px">
+<p style="font-family:'JetBrains Mono', 'Courier New', monospace;font-size:24px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#9a5800">Hosting · configured</p>
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:40px;font-weight:600;line-height:1.1;color:#0f1e3a">1 Cloud Run service</p>
+<p style="font-size:26px;line-height:1.35;color:#3d4a63">1 to 4 instances of 2 vCPU and 2 GiB, asia-south1. Monthly bill not yet read from Cloud Billing.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px;background:#f6f3ec;border-radius:16px;padding:26px 28px">
+<p style="font-family:'JetBrains Mono', 'Courier New', monospace;font-size:24px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#9a5800">Gemini · per search</p>
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:40px;font-weight:600;line-height:1.1;color:#0f1e3a">≤ 2 rounds</p>
+<p style="font-size:26px;line-height:1.35;color:#3d4a63">8 candidates and one write-up in the demo search; 44 s live. Tokens not metered, so no rupee figure.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px;background:#f6f3ec;border-radius:16px;padding:26px 28px">
+<p style="font-family:'JetBrains Mono', 'Courier New', monospace;font-size:24px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#9a5800">Per new city</p>
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:40px;font-weight:600;line-height:1.1;color:#0f1e3a">1 pipeline run</p>
+<p style="font-size:26px;line-height:1.35;color:#3d4a63">Deccan bundle: 664 KB for 65 blocks and 623 buildings. Config only; run for one area so far.</p>
+</div>
+</div>
+<div style="width:700px;display:flex;flex-direction:column;gap:14px">
+<p style="font-family:'JetBrains Mono', 'Courier New', monospace;font-size:24px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#9a5800">Default unit costs · planner input</p>
+<table style="font-size:26px;color:#111111;font-family:'Inter', Arial, sans-serif">
+<tr style="background:#0f1e3a"><th style="width:50%;color:#f6f3ec">Intervention</th><th style="width:50%;color:#f6f3ec">Default</th></tr>
+<tr><td>Street tree</td><td>₹9,250 per tree</td></tr>
+<tr style="background:#f6f3ec"><td>Shade structure</td><td>₹4,900 per m²</td></tr>
+<tr><td>Depave and plant</td><td>₹910 per m²</td></tr>
+<tr style="background:#f6f3ec"><td>Pocket green</td><td>₹1,350 per m²</td></tr>
+<tr><td>Cool roof</td><td>₹300 per m²</td></tr>
+</table>
+<p style="font-size:24px;line-height:1.35;color:#5d6880">Sources: BMC Garden schedule of rates 2023; a 2024 public tender (shade); Telangana Cool Roof Policy 2023–28. None from Pune; editable, never shown as market prices.</p>
+</div>
+</div>
+<p style="position:absolute;left:96px;bottom:30px;width:1560px;font-family:'JetBrains Mono', 'Courier New', monospace;font-size:24px;color:#5d6880">Sources: infra/cloudbuild.yaml · pipeline/config/unit_costs.yaml · Deccan v1 bundle</p>
+<p style="position:absolute;right:96px;bottom:30px;width:100px;text-align:right;font-family:'JetBrains Mono', 'Courier New', monospace;font-size:24px;color:#5d6880">09</p>
+<aside>This is an estimate, and we only state what we can back. The data is open, the service is one Cloud Run container whose settings are in our deploy config, and a new city needs one pipeline run; we have run it for one area so far. We have not metered Gemini tokens per search, so we do not quote a rupee cost per search. Intervention costs are planner inputs with cited public defaults, none of them from Pune.</aside>
+</section>

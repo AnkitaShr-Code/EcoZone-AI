@@ -1,0 +1,63 @@
+{
+  "v": 4,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-18T07:12:00Z"
+  },
+  "lists": "css",
+  "title": "EcoZone AI - Pitch Deck",
+  "cover": "team",
+  "order": [
+    "team",
+    "brief",
+    "opportunities",
+    "features",
+    "process",
+    "wireframe",
+    "architecture",
+    "tech",
+    "cost",
+    "snaps-repair",
+    "snaps-protect",
+    "perf-evals",
+    "perf-gemini",
+    "perf-heat",
+    "future",
+    "links",
+    "close",
+    "thanks"
+  ],
+  "sections": {
+    "why": {
+      "description": "Team details, the problem and the idea, in the AI Builder Cup template order.",
+      "start": "team"
+    },
+    "what": {
+      "description": "Features, process flow, the live screen, architecture, technologies and cost.",
+      "start": "features"
+    },
+    "proof": {
+      "description": "Snapshots and measured performance from the live app and evals/REPORT.md, wins and losses alike.",
+      "start": "snaps-repair"
+    },
+    "next": {
+      "description": "Limits, future development, links and closing.",
+      "start": "future"
+    }
+  },
+  "faces": {
+    "space-grotesk": {
+      "family": "Space Grotesk",
+      "href": "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400..700&display=swap"
+    },
+    "inter": {
+      "family": "Inter",
+      "href": "https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap"
+    },
+    "jetbrains-mono": {
+      "family": "JetBrains Mono",
+      "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400..700&display=swap"
+    }
+  },
+  "designSystems": []
+}

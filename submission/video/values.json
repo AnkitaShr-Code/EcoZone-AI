@@ -1,0 +1,526 @@
+{
+  "url": "https://ecozone-451227459430.asia-south1.run.app/",
+  "recordedAt": "2026-10-18T07:04:47.254Z",
+  "viewport": {
+    "width": 1600,
+    "height": 900
+  },
+  "deviceScaleFactor": 1.2,
+  "boxes": {
+    "shadeTimes": {
+      "x": 655,
+      "y": 997,
+      "w": 170,
+      "h": 34,
+      "t": 28412,
+      "segment": "s02"
+    },
+    "areaStats": {
+      "x": 35,
+      "y": 284,
+      "w": 385,
+      "h": 168,
+      "t": 28416,
+      "segment": "s02",
+      "tEnd": 30645
+    },
+    "selectionCard": {
+      "x": 14,
+      "y": 72,
+      "w": 426,
+      "h": 372,
+      "t": 33492,
+      "segment": "s02"
+    },
+    "budgetStep": {
+      "x": 14,
+      "y": 161,
+      "w": 426,
+      "h": 473,
+      "t": 42392,
+      "segment": "s03"
+    },
+    "searchProgress": {
+      "x": 35,
+      "y": 376,
+      "w": 385,
+      "h": 377,
+      "t": 67800,
+      "segment": "s04"
+    },
+    "verdict": {
+      "x": 35,
+      "y": 400,
+      "w": 385,
+      "h": 19,
+      "t": 93600,
+      "segment": "s05",
+      "tEnd": 100065
+    },
+    "planStats": {
+      "x": 35,
+      "y": 438,
+      "w": 385,
+      "h": 168,
+      "t": 93603,
+      "segment": "s05",
+      "tEnd": 100065
+    },
+    "planFacts": {
+      "x": 35,
+      "y": 625,
+      "w": 385,
+      "h": 110,
+      "t": 98462,
+      "segment": "s05",
+      "tEnd": 100065
+    },
+    "planList": {
+      "x": 35,
+      "y": 466,
+      "w": 385,
+      "h": 443,
+      "t": 101843,
+      "segment": "s05",
+      "tEnd": 103044
+    },
+    "mapToggle": {
+      "x": 481,
+      "y": 997,
+      "w": 152,
+      "h": 34,
+      "t": 116257,
+      "segment": "s07"
+    },
+    "riskBadge": {
+      "x": 35,
+      "y": 478,
+      "w": 300,
+      "h": 26,
+      "t": 150336,
+      "segment": "s10"
+    },
+    "impact": {
+      "x": 35,
+      "y": 442,
+      "w": 385,
+      "h": 269,
+      "t": 150340,
+      "segment": "s10"
+    },
+    "options": {
+      "x": 35,
+      "y": 106,
+      "w": 385,
+      "h": 509,
+      "t": 174282,
+      "segment": "s11"
+    }
+  },
+  "app": {
+    "basemapWorkerMissing": true
+  },
+  "area": {
+    "name": "Deccan Gymkhana - Fergusson College, Pune, Pune",
+    "counts": [
+      65,
+      623,
+      30
+    ],
+    "baseline": {
+      "Area cooling score": {
+        "value": 30,
+        "delta": null,
+        "deltaText": null,
+        "direction": null
+      },
+      "Footpath shade": {
+        "value": 17,
+        "delta": null,
+        "deltaText": null,
+        "direction": null
+      },
+      "Heat exposure": {
+        "value": 60,
+        "delta": null,
+        "deltaText": null,
+        "direction": null
+      },
+      "Green connectivity": {
+        "value": 29,
+        "delta": null,
+        "deltaText": null,
+        "direction": null
+      }
+    },
+    "defaultHeights": [
+      612,
+      623
+    ]
+  },
+  "shadeTimeAtStart": "true",
+  "hookTooltip": "Apte Path\nFootpath in sun at 3 pm",
+  "hotspots": [
+    {
+      "rank": 1,
+      "block": "Block 0032",
+      "priority": "High priority",
+      "drivers": "Reflects more sunlight · Adds footpath shade · Shades a waiting point"
+    },
+    {
+      "rank": 2,
+      "block": "Block 0009",
+      "priority": "High priority",
+      "drivers": "Reflects more sunlight · Adds footpath shade · Shades a waiting point"
+    },
+    {
+      "rank": 3,
+      "block": "Block 0025",
+      "priority": "High priority",
+      "drivers": "Reflects more sunlight · Adds footpath shade · Shades a waiting point"
+    },
+    {
+      "rank": 4,
+      "block": "Block 0006",
+      "priority": "High priority",
+      "drivers": "Reflects more sunlight · Adds footpath shade · Shades a waiting point"
+    },
+    {
+      "rank": 5,
+      "block": "Block 0026",
+      "priority": "High priority",
+      "drivers": "Reflects more sunlight · Links green patches · Adds footpath shade · Shades a waiting point"
+    }
+  ],
+  "hotspotSelected": {
+    "text": "Selected on map\n\nBlock 0032\n\nHigh priority\n\nFootpath shade\n5\n/ 100\nHeat exposure\n75\n/ 100\nGreen connectivity\n43\n/ 100\nVentilation\n56\n/ 100\n\nWhy: Reflects more sunlight · Adds footpath shade · Shades a waiting point",
+    "stats": {
+      "Footpath shade": {
+        "value": 5,
+        "delta": null,
+        "deltaText": null,
+        "direction": null
+      },
+      "Heat exposure": {
+        "value": 75,
+        "delta": null,
+        "deltaText": null,
+        "direction": null
+      },
+      "Green connectivity": {
+        "value": 43,
+        "delta": null,
+        "deltaText": null,
+        "direction": null
+      },
+      "Ventilation": {
+        "value": 56,
+        "delta": null,
+        "deltaText": null,
+        "direction": null
+      }
+    }
+  },
+  "budget": {
+    "lakh": 10,
+    "quickWinText": "at least 30% of the budget",
+    "quickWinPct": 30
+  },
+  "search": {
+    "seconds": 48,
+    "statuses": [
+      {
+        "status": "Preparing the search…",
+        "ms": 44829
+      },
+      {
+        "status": "Round 1 of up to 2 · 0 options scored",
+        "ms": 55713
+      },
+      {
+        "status": "Round 2 of up to 2 · 4 options scored",
+        "ms": 67683
+      },
+      {
+        "status": "Round 2 of up to 2 · 7 options scored",
+        "ms": 75050
+      },
+      {
+        "status": "Round 2 of up to 2 · 8 options scored",
+        "ms": 75453
+      }
+    ]
+  },
+  "repair": {
+    "verdict": "greedy",
+    "verdictText": "The simple baseline won",
+    "candidates": 8,
+    "rounds": 2,
+    "baselineScore": 35,
+    "stats": {
+      "Area cooling score": {
+        "value": 35,
+        "delta": 5,
+        "deltaText": "↑ 5",
+        "direction": "better"
+      },
+      "Footpath shade": {
+        "value": 21,
+        "delta": 5,
+        "deltaText": "↑ 5",
+        "direction": "better"
+      },
+      "Heat exposure": {
+        "value": 59,
+        "delta": -1,
+        "deltaText": "↓ 1",
+        "direction": "better"
+      },
+      "Green connectivity": {
+        "value": 46,
+        "delta": 17,
+        "deltaText": "↑ 17",
+        "direction": "better"
+      }
+    },
+    "cost": "₹ 10 lakh of ₹ 10 lakh",
+    "quickWins": "₹ 3.7 lakh (needs ₹ 3 lakh)",
+    "ventilation": "Passes",
+    "waitPointsShaded": 2,
+    "interventions": 37,
+    "groups": [
+      {
+        "type": "Cool roof blocks",
+        "on": 2,
+        "of": 2,
+        "subtotal": "₹ 61,320"
+      },
+      {
+        "type": "Depave and plant sites",
+        "on": 1,
+        "of": 1,
+        "subtotal": "₹ 3.1 lakh"
+      },
+      {
+        "type": "Street tree rows",
+        "on": 34,
+        "of": 34,
+        "subtotal": "₹ 6.3 lakh"
+      }
+    ],
+    "explanationSource": "Explained by AI from the engine scores",
+    "explanation": [
+      "The proposed plan changes the area cooling score from 30.2 to 35.0. The plan also changes the heat exposure index from 60.3 to 59.3 and the green cooling score from 29.1 to 46.3.",
+      "The primary drivers for these changes are that the plan reflects more sunlight, links green patches, removes paving, adds footpath shade, and shades a waiting point.",
+      "The plan includes 34 tree row interventions, 1 depave intervention, and 2 cool roof interventions. The total cost is 998628.0 using the planner's own unit costs, with a quick win cost of 369628.0. The greedy baseline achieves an area cooling score of 35.0 for a cost of 998628.0. Zero sites were rejected by the ventilation check.",
+      "It is recommended that the planner review this mix of interventions for implementation.",
+      "These screening scores are based on the reference date of 2026-04-15 and may vary under different conditions."
+    ],
+    "rejected": [],
+    "candidateScores": [
+      "School Grounds and Street Greens · Over budget35",
+      "Distributed Roofs and Tree Corridors · Over budget35",
+      "Healthcare Shade and Street Greening · Over budget35",
+      "Mixed Quick Wins and Tree Clusters · Over budget35",
+      "School Connectivity and Quick Wins34",
+      "Distributed Roofs and Tree Corridors35",
+      "Healthcare Shade and Street Greening35",
+      "Mixed Quick Wins and Tree Clusters · Over budget35"
+    ]
+  },
+  "shadeSite": {
+    "name": "right footpath",
+    "detail": "₹ 18,500 · Years · Links green patches, Adds footpath shade, Shades a waiting point",
+    "card": "Selected on map\n\nBhandarkar Path, right footpath\n\nStreet tree row · In the plan · ₹ 18,500 · Years to benefit\n\nWhy: Links green patches · Adds footpath shade · Shades a waiting point"
+  },
+  "brief": {
+    "title": "Cooling plan: Deccan Gymkhana - Fergusson College, Pune, Pune",
+    "subtitle": "Budget ₹ 10 lakh · plan cost ₹ 10 lakh, of which ₹ 3.7 lakh helps this summer · 37 interventions",
+    "sections": [
+      "Outcome",
+      "Before the March to May heat (weeks to benefit)",
+      "In the dry season (one season to benefit)",
+      "Plant with the monsoon, June and July (years to benefit)",
+      "Field checks before work starts"
+    ],
+    "outcome": {}
+  },
+  "parcel": {
+    "listText": "Open plot on an unnamed lane\n3,988.1 m² · street 8 m wide",
+    "selected": "Selected on map\n\nOpen plot on an unnamed lane\n\n3,988.1 m² plot · street 8 m wide · neighbours about 3 floors"
+  },
+  "proposalDefault": {
+    "design": {
+      "height": "12 floors",
+      "footprint": "60% of plot",
+      "green": "10% of plot",
+      "orientation": "15° from north"
+    },
+    "impact": {
+      "risk": "High",
+      "riskText": "High risk · worst change 41 on ventilation",
+      "stats": {
+        "Ventilation": {
+          "value": 47,
+          "delta": -41,
+          "deltaText": "↓ 41",
+          "direction": "worse"
+        },
+        "Heat exposure": {
+          "value": 71,
+          "delta": 11,
+          "deltaText": "↑ 11",
+          "direction": "worse"
+        },
+        "Green connectivity": {
+          "value": 16,
+          "delta": 0,
+          "deltaText": "No change",
+          "direction": null
+        },
+        "Footpath shade": {
+          "value": 36,
+          "delta": 36,
+          "deltaText": "↑ 36",
+          "direction": "better"
+        }
+      },
+      "blocksWorse": "1"
+    }
+  },
+  "proposal": {
+    "design": {
+      "height": "15 floors",
+      "footprint": "60% of plot",
+      "green": "10% of plot",
+      "orientation": "15° from north"
+    },
+    "impact": {
+      "risk": "High",
+      "riskText": "High risk · worst change 41 on ventilation",
+      "stats": {
+        "Ventilation": {
+          "value": 47,
+          "delta": -41,
+          "deltaText": "↓ 41",
+          "direction": "worse"
+        },
+        "Heat exposure": {
+          "value": 72,
+          "delta": 13,
+          "deltaText": "↑ 13",
+          "direction": "worse"
+        },
+        "Green connectivity": {
+          "value": 16,
+          "delta": 0,
+          "deltaText": "No change",
+          "direction": null
+        },
+        "Footpath shade": {
+          "value": 36,
+          "delta": 36,
+          "deltaText": "↑ 36",
+          "direction": "better"
+        }
+      },
+      "blocksWorse": "1"
+    }
+  },
+  "protectSearch": {
+    "seconds": 18.2,
+    "statuses": [
+      {
+        "status": "Preparing the search…",
+        "ms": 155041
+      },
+      {
+        "status": "Round 1 of up to 2 · 0 options scored",
+        "ms": 155445
+      },
+      {
+        "status": "Round 2 of up to 2 · 4 options scored",
+        "ms": 157468
+      },
+      {
+        "status": "Round 2 of up to 2 · 7 options scored",
+        "ms": 163524
+      },
+      {
+        "status": "Round 2 of up to 2 · 8 options scored",
+        "ms": 163928
+      }
+    ]
+  },
+  "options": [
+    {
+      "key": "A",
+      "title": "Developer maximised",
+      "design": "15 floors · 60% footprint · 10% green · long side 15°",
+      "risk": "High",
+      "worst": "· worst change 41 on ventilation",
+      "worstValue": 41,
+      "worstIndex": "ventilation",
+      "tradeOff": "All the proposed floor area. Worst change: ventilation falls by 41 (high risk).",
+      "floorAreaPct": 100
+    },
+    {
+      "key": "B",
+      "title": "Balanced",
+      "design": "15 floors · 50% footprint · 20% green · long side 120°",
+      "risk": "Moderate",
+      "worst": "· worst change 20 on ventilation",
+      "worstValue": 20,
+      "worstIndex": "ventilation",
+      "tradeOff": "Keeps 83% of the floor area. Worst change: ventilation falls by 20 (moderate risk).",
+      "floorAreaPct": 83
+    },
+    {
+      "key": "C",
+      "title": "Climate optimised",
+      "design": "6 floors · 60% footprint · 30% green · long side 120°",
+      "risk": "Moderate",
+      "worst": "· worst change 18 on ventilation",
+      "worstValue": 18,
+      "worstIndex": "ventilation",
+      "tradeOff": "Keeps 40% of the floor area. Worst change: ventilation falls by 18 (moderate risk).",
+      "floorAreaPct": 40
+    }
+  ],
+  "protectExplanationSource": "Explained by AI from the engine scores",
+  "buildout": {
+    "text": "Envelope\nPlanner input\n\n15 floors · 50% footprint · 20% green · long side 120°\n\nThe maximum the rules would allow on each parcel. Change it in step 2.\n\nParcels within\n\n200 m\n400 m\n600 m\n\n4 vacant parcels including this one.\n\nWhole area, today and built out\nArea cooling score\n31\n/ 100\n↑ 1\n, better\nVentilation\n72\n/ 100\n↓ 1\n, worse\nHeat exposure\n60\n/ 100\nNo change\nFootpath shade\n20\n/ 100\n↑ 4\n, better\n\n0 parcels at high risk of 4; 3 existing blocks lose cooling score.\n\n",
+    "stats": {
+      "Area cooling score": {
+        "value": 31,
+        "delta": 1,
+        "deltaText": "↑ 1",
+        "direction": "better"
+      },
+      "Ventilation": {
+        "value": 72,
+        "delta": -1,
+        "deltaText": "↓ 1",
+        "direction": "worse"
+      },
+      "Heat exposure": {
+        "value": 60,
+        "delta": 0,
+        "deltaText": "No change",
+        "direction": null
+      },
+      "Footpath shade": {
+        "value": 20,
+        "delta": 4,
+        "deltaText": "↑ 4",
+        "direction": "better"
+      }
+    },
+    "summary": "0 parcels at high risk of 4; 3 existing blocks lose cooling score.",
+    "parcels": "4"
+  },
+  "consoleErrors": [
+    "error: Error: Worker failed to load. Check that the worker URL is correct.\n    at Worker.<anonymous> (https://ecozone-451227459430.asia-south1.run.app/assets/index-3JHGsdUd.js:6101:480672)",
+    "error: Error: Worker failed to load. Check that the worker URL is correct.\n    at Worker.<anonymous> (https://ecozone-451227459430.asia-south1.run.app/assets/index-3JHGsdUd.js:6101:480672)"
+  ]
+}

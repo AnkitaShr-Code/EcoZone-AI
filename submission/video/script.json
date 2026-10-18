@@ -1,0 +1,262 @@
+{
+  "title": "EcoZone AI: demo video",
+  "targetSeconds": 165,
+  "hardCapSeconds": 179,
+  "leadSeconds": 0.25,
+  "tailSeconds": 0.45,
+  "segments": [
+    {
+      "id": "s01",
+      "name": "Hook",
+      "targetSeconds": 15,
+      "lowerThird": null,
+      "overlays": [
+        {
+          "graphic": "title",
+          "at": "-6.2",
+          "dur": 6.2
+        }
+      ],
+      "narration": "Three in the afternoon, in Pune. Outside these hospitals and schools, people wait on footpaths in full sun. Cities have money for trees and shade, but no quick way to decide where it helps most."
+    },
+    {
+      "id": "s02",
+      "name": "Repair: priority map",
+      "targetSeconds": 15,
+      "lowerThird": {
+        "kicker": "Repair",
+        "text": "Priority map · footpath shade at 1, 3 and 4 pm"
+      },
+      "overlays": [
+        {
+          "graphic": "callout",
+          "box": "areaStats",
+          "at": "box",
+          "dur": 3.5,
+          "label": "Baseline, from the engine"
+        }
+      ],
+      "narration": "EcoZone AI maps where heat, missing afternoon shade and waiting people overlap. Shade comes from building geometry at one, three and four pm. Across Deccan Gymkhana, footpath shade is just {{area.pss}} out of 100."
+    },
+    {
+      "id": "s03",
+      "name": "Repair: budget",
+      "targetSeconds": 9,
+      "lowerThird": {
+        "kicker": "Repair",
+        "text": "Budget ₹ {{budget.lakh}} lakh · at least {{budget.quickWinPct}}% helps this summer"
+      },
+      "overlays": [],
+      "narration": "A planner sets a budget of {{budget.lakh}} lakh rupees. At least {{budget.quickWinPct}} percent must help this summer, not only trees that take years."
+    },
+    {
+      "id": "s04",
+      "name": "Repair: search (time-lapse)",
+      "targetSeconds": 16,
+      "fit": "timelapse",
+      "lowerThird": null,
+      "overlays": [
+        {
+          "graphic": "speed",
+          "at": 0.3,
+          "dur": "timelapse",
+          "text": "Sped up · the live search took {{search.seconds}} s"
+        },
+        {
+          "graphic": "loop",
+          "at": 0.8,
+          "dur": "segment"
+        }
+      ],
+      "narration": "Gemini proposes whole plans. Our engine, not the model, scores every one, for shade, heat, green and ventilation. {{rejectedFallback}}A greedy baseline always runs alongside.",
+      "vars": {
+        "rejectedFallback": {
+          "ifShown": "",
+          "ifAbsent": "It keeps tree rows off deep, narrow lanes, where they would block the breeze. "
+        }
+      }
+    },
+    {
+      "id": "s05",
+      "name": "Repair: the plan",
+      "targetSeconds": 18,
+      "lowerThird": {
+        "kicker": "Repair",
+        "text": "{{repair.verdictText}}"
+      },
+      "overlays": [
+        {
+          "graphic": "callout",
+          "box": "verdict",
+          "at": "box",
+          "dur": 3.2,
+          "label": "Said on screen"
+        },
+        {
+          "graphic": "counter",
+          "at": 3.6,
+          "dur": 5.0,
+          "from": "{{repair.acsBefore}}",
+          "to": "{{repair.acsAfter}}",
+          "label": "Area cooling score"
+        },
+        {
+          "graphic": "callout",
+          "box": "planFacts",
+          "at": "box",
+          "dur": 4,
+          "label": "Cost · quick wins · ventilation · waiting points"
+        }
+      ],
+      "variants": {
+        "greedy": "In this run, the simple baseline scored higher, and the app says so. Its plan lifts the area cooling score from {{repair.acsBefore}} to {{repair.acsAfter}} for {{repair.costLakh}} lakh rupees, passes the ventilation check, and shades {{repair.waitPointsShaded}} waiting points. The mix: {{mix}}.",
+        "gemini": "In this run, Gemini's plan {{beatWord}} the simple baseline, and the app says so. It lifts the area cooling score from {{repair.acsBefore}} to {{repair.acsAfter}} for {{repair.costLakh}} lakh rupees, passes the ventilation check, and shades {{repair.waitPointsShaded}} waiting points. The mix: {{mix}}."
+      }
+    },
+    {
+      "id": "s06",
+      "name": "Repair: rejected tree row",
+      "optional": "only when the live app shows a rejected option (values.repair.rejected non-empty)",
+      "targetSeconds": 8,
+      "lowerThird": {
+        "kicker": "Repair",
+        "text": "Rejected by the ventilation check"
+      },
+      "overlays": [
+        {
+          "graphic": "callout",
+          "box": "rejected",
+          "at": 0.3,
+          "dur": 5,
+          "label": "Rejected, with the reason"
+        }
+      ],
+      "narration": "Some tree rows are rejected, and the plan says why: where buildings are about as tall as the street is wide, canopy would block the breeze."
+    },
+    {
+      "id": "s07",
+      "name": "Repair: shade today vs with plan",
+      "targetSeconds": 11,
+      "lowerThird": {
+        "kicker": "Repair",
+        "text": "Footpath shade at 3 pm · Today vs With plan"
+      },
+      "overlays": [
+        {
+          "graphic": "callout",
+          "box": "mapToggle",
+          "at": "box",
+          "dur": 2.6
+        },
+        {
+          "graphic": "callout",
+          "box": "@shadeGain",
+          "at": "mark:withPlan",
+          "dur": "segment",
+          "label": "With plan: in shade at 3 pm",
+          "pad": 6
+        }
+      ],
+      "narration": "Here is that street at 3 pm, today and with the plan. Once the new trees grow, this footpath by a waiting point is in shade."
+    },
+    {
+      "id": "s08",
+      "name": "Repair: brief",
+      "targetSeconds": 7,
+      "lowerThird": {
+        "kicker": "Repair",
+        "text": "Printable cooling plan · phased by season",
+        "position": "bottom",
+        "dur": 2.4
+      },
+      "overlays": [],
+      "narration": "Accept the plan, and it exports as a printable brief: the work phased by season, with field checks for every site."
+    },
+    {
+      "id": "s09",
+      "name": "Protect: the parcel",
+      "targetSeconds": 10,
+      "lowerThird": {
+        "kicker": "Protect",
+        "text": "Vacant plot · {{parcel.areaText}} · street {{parcel.streetM}} m wide"
+      },
+      "overlays": [],
+      "narration": "Protect asks the next question: will a new building undo this? Here is a vacant plot of {{parcel.areaSpoken}} square metres, on an {{parcel.streetM}} metre street."
+    },
+    {
+      "id": "s10",
+      "name": "Protect: proposal and risk label",
+      "targetSeconds": 13,
+      "lowerThird": {
+        "kicker": "Protect",
+        "text": "Live preview · risk measured on the parcel's own block"
+      },
+      "overlays": [
+        {
+          "graphic": "callout",
+          "box": "riskBadge",
+          "at": "box",
+          "dur": 4,
+          "label": "Risk label"
+        }
+      ],
+      "narration": "A developer proposes {{proposal.floors}} floors on {{proposal.footprintPct}} percent of the plot. Scores update live. The risk label is {{proposal.riskWord}}: ventilation on the parcel's own block falls by {{proposal.vciDrop}} points."
+    },
+    {
+      "id": "s11",
+      "name": "Protect: options A, B, C",
+      "targetSeconds": 19,
+      "fit": "split",
+      "splitAt": "searchEnd",
+      "splitSeconds": 4.5,
+      "lowerThird": {
+        "kicker": "Protect",
+        "text": "Options A, B, C · scored by the engine"
+      },
+      "overlays": [
+        {
+          "graphic": "speed",
+          "at": 0.2,
+          "dur": "split",
+          "text": "Sped up · the live design search took {{protectSearch.seconds}} s"
+        },
+        {
+          "graphic": "callout",
+          "box": "options",
+          "at": "split",
+          "dur": 6,
+          "label": "Floor area kept vs worst change"
+        }
+      ],
+      "narration": "Gemini searches for better designs, and the engine scores each one. Option B keeps {{B.floorAreaPct}} percent of the floor area and cuts the worst change to {{B.worst}}. Option C keeps {{C.floorAreaPct}} percent, at {{C.worst}}. The app shows the risk. The planner decides."
+    },
+    {
+      "id": "s12",
+      "name": "Protect: build-out",
+      "optional": "cut by default: on the live app the build-out of option B raises the area cooling score (buildings add footpath shade), which muddles the message",
+      "include": false,
+      "targetSeconds": 7,
+      "lowerThird": {
+        "kicker": "Protect",
+        "text": "Build-out · the same envelope on every vacant parcel nearby"
+      },
+      "overlays": [],
+      "narration": "Build-out applies the same envelope to every vacant parcel nearby, to show the cumulative effect."
+    },
+    {
+      "id": "s13",
+      "name": "Close: trust and limits",
+      "targetSeconds": 27,
+      "source": "graphic",
+      "lowerThird": null,
+      "overlays": [
+        {
+          "graphic": "evidence",
+          "at": 0,
+          "dur": "segment"
+        }
+      ],
+      "narration": "Every number here comes from one deterministic engine. Gemini proposes and explains, but never computes a score. We report what we measured: over four budgets, live Gemini beat the greedy baseline once and lost three times. Our heat index agrees only weakly with Landsat surface temperature on held-out blocks, and that is not significant. EcoZone AI: repair and protect a city's cooling network."
+    }
+  ]
+}

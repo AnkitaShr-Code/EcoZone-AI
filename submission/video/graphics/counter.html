@@ -1,0 +1,12 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><script src="_boot.js"></script>
+<style>#c{position:absolute;right:250px;top:330px;width:560px;padding:34px 40px;border-radius:26px;background:rgba(15,30,58,.95);box-shadow:0 20px 50px rgba(8,16,34,.35)}
+.lab{font-size:28px;color:var(--mute);font-weight:600}
+.row{display:flex;align-items:baseline;gap:26px;margin-top:10px}
+.from{font-size:64px;font-weight:700;color:#cdd6e6}.arrow{font-size:52px;color:var(--amber)}
+.to{font-size:120px;font-weight:800;color:var(--amber);min-width:150px}.of{font-size:30px;color:var(--mute)}
+.src{margin-top:14px;font-size:22px;color:var(--mute)}</style></head><body>
+<div id="c" class="life"><div class="lab" id="lab"></div><div class="row"><span class="from" id="from"></span><span class="arrow">→</span><span class="to" id="to"></span><span class="of">/ 100</span></div><div class="src">Engine score, read from the app in this take</div></div>
+<script>function build(P){document.getElementById('lab').textContent=P.label;document.getElementById('from').textContent=P.from;frame(0)}
+// Called by the renderer for every frame (ms): count from the before score to the after score.
+function frame(ms){const a=Number(P.from),b=Number(P.to),t=Math.min(1,Math.max(0,(ms-700)/1600)),e=t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+ document.getElementById('to').textContent=Math.round(a+(b-a)*e)}</script></body></html>

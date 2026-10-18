@@ -1,0 +1,13 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><script src="_boot.js"></script>
+<style>#box{position:absolute;border:5px solid var(--amber);border-radius:14px;box-shadow:0 0 0 9999px rgba(11,18,32,.0),0 0 28px rgba(232,152,40,.55);
+ animation:draw .55s var(--ease) both, outFade .45s var(--ease-io) calc(var(--dur) - .45s) forwards}
+@keyframes draw{from{opacity:0;transform:scale(1.08)}to{opacity:1;transform:none}}
+#tag{position:absolute;white-space:nowrap;background:var(--amber);color:var(--navy);font-weight:800;font-size:24px;padding:8px 14px;border-radius:10px;
+ box-shadow:0 8px 20px rgba(8,16,34,.25);animation:inUp .5s var(--ease) .2s both, outFade .45s var(--ease-io) calc(var(--dur) - .45s) forwards}
+</style></head><body><div id="box"></div><div id="tag"></div>
+<script>function build(P){const pad=P.pad??10,b=P.box;const el=document.getElementById('box');
+ Object.assign(el.style,{left:(b.x-pad)+'px',top:(b.y-pad)+'px',width:(b.w+2*pad)+'px',height:(b.h+2*pad)+'px'});
+ const tag=document.getElementById('tag');tag.textContent=P.label||'';if(!P.label)tag.remove();
+ // Tag beside the box when there is room on the right (inside the map), else above or below.
+ const right=b.x+b.w+pad+24;if(right+420<1900&&b.x<700){tag.style.left=right+'px';tag.style.top=(b.y+Math.max(0,b.h/2-22))+'px'}
+ else if(b.y>90){tag.style.left=(b.x-pad)+'px';tag.style.top=(b.y-pad-58)+'px'}else{tag.style.left=(b.x-pad)+'px';tag.style.top=(b.y+b.h+pad+14)+'px'}}</script></body></html>
