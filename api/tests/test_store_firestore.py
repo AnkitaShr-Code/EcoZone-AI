@@ -1,5 +1,6 @@
 """Unit tests for FirestoreStore (fake client) and an optional cloud test."""
 
+import asyncio
 import logging
 import os
 from datetime import UTC, datetime
@@ -8,9 +9,9 @@ from unittest.mock import MagicMock
 import pytest
 
 import ecozone_contract as c
-from ecozone_contract.runs import RepairSearchRequest
 from ecozone_api.store import RunRecord
 from ecozone_api.store.firestore import FirestoreStore, _to_doc
+from ecozone_contract.runs import RepairSearchRequest
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -146,6 +147,67 @@ def test_multiple_runs_stored_independently() -> None:
     store.save_run(r2)
     assert store.get_run("r1") is r1
     assert store.get_run("r2") is r2
+
+
+def test_write_does_not_block_event_loop() -> None:
+    """In async context, save_run returns before the Firestore write finishes."""
+    import threading
+    import time
+
+    write_delay = 0.15  # 150 ms blocking write in the thread pool
+    write_started = threading.Event()
+
+    client = _fake_client()
+
+    def slow_set(doc: dict) -> None:  # type: ignore[type-arg]
+        write_started.set()
+        time.sleep(write_delay)
+
+    client.collection.return_value.document.return_value.set.side_effect = slow_set
+
+    store = FirestoreStore(_client=client)
+    record = _make_record("async_run")
+
+    async def run() -> float:
+        t0 = asyncio.get_event_loop().time()
+        store.save_run(record)
+        return asyncio.get_event_loop().time() - t0
+
+    elapsed = asyncio.run(run())
+    # save_run must return in well under write_delay (target: <50 ms)
+    assert elapsed < write_delay / 2, f"save_run blocked for {elapsed:.3f}s"
+    assert store.get_run(record.run_id) is record
+    write_started.wait(timeout=2.0)  # let the background thread finish cleanly
+
+
+def test_startup_fallback_on_firestore_init_error(
+    tmp_path: pytest.TempPathFactory, caplog: pytest.LogCaptureFixture
+) -> None:
+    """When FirestoreStore() raises at startup, the app falls back to MemoryStore."""
+    from pathlib import Path
+    from unittest.mock import patch
+
+    from fastapi.testclient import TestClient
+
+    from ecozone_agents import AgentSettings
+    from ecozone_api.main import create_app
+    from ecozone_api.settings import Settings
+
+    bundle_dir = tmp_path / "bundles"  # type: ignore[operator]
+    (bundle_dir / "deccan").mkdir(parents=True)
+    no_llm = AgentSettings(_env_file=None, llm="gemini", google_cloud_project=None)  # pyright: ignore[reportCallIssue]
+    settings = Settings(store="firestore", bundle_uri=str(bundle_dir), app_dist=Path("/no-dist"))
+
+    with (
+        patch("ecozone_api.main.FirestoreStore", side_effect=RuntimeError("no credentials")),
+        caplog.at_level(logging.WARNING, logger="ecozone_api.main"),
+    ):
+        app = create_app(settings, agent_settings=no_llm)
+        with TestClient(app):
+            pass  # lifespan runs here
+
+    assert "firestore unavailable" in caplog.text
+    assert "falling back to memory" in caplog.text
 
 
 # ---------------------------------------------------------------------------

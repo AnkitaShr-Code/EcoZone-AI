@@ -48,7 +48,11 @@ def create_app(
         if store is not None:
             active_store = store
         elif settings.store == "firestore":
-            active_store = FirestoreStore()
+            try:
+                active_store = FirestoreStore()
+            except Exception:
+                log.warning("firestore unavailable, falling back to memory store", exc_info=True)
+                active_store = MemoryStore()
         else:
             active_store = MemoryStore()
         ai_status = "unavailable" if isinstance(search_runner, UnavailableRunner) else "active"
