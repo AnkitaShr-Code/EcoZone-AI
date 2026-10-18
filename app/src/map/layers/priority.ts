@@ -5,8 +5,8 @@ import { PRIORITY_META } from '@/lib/meta'
 import type { LayerContext } from '../layerRegistry'
 import { GROUND_PARAMETERS, isSelected } from './shared'
 
-// Light fills keep the basemap readable; low priority is barely tinted (UI_RULES.md §1, quiet by default).
-const FILL_ALPHA = { high: 85, medium: 50, low: 18 } as const
+// Sequential heat ramp; higher alpha now that the basemap is dimmed (UI_RULES.md §1).
+const FILL_ALPHA = { high: 200, medium: 140, low: 70 } as const
 
 export function renderPriority({ data, selection }: LayerContext) {
   if (!data.blocks) return []

@@ -14,5 +14,10 @@ export function flyTo(center: [number, number], zoom = 17) {
 }
 
 export function fitBounds(bbox: [number, number, number, number]) {
-  map?.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 40, duration: 0 })
+  // Left padding clears the 380 px side panel; pitch 45 makes extruded buildings readable.
+  map?.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], {
+    padding: { top: 40, right: 60, bottom: 60, left: 420 },
+    pitch: 45,
+    duration: 0,
+  })
 }

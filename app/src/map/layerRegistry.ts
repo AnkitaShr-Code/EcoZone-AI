@@ -110,7 +110,7 @@ export const LAYERS = [
     label: 'Shadows',
     description: 'Building shadows today at the selected time.',
     group: 'analysis',
-    defaultOn: { repair: false, protect: false },
+    defaultOn: { repair: true, protect: false },
     needs: ['shadows'],
     usesShadeTime: true,
     legend: [{ label: 'Building shadow', color: 'map-shadow', shape: 'fill' }],
