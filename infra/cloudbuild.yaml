@@ -6,7 +6,7 @@
 #   _GEMINI_LOC       location serving the models below   (required, verify first)
 #   _MODEL_PROPOSER   Vertex model id, search proposer    (required, verify first)
 #   _MODEL_WRITER     Vertex model id, explanations/briefs (required, verify first)
-#   _STORE            memory | firestore                  (default memory until the Firestore store ships)
+#   _STORE            memory | firestore; set by the trigger substitution; yaml default stays memory as a safe fallback
 #   _REGION, _SERVICE, _REGISTRY, _REPO                   (defaults below)
 # A required value left empty fails the build in the first step instead of deploying a broken service.
 # $PROJECT_ID and $SHORT_SHA are built in (SHORT_SHA is empty only on a manual `gcloud builds submit`).
@@ -89,7 +89,7 @@ steps:
       # Public without an allUsers binding; documented for projects under domain restricted sharing.
       - --no-invoker-iam-check
       - --min-instances=1
-      - --max-instances=4
+      - --max-instances=1
       - --memory=2Gi
       - --cpu=2
       - --concurrency=80
