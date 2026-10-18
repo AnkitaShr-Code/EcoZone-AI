@@ -63,7 +63,7 @@ Redraw section 1 of DESIGN.md: offline pipeline → BigQuery and Cloud Storage; 
 | Backend | Python, FastAPI, shapely, geopandas, pvlib |
 | Front end | React, TypeScript, deck.gl, MapLibre GL |
 | Cloud | Cloud Run, BigQuery (GEOGRAPHY), Firestore, Cloud Storage, Cloud Build, Earth Engine |
-| Data | OpenStreetMap, Open-Meteo wind (ERA5), computed sun position; Landsat 8/9 only for the heat check if it has run. Open Buildings, Sentinel-2 and WorldCover are future layers, not in the shipped bundle |
+| Data | OpenStreetMap, Open-Meteo wind (ERA5), computed sun position; Landsat 8/9 for the heat check only. Open Buildings, Sentinel-2 and WorldCover are future layers, not in the shipped bundle |
 
 Note on the slide: Google Maps tiles are not used because of the Maps Platform AI-use terms.
 
@@ -85,7 +85,7 @@ Report only measured results.
 | Gemini vs greedy | win/tie/loss per test area, with ACS gain and cost |
 | Grounding violations | count |
 | Speed: rescore, simulate, full search | measured times |
-| Heat check | Only if it has run: Spearman correlation and block count on held-out blocks, scatter plot, caveats. Otherwise one line: not run, listed as next |
+| Heat check | As measured in REPORT.md: Spearman correlation, p-value and block count on held-out blocks (the headline), all-blocks for context, scatter plot, caveats. Say plainly that held-out agreement is weak and not significant |
 
 If a result is poor, say so and why.
 
@@ -94,7 +94,7 @@ If a result is poor, say so and why.
 - **More interventions:** greening nala and river edges; street-level imagery for site checks once licensing is verified.
 - **More cities:** one pipeline run per city.
 - **Language:** plans in Marathi for ward offices.
-- **Limits stated openly:** heuristic indices, not yet checked against measurements (unless the heat check has run); shade is clear-sky geometry; albedo block-level; Open Buildings heights unmeasured in India.
+- **Limits stated openly:** heuristic indices; the heat check on held-out blocks shows weak agreement with Landsat (see REPORT.md) and the other indices are not validated; shade is clear-sky geometry; albedo block-level; Open Buildings heights unmeasured in India.
 
 ### 14. Links
 | Item | Status |
@@ -104,7 +104,7 @@ If a result is poor, say so and why.
 | Final product | Cloud Run URL, opens without login |
 
 ### 15–16. Closing
-Slide 15: *Repair and protect a city's cooling network*, with three proof points (engine-scored AI plans, shade where people wait, engine-scored plans checked by tests and evals; satellite check only if it has run). Slide 16: contact and thanks. Delete if unused.
+Slide 15: *Repair and protect a city's cooling network*, with three proof points (engine-scored AI plans, shade where people wait, engine-scored plans checked by tests and evals; heat index checked against Landsat as measured: weak agreement, stated plainly). Slide 16: contact and thanks. Delete if unused.
 
 ## Mapping to judging criteria
 
