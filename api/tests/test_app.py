@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 import pytest
@@ -38,3 +39,14 @@ def test_serves_app_with_spa_fallback(tmp_path: Path) -> None:
         assert client.get("/mock/area.json").text == "{}"
         assert client.get("/api/unknown").status_code == 404
         assert "EcoZone AI" in client.get("/../../etc/passwd").text
+
+
+def test_root_logger_has_info_handler() -> None:
+    """Importing main.py must configure the root logger so INFO logs are visible."""
+    import ecozone_api.main  # noqa: F401
+
+    root = logging.getLogger()
+    assert root.level <= logging.INFO, f"root logger level {root.level} > INFO"
+    assert any(isinstance(h, logging.StreamHandler) for h in root.handlers), (
+        "root logger has no StreamHandler after import"
+    )

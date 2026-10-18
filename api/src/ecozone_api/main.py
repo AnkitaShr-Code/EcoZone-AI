@@ -1,6 +1,7 @@
 """App factory: API routes under /api, the built React app at / (api/RULES.md)."""
 
 import logging
+import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -20,6 +21,11 @@ from .routes import areas, health, rescore, runs
 from .run_manager import RunManager, SearchRunner, UnavailableRunner
 from .settings import Settings
 from .store import FirestoreStore, MemoryStore, Store
+
+# Ensure application-level INFO logs are visible on stdout.
+# uvicorn's dictConfig only configures uvicorn.* loggers, leaving the root
+# logger without a handler; basicConfig is a no-op if handlers already exist.
+logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s:%(message)s", stream=sys.stdout)
 
 log = logging.getLogger(__name__)
 
