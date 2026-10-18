@@ -55,7 +55,10 @@ def test_summary_is_a_contract_area_summary(client: TestClient) -> None:
     assert area.shade_times == ["13:00", "15:00", "16:00"]
     assert area.counts.blocks == 6
     assert area.counts.segments == 123
-    assert area.counts.sites == len(body_of(client.get("/api/areas/tiny/sites")))
+    listed = body_of(client.get("/api/areas/tiny/sites"))
+    assert area.counts.sites == sum(
+        1 for s in listed if s["singleSite"]["ventilation"]["ok"]
+    )  # rejected rows are listed, not counted
     assert area.data_gaps.buildings_by_height_source == {
         "osm_height": 1,
         "osm_levels": 8,
@@ -86,7 +89,7 @@ def test_layers_validate_against_the_contract(
     assert len(layer.features) == count  # pyright: ignore[reportAttributeAccessIssue]
 
 
-def test_sites_validate_and_leave_out_rejected_tree_rows(client: TestClient) -> None:
+def test_sites_validate_and_list_rejected_tree_rows_with_a_reason(client: TestClient) -> None:
     sites = TypeAdapter(list[c.Site]).validate_python(body_of(client.get("/api/areas/tiny/sites")))
     assert sites
     assert len({s.id for s in sites}) == len(sites)
@@ -94,9 +97,16 @@ def test_sites_validate_and_leave_out_rejected_tree_rows(client: TestClient) -> 
     assert tree_rows
     for s in tree_rows:
         assert s.points and len(s.points) == round(s.quantity)
-        assert s.hw is not None and s.hw < 1.0
+    offered = [s for s in tree_rows if s.single_site.ventilation.ok]
+    rejected = [s for s in tree_rows if not s.single_site.ventilation.ok]
+    assert offered and rejected
+    assert all(s.hw is not None and s.hw < 1.0 for s in offered)
+    assert all(s.hw is not None and s.hw >= 1.0 for s in rejected)
+    for s in rejected:
+        assert s.single_site.ventilation.driver == "CANOPY_OBSTRUCTION"
+        assert s.single_site.ventilation.reason and "breeze" in s.single_site.ventilation.reason
+        assert s.single_site.acs_gain == 0
     assert all(s.points is None for s in sites if s.type != "tree_row")
-    assert all(s.single_site.ventilation.ok for s in sites)
     only_shade = body_of(client.get("/api/areas/tiny/sites", params={"types": "shade"}))
     assert only_shade
     assert {s["type"] for s in only_shade} == {"shade"}
@@ -111,7 +121,8 @@ def test_hotspots_are_ranked_with_drivers(client: TestClient) -> None:
 
 def test_rescore_and_greedy_run_on_the_real_engine(client: TestClient) -> None:
     sites = body_of(client.get("/api/areas/tiny/sites"))
-    picked = [next(s for s in sites if s["type"] == kind) for kind in ("shade", "tree_row")]
+    offered = [s for s in sites if s["singleSite"]["ventilation"]["ok"]]
+    picked = [next(s for s in offered if s["type"] == kind) for kind in ("shade", "tree_row")]
     changes = [{"kind": s["type"], "siteId": s["id"], "quantity": s["quantity"]} for s in picked]
     result = c.AreaResult.model_validate(
         body_of(client.post("/api/areas/tiny/rescore", json={"changes": changes, "unitCosts": UNIT_COSTS}))

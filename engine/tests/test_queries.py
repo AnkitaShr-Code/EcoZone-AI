@@ -34,7 +34,7 @@ KEYS: dict[str, set[str]] = {
         "street_bearing_deg",
         "neighbour_height_m",
     },
-    "sites": {"kind", "name", "quantity", "time_to_benefit", "wait_point_id", "h_w"},
+    "sites": {"kind", "name", "quantity", "time_to_benefit", "wait_point_id", "h_w", "rejected"},
 }
 DRIVER_TAGS = {"SHADE_GAIN", "IMPERVIOUS_LOSS", "ALBEDO_GAIN", "GREEN_LINK", "WAIT_POINT_COVERED"}
 
@@ -81,7 +81,7 @@ def test_summary_counts_match_the_layers(area: engine.AreaModel) -> None:
         "buildings": 24,
         "segments": 123,
         "wait_points": 3,
-        "sites": len(engine.layer(area, "sites")),
+        "sites": sum(1 for f in engine.layer(area, "sites") if not f.properties["rejected"]),
         "parcels": 3,
     }
     assert s.counts["sites"] < len(area.sites)  # rejected tree rows are not counted
@@ -160,12 +160,13 @@ def test_buildings_wait_points_and_parcels_carry_their_bundle_columns(area: engi
     assert parcels["pc_001"]["neighbour_height_m"] == 15.0
 
 
-def test_sites_exclude_rejected_and_keep_quantity_in_range(area: engine.AreaModel) -> None:
+def test_sites_list_rejected_rows_flagged_and_keep_quantity_in_range(area: engine.AreaModel) -> None:
     rejected = {s.site_id for s in area.sites if s.rejected}
     assert rejected, "the fixture must contain rejected tree rows"
-    offered = engine.layer(area, "sites")
-    assert not rejected & {f.id for f in offered}
-    assert len(offered) == len(area.sites) - len(rejected)
+    sites = engine.layer(area, "sites")
+    assert len(sites) == len(area.sites)  # every site is listed, rejected ones flagged
+    assert {f.id for f in sites if f.properties["rejected"]} == rejected
+    offered = [f for f in sites if not f.properties["rejected"]]
     by_id = {s.site_id: s for s in area.sites}
     for f in offered:
         site = by_id[f.id]
@@ -183,7 +184,10 @@ def test_tree_rows_list_the_tree_positions_rescore_shades_with(area: engine.Area
         assert len(points) == round(f.properties["quantity"])  # pyright: ignore[reportArgumentType]
         assert all(f.geometry.distance(Point(xy)) < 1e-6 for xy in points)
         assert f.properties["h_w"] is not None
-        assert f.properties["h_w"] < 1.0  # type: ignore[operator]  # the canopy rule keeps deep streets out
+        if f.properties["rejected"]:
+            assert f.properties["h_w"] >= 1.0  # type: ignore[operator]
+        else:
+            assert f.properties["h_w"] < 1.0  # type: ignore[operator]  # the canopy rule keeps deep streets out
     assert all("points" not in f.properties for f in engine.layer(area, "sites") if f.properties["kind"] != "tree_row")
 
 
@@ -213,3 +217,24 @@ def test_hotspots_are_ranked_with_drivers_that_match_the_blocks_layer(area: engi
         assert h.scores == blocks[h.block_id]["scores"]
     assert any(h.drivers for h in spots)
     assert len(engine.hotspots(area, 2)) == 2
+
+
+def test_a_rejected_site_gets_a_reason_but_no_score_and_rescore_still_refuses_it(area: engine.AreaModel) -> None:
+    from ecozone_engine.errors import InvalidChangeError
+    from ecozone_engine.model import Change, UnitCost, UnitCosts
+
+    costs: UnitCosts = {
+        "tree_row": UnitCost(unit="tree", inr=5_000.0, source="test"),
+        "shade": UnitCost(unit="m2", inr=2_000.0, source="test"),
+        "depave": UnitCost(unit="m2", inr=500.0, source="test"),
+        "pocket_green": UnitCost(unit="m2", inr=300.0, source="test"),
+        "cool_roof": UnitCost(unit="m2", inr=200.0, source="test"),
+    }
+    site = next(s for s in area.sites if s.rejected)
+    single = engine.single_site(area, site.site_id, costs)
+    assert single.ventilation_ok is False
+    assert single.acs_gain == 0.0 and single.drivers == ()
+    assert single.ventilation_reason and "breeze" in single.ventilation_reason
+    assert single.cost_inr > 0
+    with pytest.raises(InvalidChangeError):
+        engine.rescore(area, [Change(kind="tree_row", site_id=site.site_id, quantity=site.quantity_min)], costs)

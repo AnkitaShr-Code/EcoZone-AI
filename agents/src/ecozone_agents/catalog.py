@@ -5,7 +5,7 @@ what the proposer is shown and what the scorer checks site ids against (docs/PLA
 contract `list_candidate_sites`).
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import cast
 
 import ecozone_engine as e
@@ -26,6 +26,8 @@ class SiteBrief:
     quantity: float
     time_to_benefit: str
     wait_point_id: str | None
+    h_w: float | None = field(default=None, kw_only=True)
+    """Street height-to-width ratio at the site, when the bundle has it."""
 
     @property
     def quick_win(self) -> bool:
@@ -62,6 +64,7 @@ def _brief(feature: e.Feature) -> SiteBrief:
         quantity=float(cast(float, p["quantity"])),
         time_to_benefit=str(p["time_to_benefit"]),
         wait_point_id=cast("str | None", p.get("wait_point_id")),
+        h_w=cast("float | None", p.get("h_w")),
     )
 
 

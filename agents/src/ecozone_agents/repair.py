@@ -197,8 +197,10 @@ class RepairMode:
     # ---------- the result ----------
 
     def rejected(self) -> tuple[list[c.RejectedOption], int]:
-        """Sites the ventilation or site rule refuses, best single-site gain first (docs/PLANNING.md step 6)."""
-        refused = sorted((s for s in self.sites.values() if not s.ventilation_ok), key=lambda s: (-s.acs_gain, s.id))
+        """Sites the ventilation or site rule refuses, deepest and narrowest street first (docs/PLANNING.md step 6)."""
+        refused = sorted(
+            (s for s in self.sites.values() if not s.ventilation_ok), key=lambda s: (-(s.h_w or 0.0), -s.acs_gain, s.id)
+        )
         options = [
             c.RejectedOption(
                 site_id=s.id,

@@ -124,7 +124,9 @@ def layer(area: AreaModel, name: LayerName) -> list[Feature]:
             )
             for p in sorted(area.parcels, key=lambda p: p.parcel_id)
         ]
-    return [_site_feature(s) for s in _offered_sites(area)]
+    # Offered and canopy-rejected sites alike: a rejected tree row is listed with its reason (`single_site`) so the
+    # plan can show what was ruled out; `rescore` still refuses it.
+    return [_site_feature(s) for s in sorted(area.sites, key=lambda s: s.site_id)]
 
 
 def _site_feature(site: SiteRow) -> Feature:
@@ -136,6 +138,7 @@ def _site_feature(site: SiteRow) -> Feature:
         "time_to_benefit": site.time_to_benefit,
         "wait_point_id": site.wait_point_id,
         "h_w": site.H_W,
+        "rejected": site.rejected,
     }
     if site.kind == "tree_row":
         # The positions `rescore` shades with at this quantity (shadows.tree_positions).
@@ -224,6 +227,20 @@ def single_site(area: AreaModel, site_id: str, unit_costs: UnitCosts) -> SingleS
         raise UnknownSiteError(site_id)
 
     quantity = site.quantity_min  # default to minimum quantity for single-site scoring
+    if site.rejected:
+        # Refused by the canopy site rule: no score, but the planner sees why (rescore raises for it).
+        ratio = f"{site.H_W:.1f}" if site.H_W is not None else "1 or more"
+        return SingleSiteData(
+            site_id=site_id,
+            acs_gain=0.0,
+            cost_inr=site_cost(area, Change(kind=site.kind, site_id=site_id, quantity=quantity), unit_costs),  # type: ignore[arg-type]
+            drivers=(),
+            ventilation_ok=False,
+            ventilation_reason=(
+                f"Buildings on this street are about as tall as it is wide (height-to-width {ratio}), "
+                "so a tree row here would block the breeze."
+            ),
+        )
     change = Change(kind=site.kind, site_id=site_id, quantity=quantity)  # type: ignore[arg-type]
 
     result = rescore(area, [change], unit_costs)
