@@ -24,9 +24,9 @@ How the product in [PLANNING.md](PLANNING.md) is built, in one place. This is th
   ┌──────────────▼──────────────────────┐   ┌────────────▼────────────────────┐
   │  FastAPI routes                     │   │  Agent layer    (Gemini on     │
   │  /areas /parcels /interventions     │   │  Vertex AI)                     │
-  │  /shadows /buildout                 │   │  Code router → 4 agents         │
-  └──────────────┬──────────────────────┘   │  LoopAgent searches             │
-                 │                          │  Output guard (callback)        │
+  │  /shadows /buildout                 │   │  Code router → 2 modes          │
+  └──────────────┬──────────────────────┘   │  asyncio search loop            │
+                 │                          │  Output guard (plain code)      │
                  │                          └────────────┬────────────────────┘
                  │                tools call the engine   │
   ┌──────────────▼────────────────────────────────────────▼──────────────────┐
@@ -34,9 +34,9 @@ How the product in [PLANNING.md](PLANNING.md) is built, in one place. This is th
   │  AreaModel in memory · shadows · VCI HEI GCS PSS · interventions ·       │
   │  area rescoring · priority · ACS · greedy baseline · drivers             │
   └──────────────┬───────────────────────────────────────────────────────────┘
-                 │ load area bundle at startup        api writes
-     Cloud Storage: area bundle (GeoParquet)      Firestore (sessions, plans,
-     BigQuery: analytics copy, runs, evals        portfolios, observations)
+                 │ load area bundle at startup        api writes (planned)
+     Cloud Storage: area bundle (GeoParquet)      Firestore (run records —
+     BigQuery: analytics copy, runs, evals        not yet live)
 ```
 
 Two rules shape everything, and any future code change must preserve them:

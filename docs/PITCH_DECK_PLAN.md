@@ -59,7 +59,7 @@ Show the shipped path: React served with FastAPI on Cloud Run; the HTTP app call
 ### 9. Technologies
 | Area | Technology |
 | --- | --- |
-| AI | Gemini on Vertex AI: gemini-3.5-flash proposer and gemini-3.8-flash writer; plain asyncio and google-genai, not ADK |
+| AI | Gemini on Vertex AI (`gemini-3-flash-preview` proposes, `gemini-3.1-pro-preview` writes), plain asyncio over `google-genai` (no ADK) |
 | Backend | Python, FastAPI, shapely, geopandas, pvlib |
 | Front end | React, TypeScript, deck.gl, MapLibre GL |
 | Cloud | Cloud Run and Cloud Storage are live; Cloud Build deploys; BigQuery analytics, Firestore persistence and Earth Engine score layers are not built |

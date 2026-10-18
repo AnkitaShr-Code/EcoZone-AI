@@ -19,7 +19,7 @@ Documentation lives in `docs/`. Read in this order when picking up work:
 
 EcoZone AI treats a neighborhood as one cooling network (air paths, green patches/links, waiting points) with two modes sharing one engine and one map:
 
-- **Repair** (lead mode): planner picks an area + rupee budget; Gemini proposes portfolios of five intervention types (street tree row, shade structure, depave and plant, pocket green, cool roof); a deterministic engine scores each against ACS (Area Cooling Score) and a ventilation constraint; Gemini refines for up to 3 rounds against a greedy baseline.
+- **Repair** (lead mode): planner picks an area + rupee budget; Gemini proposes portfolios of five intervention types (street tree row, shade structure, depave and plant, pocket green, cool roof); a deterministic engine scores each against ACS (Area Cooling Score) and a ventilation constraint; Gemini refines for up to 2 rounds (configurable) against a greedy baseline.
 - **Protect** (second mode): planner previews a proposed building's effect on ventilation/heat/green/shade indices, then Gemini searches for alternative designs (options A/B/C) and can apply one envelope to a whole street (build-out).
 
 Non-negotiable constraints that any future code must preserve (see docs/PLANNING.md "Grounding rules" and "What we will not claim"):
@@ -64,7 +64,7 @@ Two structural rules to preserve when this code is written:
 1. **Sliders never wait for AI.** Any REST route a UI control calls directly (rescore, simulate) must run in the deterministic engine only, in well under a second — Gemini is invoked only for explanations and the propose/score/refine search loops.
 2. **One `rescore(area, changes)` routine serves both Repair and Protect build-out** — it is the single place that applies a list of `Change` objects and recomputes affected attributes/shadows/indices incrementally (STRtree-based radius queries), not two parallel implementations.
 
-The Repair and Protect design-search loops are the *same* generic loop (`agents/search.py`): an LLM Proposer emits candidates as structured JSON, a non-LLM Scorer calls the engine and drops invalid candidates, and a non-LLM Judge decides when to stop (max 3 rounds, or no candidate beats the best by a mode-specific threshold). Do not fork this into mode-specific loops.
+The Repair and Protect design-search loops are the *same* generic loop (`agents/search.py`): an LLM Proposer emits candidates as structured JSON, a non-LLM Scorer calls the engine and drops invalid candidates, and a non-LLM Judge decides when to stop (max 2 rounds by default, or no candidate beats the best by a mode-specific threshold). Do not fork this into mode-specific loops.
 
 ## Working conventions
 

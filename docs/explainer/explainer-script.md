@@ -32,7 +32,7 @@ Step one, choose the area. The map ranks every block by priority. Priority is hi
 
 Step two, set the budget. The planner enters, for example, twenty five lakh rupees, and checks the cost of each type of work. Then one more setting: how much of the budget must help this summer. We call these quick wins. Shade structures, cool roofs and depaving help within weeks or a season. Trees give the most value per rupee, but take years to give real shade. Without this setting, every plan came out as only trees. With a twenty percent quick-win share, the plan mixes trees with shade at the places people wait.
 
-Step three, review the plan. This is where the AI works. Gemini proposes several mixes of interventions. Our scoring engine scores every one of them. Gemini looks at the scores and proposes better mixes, for up to three rounds. At the same time, the engine builds a simple baseline plan by ranking every site on value per rupee. We always compare Gemini against that baseline, and if Gemini does not beat it, we show the baseline and say so. That keeps us honest.
+Step three, review the plan. This is where the AI works. Gemini proposes several mixes of interventions. Our scoring engine scores every one of them. Gemini looks at the scores and proposes better mixes, for up to two rounds. At the same time, the engine builds a simple baseline plan by ranking every site on value per rupee. We always compare Gemini against that baseline, and if Gemini does not beat it, we show the baseline and say so. That keeps us honest.
 
 The plan also shows what was rejected and why. For example: a row of trees on a deep, narrow street is rejected, because the canopy would block the breeze and trap heat at night. A shade structure is suggested instead. That rule, no dense trees on streets where the buildings are taller than the street is wide, is one simple rule a planner can check on site.
 
@@ -62,9 +62,9 @@ The scoring engine is plain Python. It holds one area in memory and is the only 
 
 The API is FastAPI. Sliders and plan edits call the engine directly, so they never wait for the AI.
 
-The agent layer uses Google's Agent Development Kit, with Gemini on Vertex AI. An orchestrator routes to four agents: a spatial analyst, a repair planner, a scenario analyst and a planning advisor. Both searches, the Repair plan and the Protect designs, run on the same loop. Gemini proposes. Plain code scores each option with the engine. Plain code decides when to stop. An output guard checks every answer: any number that did not come from the engine, or any temperature unit, is rejected.
+The agent layer calls Gemini on Vertex AI directly through google-genai. A code router picks between two search modes — Repair and Protect — and a writer role. Both searches run on the same propose-score-judge loop. Gemini proposes. Plain code scores each option with the engine. Plain code decides when to stop. An output guard checks every answer: any number that did not come from the engine, or any temperature unit, is rejected.
 
-Sessions and plans are stored in Firestore. There are no API keys in the code; the service uses a Google Cloud service account.
+Run records are stored in memory; Firestore persistence is planned. There are no API keys in the code; the service uses a Google Cloud service account.
 
 Two rules hold the whole design together. Sliders never wait for AI. And the engine is the only place a number is made.
 

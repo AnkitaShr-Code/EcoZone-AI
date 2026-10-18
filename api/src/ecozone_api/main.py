@@ -1,5 +1,6 @@
 """App factory: API routes under /api, the built React app at / (api/RULES.md)."""
 
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -19,6 +20,8 @@ from .routes import areas, health, rescore, runs
 from .run_manager import RunManager, SearchRunner, UnavailableRunner
 from .settings import Settings
 from .store import MemoryStore, Store
+
+log = logging.getLogger(__name__)
 
 
 def create_app(
@@ -42,11 +45,19 @@ def create_app(
         bundle_root = resolve_bundle_root(settings.bundle_uri)
         unit_cost_defaults = load_unit_costs(settings.unit_costs)
         search_runner = runner or build_runner(port, unit_cost_defaults, agent_settings) or UnavailableRunner()
+        active_store = store or MemoryStore()
+        ai_status = "unavailable" if isinstance(search_runner, UnavailableRunner) else "active"
+        log.info(
+            "startup ECOZONE_LLM=%s store=%s ai_search=%s",
+            (agent_settings or AgentSettings()).llm,
+            type(active_store).__name__,
+            ai_status,
+        )
         app.state.services = Services(
             engine=port,
             areas=load_areas(port, bundle_root),
             unit_cost_defaults=unit_cost_defaults,
-            runs=RunManager(search_runner, store or MemoryStore()),
+            runs=RunManager(search_runner, active_store),
         )
         yield
 

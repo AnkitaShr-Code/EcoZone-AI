@@ -107,6 +107,8 @@ class GeminiClient:
             response = await self._vertex().aio.models.generate_content(model=model, contents=prompt, config=config)
             if not response.text:
                 raise ModelError("The model returned no text.")
+            tokens = getattr(getattr(response, "usage_metadata", None), "total_token_count", None)
+            log.info("gemini ok role=%s model=%s tokens=%s", role, model, tokens)
             return schema.model_validate_json(response.text)
         except ModelError:
             raise
