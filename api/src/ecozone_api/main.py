@@ -1,6 +1,7 @@
 """App factory: API routes under /api, the built React app at / (api/RULES.md)."""
 
 import logging
+import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -19,7 +20,12 @@ from .deps import EnginePort, Services, load_areas, load_unit_costs
 from .routes import areas, health, rescore, runs
 from .run_manager import RunManager, SearchRunner, UnavailableRunner
 from .settings import Settings
-from .store import MemoryStore, Store
+from .store import FirestoreStore, MemoryStore, Store
+
+# Ensure application-level INFO logs are visible on stdout.
+# uvicorn's dictConfig only configures uvicorn.* loggers, leaving the root
+# logger without a handler; basicConfig is a no-op if handlers already exist.
+logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s:%(message)s", stream=sys.stdout)
 
 log = logging.getLogger(__name__)
 
@@ -45,7 +51,16 @@ def create_app(
         bundle_root = resolve_bundle_root(settings.bundle_uri)
         unit_cost_defaults = load_unit_costs(settings.unit_costs)
         search_runner = runner or build_runner(port, unit_cost_defaults, agent_settings) or UnavailableRunner()
-        active_store = store or MemoryStore()
+        if store is not None:
+            active_store = store
+        elif settings.store == "firestore":
+            try:
+                active_store = FirestoreStore()
+            except Exception:
+                log.warning("firestore unavailable, falling back to memory store", exc_info=True)
+                active_store = MemoryStore()
+        else:
+            active_store = MemoryStore()
         ai_status = "unavailable" if isinstance(search_runner, UnavailableRunner) else "active"
         log.info(
             "startup ECOZONE_LLM=%s store=%s ai_search=%s",
