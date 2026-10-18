@@ -43,7 +43,7 @@ Pinned in `uv.lock`; upgrade only in a PR that does nothing else.
 
 | Concern | Library | Used in |
 | --- | --- | --- |
-| Runtime | Python 3.12 (not 3.13+, for geospatial wheels and ADK) | all |
+| Runtime | Python 3.12 (not 3.13+, for geospatial wheels) | all |
 | Package and env manager | `uv` (workspace, lockfile, `uv run`) | all |
 | Geometry | `shapely` ≥ 2 (vectorized ops, `STRtree`), `pyproj` | engine, pipeline |
 | Tables | `geopandas`, `pandas`, `numpy`, `pyarrow` (GeoParquet) | engine (load only), pipeline |

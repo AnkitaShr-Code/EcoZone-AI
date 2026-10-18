@@ -24,11 +24,11 @@ How the system in [PLANNING.md](PLANNING.md) is built: the components, what each
   └──────────────┬──────────────────────────────────────┬───────────────────┘
                  │ REST (instant, no AI)                 │ SSE (agent runs)
   ┌──────────────▼──────────────────────┐   ┌────────────▼────────────────────┐
-  │  FastAPI routes                     │   │  ADK agent layer (Gemini on     │
-  │  /areas /parcels /interventions     │   │  Vertex AI)                     │
-  │  /shadows /buildout                 │   │  Code router → 4 agents         │
-  └──────────────┬──────────────────────┘   │  LoopAgent searches             │
-                 │                          │  Output guard (callback)        │
+  │  FastAPI routes                     │   │  Agent layer (Gemini on         │
+  │  /areas /parcels /interventions     │   │  Vertex AI, plain asyncio)       │
+  │  /shadows /buildout                 │   │  Code router → 2 modes          │
+  └──────────────┬──────────────────────┘   │  asyncio search loop            │
+                 │                          │  Output guard (plain code)      │
                  │                          └────────────┬────────────────────┘
                  │                tools call the engine   │
   ┌──────────────▼────────────────────────────────────────▼──────────────────┐
@@ -75,13 +75,13 @@ engine/            pure Python package, no cloud imports
 api/               FastAPI app
   main.py            routes, static file serving, startup area load
   schemas.py         Pydantic request and response models
-  store.py           Firestore and BigQuery clients
-agents/            ADK
-  runner.py          code routing by task (no LLM orchestrator)
-  spatial.py repair.py scenario.py advisor.py
-  tools.py           thin wrappers: tool → engine call → JSON result
-  search.py          generic LoopAgent search used by both modes
-  guard.py           after-model callback: number and unit check
+  store/             MemoryStore (live); FirestoreStore (planned, WP9)
+agents/            plain asyncio + google-genai
+  runner.py          code routing by mode (no LLM orchestrator)
+  repair.py protect.py explain.py
+  llm.py             Gemini client (Vertex AI, Application Default Credentials)
+  search.py          generic asyncio search loop used by both modes
+  guard.py           output guard: number, unit and driver check (plain function)
   prompts/           one prompt file per agent
 app/               React + TypeScript (Vite)
   src/map/           MapView, layers/*.ts
@@ -162,17 +162,16 @@ The same container serves the React build as static files, so there is one URL, 
 
 ### C4. Agent layer (Gemini on Vertex AI, plain asyncio code)
 
-Built without ADK (decision in [ENGINEERING_RULES.md](ENGINEERING_RULES.md) §2): the "agents" below are code roles with the same tools and contracts; Gemini is called through `google-genai`.
+Built without ADK (decision in [ENGINEERING_RULES.md](ENGINEERING_RULES.md) §2): the roles below are code paths; Gemini is called through `google-genai` directly.
 
-| Agent | Implementation | Tools | Notes |
-| --- | --- | --- | --- |
-| Router | Plain code (`runner.py`) | — | Picks the agent by API route; no LLM hop |
-| Spatial Analyst (not in WP7) | model call | get_area_context, get_parcel_context, analyze_imagery | Imagery is multimodal input (image clips from GCS) |
-| Repair Planner | search loop (`repair.py`) | rank_hotspots, list_candidate_sites, simulate_interventions, greedy_baseline | Runs the portfolio search |
-| Scenario Analyst | search loop (`protect.py`) | simulate_scenario, compare_scenarios, simulate_buildout | Runs the design search |
-| Planning Advisor | writer model + output guard | format_cooling_plan, format_planning_brief | Writes explanations and briefs |
+| Role | Implementation | Notes |
+| --- | --- | --- |
+| Router | `runner.py:build_runner` + `AgentsRunner` | Picks Repair or Protect mode by API route; no LLM hop |
+| Repair mode | `repair.py:RepairMode` | Runs the portfolio search |
+| Protect mode | `protect.py:ProtectMode` | Runs the design search |
+| Writer | `llm.py:LlmWriter` + `explain.py:write_explanation` | Explains plans; output guard runs after every attempt |
 
-**One search loop, two uses.** `search.py` runs one loop of at most 2 rounds with three steps:
+**One search loop, two modes.** `search.py` runs one loop of at most 2 rounds with three steps:
 
 1. **Proposer** (Gemini Flash tier): reads the compact brief (best results so far), proposes four candidates as structured JSON (portfolios for Repair, designs for Protect).
 2. **Scorer** (code, no LLM): calls the engine for each candidate, drops invalid ones (over budget, below the quick-win share, ventilation fail, floor-area rule), emits one progress event per candidate.
@@ -185,7 +184,7 @@ The scorer and judge are plain code, so the loop's control flow is deterministic
 | Model | Gemini on Vertex AI through a service account; exact model name confirmed against the Vertex AI model list on day 1 |
 | Structured output | Proposer and imagery outputs use response schemas, so candidates parse without regexes |
 | Output guard | `guard.py`, run on every writer answer: extracts every number from the text, checks it against numbers in this turn's tool results and planner inputs (with rounding tolerance), and rejects forbidden units (°C, m/s, kWh). One regeneration, then a template filled from engine values |
-| Sessions | Runs live in the API instance's memory, Cloud Run session affinity on; finished portfolios, plans and observations are written to Firestore so nothing is lost on restart |
+| Sessions | Active runs live in `MemoryStore`; Firestore write-through is planned (`ECOZONE_STORE=firestore`) so finished records survive restarts |
 | Progress | Scorer and judge events are forwarded to the SSE stream, which drives the live search animation |
 | Cost control | Proposer sees compact JSON summaries, not geometry; at most 2 rounds × 1 Gemini call per search |
 
@@ -295,7 +294,7 @@ Hours for builders comfortable with the stack, including debugging time.
 | A | Earth Engine layers (heights, Sentinel-2, albedo, WorldCover, Landsat, clips) | 8 |
 | A | BigQuery schema and loader | 3 |
 | A | FastAPI routes and area loading | 5 |
-| A | ADK agents and tool wrappers | 6 |
+| A | Agent layer (asyncio, google-genai) and tool wrappers | 6 |
 | A | Generic search loop (both modes) | 6 |
 | A | Output guard | 3 |
 | A | Imagery reading and field check lists | 3 |

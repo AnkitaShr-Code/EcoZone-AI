@@ -143,7 +143,7 @@ An offline pipeline turns public data into tables per city in BigQuery. A live a
 | Mode | Planner gives | Engine computes | Gemini adds | Output |
 | --- | --- | --- | --- | --- |
 | Repair: priority map | An area | Priority per block and footpath; baseline shade at 1, 3 and 4 pm | Names the top hotspots and why, from driver tags | Ranked hotspot map |
-| Repair: cooling plan | Budget and unit costs | Candidate sites; score, cost and ventilation check for every portfolio; greedy baseline | Proposes and refines portfolios for up to 3 rounds; field check list per site | Costed, phased plan with before and after scores and shadows |
+| Repair: cooling plan | Budget and unit costs | Candidate sites; score, cost and ventilation check for every portfolio; greedy baseline | Proposes and refines portfolios for up to 2 rounds (configurable); field check list per site | Costed, phased plan with before and after scores and shadows |
 | Protect: preview and explain | A parcel and a proposal | Baseline and proposed indices, risk label, driver tags | Plain-language drivers; imagery observations labeled AI-estimated | Before and after, risk label, explanation |
 | Protect: design search | The proposal and the share of floor area to keep | Scores for every candidate | Proposes and refines candidates for up to 2 rounds | Options A, B and C |
 | Protect: area build-out | A street or group of blocks and the maximum envelope | Rescores every parcel in the area, neighbors included | Names the parcels and streets that lose most, and why | Area averages before and after, count of HIGH parcels |
@@ -152,7 +152,7 @@ Every mode ends in a brief, and every answer passes the output guard before the 
 
 ## System architecture
 
-React app → FastAPI service on Cloud Run → (deterministic API calls go straight to the engine; questions and searches go through the agent layer (plain asyncio code over `google-genai`, no ADK), whose tools call the engine) → area data loaded into memory from a GeoParquet bundle on Cloud Storage (BigQuery holds an analytics copy) → output guard on every Gemini answer. Sessions and plans are stored in Firestore, images and area bundles in Cloud Storage, and Gemini runs on Vertex AI with a service account, so there are no API keys in the code. Full component design: [DESIGN.md](DESIGN.md).
+React app → FastAPI service on Cloud Run → (deterministic API calls go straight to the engine; questions and searches go through the agent layer (plain asyncio code over `google-genai`, no ADK), whose tools call the engine) → area data loaded into memory from a GeoParquet bundle on Cloud Storage (BigQuery holds an analytics copy) → output guard on every Gemini answer. Run records are stored in memory (Firestore persistence is planned). Images and area bundles are in Cloud Storage. Gemini runs on Vertex AI with a service account, so there are no API keys in the code. Full component design: [DESIGN.md](DESIGN.md).
 
 ## Scoring engine
 
@@ -261,15 +261,14 @@ Gemini does the jobs the engine cannot: it searches for good portfolios and desi
 
 ### Agents
 
-Four agent roles, built as plain asyncio code over `google-genai` (the Agent Development Kit was evaluated and not used; see ENGINEERING_RULES.md), each with its own tools. Plain code picks the agent from the API route (decided Oct 15: the UI never sends free-form chat, so an LLM routing hop adds latency without value).
+Two search modes and a writer, built as plain asyncio code over `google-genai` (the Agent Development Kit was evaluated and not used; see ENGINEERING_RULES.md). Plain code picks the mode from the API route (decided Oct 15: the UI never sends free-form chat, so an LLM routing hop adds latency without value).
 
-| Agent | Job | Tools |
+| Role | Job | Implementation |
 | --- | --- | --- |
-| Router (code) | Picks the agent by route, calls agents in order, enforces the output format | The four agents |
-| Spatial Analyst | Area and parcel context, imagery observations | get\_area\_context, get\_parcel\_context, analyze\_imagery |
-| Repair Planner | Hotspots, candidate sites, portfolio search | rank\_hotspots, list\_candidate\_sites, simulate\_interventions, greedy\_baseline |
-| Scenario Analyst | Protect preview, design search, build-out | simulate\_scenario, compare\_scenarios, simulate\_buildout |
-| Planning Advisor | Explanations, cooling plan, planning brief | format\_cooling\_plan, format\_planning\_brief |
+| Router (code) | Picks Repair or Protect mode by route; calls the search loop then the writer | `runner.py` |
+| Repair mode | Hotspots, candidate sites, portfolio search | `repair.py` (`RepairMode`) |
+| Protect mode | Protect preview, design search | `protect.py` (`ProtectMode`) |
+| Writer | Explanations from engine values | `llm.py:LlmWriter` + `explain.py` |
 
 ### Portfolio search loop (Repair)
 

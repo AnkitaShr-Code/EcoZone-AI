@@ -3,7 +3,7 @@
 Team of 3, about 100 to 130 person-hours from Oct 13 to Oct 18. Repair leads; Protect is second. Scope and estimates: [DESIGN.md](DESIGN.md#6-effort-estimate). Gate rules and the cut order: [PLANNING.md](PLANNING.md#build-plan-oct-13-to-18).
 
 - **D** = Data and engine (OSM pipeline, geometry, shadows, engine, greedy, engine tests) · about 45 h
-- **A** = Agents and cloud (Earth Engine, BigQuery, FastAPI, ADK, guard, deploy, agent evals) · about 43 h
+- **A** = Agents and cloud (Vertex AI, BigQuery, FastAPI, google-genai, guard, deploy, agent evals) · about 43 h
 - **U** = Front end (React, deck.gl, panels, brief view, accessibility; helps with deck and video) · about 33 h
 - **All** = whole team · about 12 h
 
